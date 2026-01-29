@@ -19,7 +19,7 @@ export type { CarouselState } from "./animation/carousel"
 export { createRAFCarousel, effect_carouselStart } from "./animation/carousel"
 
 // dom
-export type { ScrollMargin } from "./dom/utils"
+export type { ScrollMargin, MatrixState } from "./dom/utils"
 
-export { getScrollMargin, marquee } from "./dom/utils"
+export { getScrollMargin, getMatrixState, marquee } from "./dom/utils"
 export { effect_setTimedValue, effect_nodesInitialize, subscription_nodesCleanup, subscription_nodesLifecycleByIds } from "./dom/lifecycle"

@@ -146,7 +146,9 @@ DOM を直接扱うユーティリティ
 
 - `ScrollMargin`    : スクロールの余白を管理するオブジェクト
 - `getScrollMargin` : スクロールの余白を取得
-- `marquee`          : Carousel 風に DOM が流れるアニメーションを実行する
+- `MatrixState`     : transform 情報
+- `getMatrixState`  : DOM から transfrom 情報を取得する
+- `marquee`         : Carousel 風に DOM が流れるアニメーションを実行する
 
 ---
 
@@ -183,8 +185,6 @@ src
      │  │   RAFRuntime
      │  │   RAFTask
      │  │   subscription_RAFManager
-     │  │   effect_RAFPause
-     │  │   effect_RAFResume
      │  │
      │  ├ properties.ts
      │  │   CSSProperty
@@ -203,6 +203,8 @@ src
          ├ utils.ts
          │   ScrollMargin
          │   getScrollMargin
+         │   MatrixState
+         │   getMatrixState
          │   marquee
          │
          └ lifecycle.ts
@@ -903,6 +905,47 @@ export const getScrollMargin = function (e: Event): ScrollMargin
 ```
 
 - e: イベント
+
+---
+
+### MatrixState
+transform 情報
+
+```ts
+export interface MatrixState {
+	translate: {
+		x: number
+		y: number
+		z: number
+	}
+
+	scale: {
+		x: number
+		y: number
+		z: number
+	}
+
+	// radian
+	rotate: {
+		x: number
+		y: number
+		z: number
+	}
+}
+```
+
+---
+
+### getMatrixState
+DOM から transfrom 情報を取得する
+
+```ts
+export const getMatrixState = (
+	dom: HTMLElement
+): MatrixState | null
+```
+
+- dom : 情報を取得する DOM
 
 ---
 
