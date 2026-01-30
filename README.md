@@ -54,6 +54,8 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 **dom / utils.ts**
 - [ScrollMargin](#scrollmargin)
 - [getScrollMargin](#getscrollmargin)
+- [MatrixState](#matrixstate)
+- [getMatrixState](#getmatrixstate)
 - [marquee](#marquee)
 
 **dom / lifecycle.ts**
@@ -528,6 +530,8 @@ rAF のフレーム中に、即座に反映する必要がある状態を保持�
 
 ### RAFTask
 requestAnimationFrame (rAF) を管理するためのオブジェクト
+
+!! **RAFTask** は内部に mutable な runtime を持つため、将来的にクラスへ移行する予定です !!
 
 ```ts
 export interface RAFTask <S> {
