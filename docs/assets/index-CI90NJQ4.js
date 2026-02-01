@@ -535,6 +535,7 @@ const effect_throwMessageResume = function(id2) {
     });
   };
 };
+const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {
   // field
   #id;
@@ -601,7 +602,7 @@ class RAFTask {
     return this.#deltaTime ?? 0;
   }
   get isDone() {
-    if (this.#pausedTime) return false;
+    if (this.#pausedTime !== void 0) return false;
     return this.progress === 1;
   }
   get paused() {
@@ -630,15 +631,16 @@ class RAFTask {
       }
     }
   }
-  // method: isStart
+  // private method: _isStart
   /**
    * アクションを開始して良いか判定する
    * 現在時間等のアップデートも同時に行われる
+   * subscription_RAFManager でのみ使用される
    * 
    * @param   {number} now - requestAnimatinFrame が返す絶対時間
    * @returns {boolan}     - アクションを実行して良いか判定
    */
-  isStart(now) {
+  [_isStart](now) {
     if (this.#isDone) return false;
     if (this.paused) {
       this.#deltaTime = 0;
@@ -680,7 +682,7 @@ const subscription_RAFManager = function(state, keyNames) {
           const tasks = getValue(state2, keyNames, []);
           const newTasks = tasks.map((task) => {
             if (task.isDone) return null;
-            if (task.isStart(now)) {
+            if (task[_isStart](now)) {
               requestAnimationFrame(
                 () => dispatch((state3) => task.action(state3, task))
               );

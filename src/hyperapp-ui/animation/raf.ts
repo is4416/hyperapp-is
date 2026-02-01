@@ -13,10 +13,22 @@ import { getValue, setValue } from "../core/state"
 export type InternalEffect<S> = Effect<S>
 
 // ---------- ---------- ---------- ---------- ----------
+// type RAFEvent
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * RAFTask の action, finish
+ * 型エイリアス
+ */
+export type RAFEvent<S> = (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
+
+// ---------- ---------- ---------- ---------- ----------
 // class RAFTask
 // ---------- ---------- ---------- ---------- ----------
 
-export type RAFEvent<S> = (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
+// Symbol
+// subscription_RAFManager のみで使用される専用メソッド
+// Symbol を知らない限り、モジュールの外からは呼べない
+const _isStart = Symbol("RAFTask.isStart")
 
 export class RAFTask <S> {
 	// field
@@ -81,7 +93,7 @@ export class RAFTask <S> {
 	}
 	get deltaTime(): number { return this.#deltaTime ?? 0 }
 	get isDone()   : boolean {
-		if (this.#pausedTime) return false
+		if (this.#pausedTime !== undefined) return false
 		return this.progress === 1
 	}
 	get paused()   : boolean { return this.#pausedTime !== undefined }
@@ -102,15 +114,16 @@ export class RAFTask <S> {
 		}
 	}
 
-	// method: isStart
+	// private method: _isStart
 	/**
 	 * アクションを開始して良いか判定する
 	 * 現在時間等のアップデートも同時に行われる
+	 * subscription_RAFManager でのみ使用される
 	 * 
 	 * @param   {number} now - requestAnimatinFrame が返す絶対時間
 	 * @returns {boolan}     - アクションを実行して良いか判定
 	 */
-	isStart(now: number): boolean {
+	private [_isStart](now: number): boolean {
 		// done
 		if (this.#isDone) return false
 
@@ -188,7 +201,7 @@ export const subscription_RAFManager = function <S>(
 						if (task.isDone) return null
 
 						// action
-						if (task.isStart(now)) {
+						if (task[_isStart](now)) {
 							requestAnimationFrame(() =>
 								dispatch((state: S) => task.action(state, task))
 							)

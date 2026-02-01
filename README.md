@@ -533,8 +533,7 @@ export class RAFTask <S> {
 	paused   : boolean
 
 	// method
-	isStart(now: number): boolean
-	clone               : RAFTask<S>
+	clone: RAFTask<S>
 }
 ```
 
@@ -572,8 +571,6 @@ getter / setter
 
 **method**
 
-- isStart: アクションを開始して良いか判定する  
-現在時間等のアップデートも同時に行われる
 - clone: 時間を初期化したクローンを作成して返す
 
 ---
