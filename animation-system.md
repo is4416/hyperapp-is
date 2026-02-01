@@ -209,6 +209,9 @@ Carousel 管理用オブジェクト
 このエフェクトは `createRAFCarousel` により作成した `RAFTask` を  
 **ステートに登録** するためのラッパーです
 
+### effect_carouselRollback
+アニメーション中のカルーセルを、元の位置に戻すエフェクト
+
 ## その他
 
 - `step.ts` は、rAF を使用したアニメーションライブラリではありません

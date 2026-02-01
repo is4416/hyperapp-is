@@ -44,6 +44,7 @@ export class RAFTask <S> {
 	#startTime  ?: number
 	#currentTime?: number
 	#pausedTime ?: number
+	#paused      : boolean
 
 	#deltaTime?: number
 
@@ -69,6 +70,7 @@ export class RAFTask <S> {
 		this.#priority  = props.priority ?? 0
 		this.#extension = props.extension ?? {}
 		this.#isDone    = false
+		this.#paused    = false
 	}
 
 	// getter
@@ -96,23 +98,14 @@ export class RAFTask <S> {
 		if (this.#pausedTime !== undefined) return false
 		return this.progress === 1
 	}
-	get paused()   : boolean { return this.#pausedTime !== undefined }
+	get paused()   : boolean { return this.#paused }
 
 	// setter
 	set groupID(val: string | undefined) { this.#groupID = val }
 	set priority(val: number) { this.#priority = val }
 	set extension(val: { [key: string]: any }) { this.#extension = val}
 	set isDone(val: boolean) { this.#isDone = val }
-	set paused(val: boolean) {
-		if (val) {
-			if (this.#pausedTime === undefined) this.#pausedTime = this.#currentTime ?? 0
-		} else {
-			if (this.#pausedTime !== undefined) {
-				this.#startTime  = (this.#startTime ?? 0) + (this.#currentTime ?? 0) - (this.#pausedTime ?? 0)
-				this.#pausedTime = undefined
-			}
-		}
-	}
+	set paused(val: boolean) { this.#paused = val }
 
 	// private method: _isStart
 	/**
@@ -127,15 +120,23 @@ export class RAFTask <S> {
 		// done
 		if (this.#isDone) return false
 
+		// startTime
+		if (this.#startTime === undefined) this.#startTime = now + this.#delay
+
 		// pause
 		if (this.paused) {
+			if (this.#pausedTime === undefined) this.#pausedTime = now
 			this.#deltaTime   = 0
 			this.#currentTime = now
 			return false
 		}
 
-		// startTime
-		if (this.#startTime === undefined) this.#startTime = now + this.#delay
+		// resume
+		if (!this.paused && this.#pausedTime !== undefined) {
+			this.#startTime  = this.#startTime + now - this.#pausedTime
+			this.#pausedTime = undefined
+			this.#deltaTime  = now
+		}
 
 		// deltaTime
 		this.#deltaTime = now < this.#startTime

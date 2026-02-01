@@ -549,6 +549,7 @@ class RAFTask {
   #startTime;
   #currentTime;
   #pausedTime;
+  #paused;
   #deltaTime;
   #isDone;
   // constructor
@@ -562,6 +563,7 @@ class RAFTask {
     this.#priority = props.priority ?? 0;
     this.#extension = props.extension ?? {};
     this.#isDone = false;
+    this.#paused = false;
   }
   // getter
   get id() {
@@ -606,7 +608,7 @@ class RAFTask {
     return this.progress === 1;
   }
   get paused() {
-    return this.#pausedTime !== void 0;
+    return this.#paused;
   }
   // setter
   set groupID(val) {
@@ -622,14 +624,7 @@ class RAFTask {
     this.#isDone = val;
   }
   set paused(val) {
-    if (val) {
-      if (this.#pausedTime === void 0) this.#pausedTime = this.#currentTime ?? 0;
-    } else {
-      if (this.#pausedTime !== void 0) {
-        this.#startTime = (this.#startTime ?? 0) + (this.#currentTime ?? 0) - (this.#pausedTime ?? 0);
-        this.#pausedTime = void 0;
-      }
-    }
+    this.#paused = val;
   }
   // private method: _isStart
   /**
@@ -642,12 +637,18 @@ class RAFTask {
    */
   [_isStart](now) {
     if (this.#isDone) return false;
+    if (this.#startTime === void 0) this.#startTime = now + this.#delay;
     if (this.paused) {
+      if (this.#pausedTime === void 0) this.#pausedTime = now;
       this.#deltaTime = 0;
       this.#currentTime = now;
       return false;
     }
-    if (this.#startTime === void 0) this.#startTime = now + this.#delay;
+    if (!this.paused && this.#pausedTime !== void 0) {
+      this.#startTime = this.#startTime + now - this.#pausedTime;
+      this.#pausedTime = void 0;
+      this.#deltaTime = now;
+    }
     this.#deltaTime = now < this.#startTime ? 0 : now - (this.#currentTime ?? now);
     this.#currentTime = now;
     this.#isDone = this.progress === 1;
@@ -833,7 +834,7 @@ const progress_easing = {
   }
 };
 const createRAFCarousel = function(props) {
-  const { id: id2, groupID, duration, delay, priority, easing = (t) => t, carouselState } = props;
+  const { id: id2, groupID, duration, delay, priority, carouselState } = props;
   const extension = {
     ...props.extension,
     carouselState
@@ -858,7 +859,7 @@ const createRAFCarousel = function(props) {
   };
   const properties = [{
     [`#${id2}`]: {
-      "transform": (progress) => `translateX(${-easing(progress) * carouselState.width}px)`
+      "transform": (progress) => `translateX(${-carouselState.easing(progress) * carouselState.width}px)`
     }
   }];
   return createRAFProperties({
@@ -873,7 +874,8 @@ const createRAFCarousel = function(props) {
   });
 };
 const effect_carouselStart = function(props) {
-  const { id: id2, groupID, duration, delay, priority, extension, easing, keyNames } = props;
+  const { id: id2, groupID, duration, delay, priority, extension, keyNames } = props;
+  const easing = props.easing ? props.easing : (t) => t;
   const finish = (state, rafTask) => {
     const dom = document.getElementById(id2);
     if (!dom) return state;
@@ -890,11 +892,11 @@ const effect_carouselStart = function(props) {
       finish,
       priority,
       extension,
-      easing,
       carouselState: {
         index: carouselState.index + 1 < children.length ? carouselState.index + 1 : 0,
         total: children.length,
-        width
+        width,
+        easing: carouselState.easing
       }
     });
     return [
@@ -920,16 +922,62 @@ const effect_carouselStart = function(props) {
       finish,
       priority,
       extension,
-      easing,
       carouselState: {
         index: 0,
         total: children.length,
-        width
+        width,
+        easing
       }
     });
     dispatch((state) => {
       const tasks = getValue(state, keyNames, []).filter((task) => task.id !== id2).concat(newTask);
       return setValue(state, keyNames, tasks);
+    });
+  };
+};
+const effect_carouselRollback = function(props) {
+  const { id: id2, keyNames, paused } = props;
+  return (dispatch) => {
+    dispatch((state) => {
+      const tasks = getValue(state, keyNames, []);
+      const task = tasks.find((task2) => task2.id === id2);
+      if (!task) return state;
+      const param = task.extension?.carouselState;
+      if (!param) return state;
+      task.paused = true;
+      const dom = document.getElementById(id2);
+      if (!dom) return state;
+      const children = Array.from(dom.children);
+      if (!children || children.length < 2) return state;
+      const width = (children[1].offsetLeft - children[0].offsetLeft) * param.easing(task.progress);
+      const cloneTask = task.clone();
+      const newTask = new RAFTask({
+        id: `${id2}_remove`,
+        duration: 300,
+        action: (state2, rafTask) => {
+          const val = -width + param.easing(rafTask.progress) * width;
+          dom.style.transform = `translateX(${val}px)`;
+          return state2;
+        },
+        finish: (state2, rafTask) => {
+          dom.style.transform = "translateX(0px)";
+          cloneTask.paused = paused ?? false;
+          const fn = props.finish;
+          if (fn) {
+            requestAnimationFrame(() => dispatch((state3) => fn(state3, cloneTask)));
+          }
+          return setValue(
+            state2,
+            keyNames,
+            getValue(state2, keyNames, []).filter((task2) => task2.id !== id2 && task2.id !== `${id2}_remove`).concat(cloneTask)
+          );
+        }
+      });
+      return setValue(
+        state,
+        keyNames,
+        tasks.filter((task2) => task2.id !== id2).concat(newTask)
+      );
     });
   };
 };
@@ -1161,43 +1209,24 @@ const action_carouselButtonClick = (state) => {
     })
   ];
 };
+let isMouseOver = false;
 const action_carouselPause = (state) => {
-  const tasks = getValue(state, ["subscriptions", "tasks"], []);
-  const task = tasks.find((task2) => task2.id === "carousel");
-  if (!task) return state;
-  task.paused = true;
-  const dom = document.getElementById(task.id);
-  if (!dom) return state;
-  const children = Array.from(dom.children);
-  if (!children || children.length < 2) return state;
-  const width = (children[1].offsetLeft - children[0].offsetLeft) * progress_easing.easeOutCubic(task.progress);
-  const cloneTask = task.clone();
-  const newTask = new RAFTask({
-    id: "carousel_remove",
-    duration: 300,
-    action: (state2, rafTask) => {
-      const val = -width + progress_easing.easeOutCubic(rafTask.progress) * width;
-      dom.style.transform = `translateX(${val}px)`;
-      return state2;
-    },
-    // 巻き戻しアニメーション終了時には、クローンした元のアニメーションに差し替える
-    finish: (state2, rafTask) => {
-      dom.style.transform = "translateX(0px)";
-      cloneTask.paused = false;
-      return setValue(
-        state2,
-        ["subscriptions", "tasks"],
-        getValue(state2, ["subscriptions", "tasks"], []).filter((task2) => task2.id !== "carousel" && task2.id !== "carousel_remove").concat(cloneTask)
-      );
-    }
-  });
-  return setValue(
+  isMouseOver = true;
+  return [
     state,
-    ["subscriptions", "tasks"],
-    tasks.filter((task2) => task2.id !== "carousel").concat(newTask)
-  );
+    effect_carouselRollback({
+      id: "carousel",
+      keyNames: ["subscriptions", "tasks"],
+      paused: false,
+      finish: (state2, rafTask) => {
+        rafTask.paused = isMouseOver;
+        return state2;
+      }
+    })
+  ];
 };
 const action_carouselResume = (state) => {
+  isMouseOver = false;
   const task = getValue(state, ["subscriptions", "tasks"], []).find((task2) => task2.id === "carousel");
   if (task) task.paused = false;
   return state;

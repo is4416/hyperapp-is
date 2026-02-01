@@ -17,7 +17,7 @@ import {
 
 	effect_RAFProperties,
 	
-	CarouselState, effect_carouselStart,
+	CarouselState, effect_carouselStart, effect_carouselRollback,
 
 	ScrollMargin, getScrollMargin,
 	marquee,
@@ -268,64 +268,36 @@ const action_carouselButtonClick = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_carouselPause
 // ---------- ---------- ---------- ---------- ----------
+
+// アニメーション中にマウスが離れてしまうとイベントが追えないため
+// とりあえずフラグとして管理
+let isMouseOver = false
+
 /**
  * #carousel にマウスが乗った場合のアニメーション
  * 動作途中の rAF アニメーションを差し替えるテスト
  */
 const action_carouselPause = (state: State) => {
-	// get task
-	const tasks = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
-	const task  = tasks.find(task => task.id === "carousel")
-	if (!task) return state
+	isMouseOver = true
 
-	// pause
-	task.paused = true
-
-	// get dom
-	const dom = document.getElementById(task.id)
-	if (!dom) return state
-
-	const children = Array.from(dom.children) as HTMLElement[]
-	if (!children || children.length < 2) return state
-
-	// get width (動作済みの幅を取得)
-	const width = (children[1].offsetLeft - children[0].offsetLeft)
-		* progress_easing.easeOutCubic(task.progress)
-
-	// clone (現在のタスクをクローン)
-	const cloneTask  = task.clone()
-
-	// newTask (動作済みの幅を戻すアニメーション)
-	const newTask = new RAFTask<State>({
-		id      : "carousel_remove",
-		duration: 300,
-
-		action: (state: State, rafTask: RAFTask<State>): State | [State, InternalEffect<State>] => {
-			const val = - width + progress_easing.easeOutCubic(rafTask.progress) * width
-
-			dom.style.transform = `translateX(${ val }px)`
-			return state
-		},
-
-		// 巻き戻しアニメーション終了時には、クローンした元のアニメーションに差し替える
-		finish: (state: State, rafTask: RAFTask<State>): State | [State, InternalEffect<State>] => {
-			dom.style.transform = "translateX(0px)"
-			cloneTask.paused = false
-
-			return setValue(state, ["subscriptions", "tasks"],
-				getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
-					.filter(task => task.id !== "carousel" && task.id !== "carousel_remove")
-					.concat(cloneTask)
-			)
-		}
-	})
-
-	// 巻き戻しアニメーションに差し替える
-	return setValue(state, ["subscriptions", "tasks"],
-		tasks
-			.filter(task => task.id !== "carousel")
-			.concat(newTask)
-	)
+/* 単純な一時停止を行いたい場合は、これだけ
+	const task = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
+		.find(task => task.id === "carousel")
+	if (task) task.paused = true
+	return state
+*/
+	return [
+		state,
+		effect_carouselRollback({
+			id      : "carousel",
+			keyNames: ["subscriptions", "tasks"],
+			paused  : false,
+			finish  : (state: State, rafTask: RAFTask<State>) => {
+				rafTask.paused = isMouseOver
+				return state
+			}
+		})
+	]
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -335,11 +307,10 @@ const action_carouselPause = (state: State) => {
  * #カルーセルからマウスが離れた場合のアニメーション
  */
 const action_carouselResume = (state: State) => {
-	// get task
+	isMouseOver = false
+
 	const task = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
 		.find(task => task.id === "carousel")
-
-	// 一時停止解除
 	if (task) task.paused = false
 
 	return state

@@ -33,6 +33,7 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 
 **animation / raf.ts**
 - [InternalEffect](#internaleffect)
+- [RAFEvent](#rafevent)
 - [RAFTask](#raftask)
 - [subscription_RAFManager](#subscription_rafmanager)
 
@@ -49,6 +50,7 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 - [CarouselState](#carouselstate)
 - [createRAFCarousel](#createrafcarousel)
 - [effect_carouselStart](#effect_carouselstart)
+- [effect_carouselRollback](#effect_carouselrollback)
 
 **dom / utils.ts**
 - [ScrollMargin](#scrollmargin)
@@ -109,8 +111,8 @@ requestAnimationFrame を利用した処理
 
 - `InternalEffect`          : Dispatch の内部処理から呼び出されるエフェクトで、戻り値とならない  
   設計意図を明示するための型エイリアス (型としては `Effect` と同一)
-- `RAFRuntime`              : 即時反映が必要な mutable 処理専用オブジェクト
-- `RAFTask`                 : rAF タスク定義オブジェクト
+- `RAFEvent`                : RAFTask のアクションイベント (型エイリアス)
+- `RAFTask`                 : rAF タスクを管理するクラス
 - `subscription_RAFManager` : RAFTask をフレームごとに実行させるサブスクリプション  
   タスクの並び替え・進捗管理・終了判定を一括で行う
 
@@ -135,9 +137,10 @@ rAF を利用した CSS設定
 
 ### animation / carousel.ts
 
-- `CarouselState`        : Carousel 管理用オブジェクト
-- `createRAFCarousel`    : Carousel アニメーション RAFTask を作成する
-- `effect_carouselStart` : subscription_RAFManager をベースにした Carousel アニメーションエフェクト
+- `CarouselState`           : Carousel 管理用オブジェクト
+- `createRAFCarousel`       : Carousel アニメーション RAFTask を作成する
+- `effect_carouselStart`    : subscription_RAFManager をベースにした Carousel アニメーションエフェクト
+- `effect_carouselRollback` : カルーセル中のアニメーションを元に戻すエフェクト
 
 ---
 
@@ -199,6 +202,7 @@ src
      │       CarouselState
      │       createRAFCarousel
      │       effect_carouselStart
+     │       effect_carouselRollback
      │
      └ dom
          ├ utils.ts
@@ -654,14 +658,6 @@ props は、基本的に RAFTask の値
 
 - properties: セレクタとスタイル設定のセット配列
 
-**重要**
-finish は、Dispatch 内で実行されるため、エフェクトを返すことができません  
-(dispatch の再入・無限ループを防ぐための制約です)  
-エフェクトが必要な場合、`setTimeout` / `setInterval` / `requestAnimationFrame`  
-などの非同期境界を必ず挟んでください
-
-例: ` requestAnimationFrame(() => dispatch(...))`
-
 ---
 
 ### effect_RAFProperties
@@ -691,14 +687,6 @@ props は、基本的に RAFTask の値
 - properties: セレクタとスタイル設定のセット配列
 - keyNames  : RAFTask 配列までのパス
 
-**重要**
-finish は、Dispatch 内で実行されるため、エフェクトを返すことができません  
-(dispatch の再入・無限ループを防ぐための制約です)  
-エフェクトが必要な場合、`setTimeout` / `setInterval` / `requestAnimationFrame`  
-などの非同期境界を必ず挟んでください
-
-例: ` requestAnimationFrame(() => dispatch(...))`
-
 ---
 
 ### CarouselState
@@ -706,15 +694,17 @@ Carousel 管理用オブジェクト
 
 ```ts
 export interface CarouselState {
-	width: number
-	index: number
-	total: number
+	width : number
+	index : number
+	total : number
+	easing: (t: number) => number
 }
 ```
 
-- width: 移動量
-- index: 先頭のインデックス
-- total: 子の数
+- width : 移動量
+- index : 先頭のインデックス
+- total : 子の数
+- easing: easing 関数
 
 ---
 
@@ -734,23 +724,13 @@ export const createRAFCarousel = function <S> (
 		priority ?: number
 		extension?: { [key: string]: any }
 
-		easing ?: (t: number) => number
 		carouselState: CarouselState
 	}
 ): RAFTask<S>
 ```
 
 - props は、基本的に RAFTask の値
-- easing       : easing 関数
 - carouselState: カルーセル情報
-
-**重要**
-finish は、Dispatch 内で実行されるため、エフェクトを返すことができません  
-(dispatch の再入・無限ループを防ぐための制約です)  
-エフェクトが必要な場合、`setTimeout` / `setInterval` / `requestAnimationFrame`  
-などの非同期境界を必ず挟んでください
-
-例: ` requestAnimationFrame(() => dispatch(...))`
 
 ---
 
@@ -792,13 +772,24 @@ marquee はステートを通さず直接 DOM に対して副作用を発生さ�
 - marquee : DOM 直接操作。軽量で即時反映
 - effect_carouselStart : Hyperapp のステート経由で管理。RAFManager と連携可能
 
-**重要**
-finish は、Dispatch 内で実行されるため、エフェクトを返すことができません  
-(dispatch の再入・無限ループを防ぐための制約です)  
-エフェクトが必要な場合、`setTimeout` / `setInterval` / `requestAnimationFrame`  
-などの非同期境界を必ず挟んでください
+### effect_carouselRollback
+アニメーション中のカルーセルを、元の位置に戻す
 
-例: ` requestAnimationFrame(() => dispatch(...))`
+```ts
+export const effect_carouselRollback = function <S> (
+	props: {
+		id      : string
+		keyNames: string[]
+		paused ?: boolean
+		finish ?: RAFEvent<S>
+	}
+): (dispatch: Dispatch<S>)
+```
+
+- id      : ユニークID
+- keyNames: RAFTask 配列までのパス
+- paused  : 実行後、一時停止するか
+- finish  : 実行後に呼び出されるイベント
 
 ---
 
