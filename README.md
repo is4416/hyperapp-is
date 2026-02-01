@@ -33,7 +33,6 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 
 **animation / raf.ts**
 - [InternalEffect](#internaleffect)
-- [RAFRuntime](#rafruntime)
 - [RAFTask](#raftask)
 - [subscription_RAFManager](#subscription_rafmanager)
 
@@ -184,7 +183,7 @@ src
      │  │
      │  ├ raf.ts
      │  │   InternalEffect
-     │  │   RAFRuntime
+     │  │   RAFEvent
      │  │   RAFTask
      │  │   subscription_RAFManager
      │  │
@@ -489,102 +488,93 @@ Dispatch で呼ばれるアクションでは、エフェクトを直接返す�
 
 ---
 
-### RAFRuntime
-`requestAnimationFrame` による処理において  
-即時反映が必要な mutable な実行状態を管理するオブジェクト
-
+### RAFEvent
+RAFTask で使用されるイベント  
+hyperapp で使用される通常のアクション と同一なものですが  
+`payload` と `Effect` の型名が再定義されています
 
 ```ts
-export interface RAFRuntime {
-	startTime  ?: number
-	currentTime?: number
-	pausedTime ?: number
-	paused     ?: boolean
-	isDone     ?: boolean
-
-	progress ?: number
-	deltaTime?: number
-}
+type RAFEvent = <S> (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 ```
-
-- startTime  ?: アクション開始時間
-- currentTime?: 実行時間
-- pausedTime ?: 一時停止時間
-- paused     ?: 一時停止フラグ
-- isDone     ?: 処理終了フラグ
-- progress   ?: 進捗状況 (0 - 1)
-- deltaTime  ?: 前回からの経過時間
-
-**重要**
-
-`RAFRuntime` は、mutable なオブジェクトとして扱われます  
-ステートにセットする際はクローンせず、参照を維持してください
-
-**概要**
-
-rAF のフレーム中に、即座に反映する必要がある状態を保持します  
-`subscription_RAFManager` が直接参照・更新します  
-ステートとは役割を分離しています
 
 ---
 
 ### RAFTask
-requestAnimationFrame (rAF) を管理するためのオブジェクト
-
-!! **RAFTask** は内部に mutable な runtime を持つため、将来的にクラスへ移行する予定です !!
+requestAnimationFrame (rAF) を管理するためのクラス
 
 ```ts
-export interface RAFTask <S> {
-	id      : string
-	groupID?: string
-	duration: number
-	delay  ?: number
+export class RAFTask <S> {
+	// constructor
+	constructor (props: {
+		id        : string
+		groupID  ?: string
+		duration  : number
+		delay    ?: number
+		action    : RAFEvent<S>
+		finish   ?: RAFEvent<S>
+		priority ?: number
+		extension?: { [key: string]: any }
+	})
 
-	// runtime accessors
-	readonly progress ?: number
-	readonly deltaTime?: number
-	paused?: boolean
+	// getter
+	id       : string
+	duration : number
+	delay    : number
+	action   : RAFEvent<S>
+	finish   : RAFEvent<S>
+	progress : number
+	deltaTime: number
 
-	// event
-	action : (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-	finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
+	// getter / setter
+	groupID  : string | undefined
+	priority : number
+	extension: { [key: string]: any }
+	isDone   : boolean
+	paused   : boolean
 
-	// mutable
-	runtime: RAFRuntime
-
-	// extension
-	priority ?: number
-	extension?: { [key: string]: any }
+	// method
+	isStart(now: number): boolean
+	clone               : RAFTask<S>
 }
 ```
 
-基本情報
-- id      : ユニークID
-- groupID?: グループID
-- duration: 1回あたりの処理時間 (ms)
-- delay  ?: 開始までの待機時間 (ms)
+**constructor**
 
-時間情報 (内部管理用)
-- progress ?: 進捗状況 (0 - 1)   // readonly
-- deltaTime?: 前回からの実行時間 // readonly
-- paused   ?: 一時停止フラグ     // runtime.paused の公開用プロパティ
+基本
+- id      : rAF のユニークID
+- duration: 1回の実行時間 (ms)
+- action  : 毎フレームごとのアクション
 
-アクション
-- action : アクション
-- finish?: 終了時アクション
+拡張
+- groupID  : 任意のグループID
+- delay    : 初回実行までの待機時間 (ms)
+- finish   : 最終フレームで実行されるアクション
+- priority : 処理の優先順位
+- extension: 任意の拡張データ
 
-実行制御・拡張
-- runtime   : runtime (mutable)
-- priority ?: 処理優先順位
-- extension?: 拡張用オプション
+**property**
 
-**重要**
-action / finish は、Dispatch 内で実行されるため、エフェクトを返すことができません  
-(dispatch の再入・無限ループを防ぐための制約です)  
-エフェクトが必要な場合、`setTimeout` / `setInterval` / `requestAnimationFrame`  
-などの非同期境界を必ず挟んでください
+getter
+- id       : rAF のユニークID
+- duration : 1回の実行時間 (ms)
+- delay    : 初回実行までの待機時間 (ms)
+- action   : 毎フレームごとのアクション
+- finish   : 最終フレームで実行されるアクション
+- progress : 進捗状況 (0 - 1)
+- deltaTime: 前回アクションからの経過時間 (ms)
 
-例: ` requestAnimationFrame(() => dispatch(...))`
+getter / setter
+- groupID  : 任意のグループID
+- priority : 処理の優先順位
+- extension: 任意の拡張データ
+- isDone   : 終了状況の取得 / 設定
+- paused   : 一時停止状況の取得 / 設定
+
+**method**
+
+- isStart: アクションを開始して良いか判定する  
+現在時間等のアップデートも同時に行われる
+- clone: 時間を初期化したクローンを作成して返す
 
 ---
 
@@ -597,7 +587,6 @@ export const subscription_RAFManager = function <S> (
 	keyNames: string[]
 ): Subscription<S>
 ```
-*リアルタイム制御のため、ステート内の RAFTask.isDone は直接変更されます*
 
 - state   : ステート
 - keyNames: RAFTask 配列までのパス

@@ -7,8 +7,8 @@ export { el, concatAction, getClassList, deleteKeys, Route, SelectButton, Option
 // animation
 export { effect_throwMessageStart, effect_throwMessagePause, effect_throwMessageResume } from "./animation/step"
 
-export type { InternalEffect, RAFRuntime, RAFTask } from "./animation/raf"
-export { subscription_RAFManager } from "./animation/raf"
+export type { InternalEffect, RAFEvent } from "./animation/raf"
+export { RAFTask, subscription_RAFManager } from "./animation/raf"
 
 export type { CSSProperty } from "./animation/properties"
 export { createUnits, createRAFProperties, effect_RAFProperties } from "./animation/properties"

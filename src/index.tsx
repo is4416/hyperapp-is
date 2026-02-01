@@ -27,7 +27,10 @@ import {
 // ---------- ---------- ---------- ---------- ----------
 // State
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * ステート
+ * タブごとに分けてあります
+ */
 interface State {
 	debug  : string
 	tabName: string
@@ -63,43 +66,11 @@ interface State {
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// action_reset
-// ---------- ---------- ---------- ---------- ----------
-
-const action_reset = (state: State) => ({
-	debug     : "",
-	tabName   : "",
-
-	selectButton: {
-		selected: []
-	},
-
-	optionButton: {
-		group1: "",
-		group2: ""
-	},
-
-	effect: {
-		timedText: "",
-		throwMsg : "",
-		node     : null,
-		easing   : "linear"
-	},
-
-	subscriptions: {
-		finalize: false,
-		tasks   : []
-	},
-
-	dom: {
-		margin: { top: 0, left: 0, right: 0, bottom: 0 },
-	}
-})
-
-// ---------- ---------- ---------- ---------- ----------
 // action_setTimedNode
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * effect タブをクリックした時のアクション
+ */
 const action_effectButtonClick = (state: State) => {
 	const label = (<label>Label</label>)
 	const text  = Array.from({length: 40}).map((_, i) => i).join("")
@@ -125,7 +96,9 @@ const action_effectButtonClick = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_throwAction
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * ディスパッチを強制するためのアクション
+ */
 const action_throwAction = (state: State) => {
 	return { ...state }
 }
@@ -133,7 +106,9 @@ const action_throwAction = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_toggleFinalize
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * state.subscriptionsfinalize: boolean のトグル
+ */
 const action_toggleFinalize = (state: State) => {
 	return setValue(state, ["subscriptions", "finalize"], !state.subscriptions.finalize)
 }
@@ -141,7 +116,9 @@ const action_toggleFinalize = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_move
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * rAF でのアニメーション (transform)
+ */
 const action_move = (state: State) => {
 	const effect = effect_RAFProperties({
 		id: "raf",
@@ -173,7 +150,9 @@ const action_move = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_setEasing
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * ステートの easing 関数を、変更する
+ */
 const action_setEasing = (state: State, e: Event) => {
 	const element = e.currentTarget as HTMLSelectElement
 	return setValue(state, ["effect", "easing"], element.value)
@@ -182,7 +161,9 @@ const action_setEasing = (state: State, e: Event) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_setProperties
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * rAF でのアニメーション (font-size, margin)
+ */
 const action_setProperties = (state: State) => {
 
 	const effect = effect_RAFProperties({
@@ -212,7 +193,9 @@ const action_setProperties = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_scroll
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * ScrollMargin 取得のテスト
+ */
 const action_scroll = (state: State, e: Event) => {
 	return setValue(state, ["dom", "margin"], getScrollMargin(e))
 }
@@ -220,12 +203,23 @@ const action_scroll = (state: State, e: Event) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_carouselButtonClick
 // ---------- ---------- ---------- ---------- ----------
+
+// Marquee controler
 let controls: { start: () => void, stop: () => void } | null = null
 
+/**
+ * carousel タブのクリック
+ */
 const action_carouselButtonClick = (state: State) => {
+
+	// ---------- ---------- ----------
+	// marquee
+	// ---------- ---------- ----------
+
+	// すでに動作済みであれば stop
 	if (controls) controls.stop()
 
-	// marquee
+	// marquee を動作させるエフェクトを作成
 	const effect_setMarquee = (dispatch: Dispatch<State>) => {
 		dispatch((state: State) => {
 			const ul = document.getElementById("marquee") as HTMLUListElement
@@ -244,10 +238,15 @@ const action_carouselButtonClick = (state: State) => {
 		})
 	}
 
+	// ---------- ---------- ----------
 	// carousel_finish
+	// ---------- ---------- ----------
+
+	// carousel: finish (アクティブな index 番号を取得して、ステートを変更)
 	const carousel_finish = (state: State, rafTask: RAFTask<State>): State | [State, InternalEffect<State>] => {
 		const carouselState: CarouselState = rafTask.extension?.carouselState
 		if (!carouselState) return state
+
 		return setValue(state, ["carousel", "index"], carouselState.index)
 	}
 
@@ -256,11 +255,11 @@ const action_carouselButtonClick = (state: State) => {
 		state,
 		effect_setMarquee,
 		effect_carouselStart({
-			id: "carousel",
+			id      : "carousel",
 			duration: 2000,
-			delay: 1000,
-			finish: carousel_finish,
-			easing: progress_easing.easeOutCubic,
+			delay   : 1000,
+			finish  : carousel_finish,
+			easing  : progress_easing.easeOutCubic,
 			keyNames: ["subscriptions", "tasks"]
 		})
 	]
@@ -269,22 +268,80 @@ const action_carouselButtonClick = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_carouselPause
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * #carousel にマウスが乗った場合のアニメーション
+ * 動作途中の rAF アニメーションを差し替えるテスト
+ */
 const action_carouselPause = (state: State) => {
-	const task = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
-		.find(task => task.id === "carousel")
-	if (task) task.paused = true
-	return state
+	// get task
+	const tasks = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
+	const task  = tasks.find(task => task.id === "carousel")
+	if (!task) return state
+
+	// pause
+	task.paused = true
+
+	// get dom
+	const dom = document.getElementById(task.id)
+	if (!dom) return state
+
+	const children = Array.from(dom.children) as HTMLElement[]
+	if (!children || children.length < 2) return state
+
+	// get width (動作済みの幅を取得)
+	const width = (children[1].offsetLeft - children[0].offsetLeft)
+		* progress_easing.easeOutCubic(task.progress)
+
+	// clone (現在のタスクをクローン)
+	const cloneTask  = task.clone()
+
+	// newTask (動作済みの幅を戻すアニメーション)
+	const newTask = new RAFTask<State>({
+		id      : "carousel_remove",
+		duration: 300,
+
+		action: (state: State, rafTask: RAFTask<State>): State | [State, InternalEffect<State>] => {
+			const val = - width + progress_easing.easeOutCubic(rafTask.progress) * width
+
+			dom.style.transform = `translateX(${ val }px)`
+			return state
+		},
+
+		// 巻き戻しアニメーション終了時には、クローンした元のアニメーションに差し替える
+		finish: (state: State, rafTask: RAFTask<State>): State | [State, InternalEffect<State>] => {
+			dom.style.transform = "translateX(0px)"
+			cloneTask.paused = false
+
+			return setValue(state, ["subscriptions", "tasks"],
+				getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
+					.filter(task => task.id !== "carousel" && task.id !== "carousel_remove")
+					.concat(cloneTask)
+			)
+		}
+	})
+
+	// 巻き戻しアニメーションに差し替える
+	return setValue(state, ["subscriptions", "tasks"],
+		tasks
+			.filter(task => task.id !== "carousel")
+			.concat(newTask)
+	)
 }
 
 // ---------- ---------- ---------- ---------- ----------
 // action_carouselResume
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * #カルーセルからマウスが離れた場合のアニメーション
+ */
 const action_carouselResume = (state: State) => {
+	// get task
 	const task = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
 		.find(task => task.id === "carousel")
+
+	// 一時停止解除
 	if (task) task.paused = false
+
 	return state
 }
 
@@ -363,7 +420,6 @@ addEventListener("load", () => {
 					id       = "page6"
 					onclick  = { action_carouselButtonClick }
 				>Carousel</OptionButton>
-				<button type="button" onclick={action_reset}>reset</button>
 			</div>
 
 			{/* *** Tabs Body *** */}

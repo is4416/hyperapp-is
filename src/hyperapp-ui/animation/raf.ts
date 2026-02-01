@@ -13,120 +13,146 @@ import { getValue, setValue } from "../core/state"
 export type InternalEffect<S> = Effect<S>
 
 // ---------- ---------- ---------- ---------- ----------
-// interface RAFRuntime
+// class RAFTask
 // ---------- ---------- ---------- ---------- ----------
-/**
- * rAF : mutable オブジェクト
- * RAFManager でのみ更新される
- * 
- * @type {Object} RAFRuntime
- * @property {number}  [startTime]   - アクション開始時間
- * @property {number}  [currentTime] - 実行時間
- * @property {number}  [pausedTime]  - 一時停止時間
- * @property {boolean} [paused]      - 一時停止フラグ
- * @property {boolean} [isDone]      - 処理終了フラグ
- * @property {number}  [progress]    - 進捗状況 (0 - 1)
- * @property {number}  [deltaTime]   - 前回からの経過時間
- */
-export interface RAFRuntime {
-	startTime  ?: number
-	currentTime?: number
-	pausedTime ?: number
-	paused     ?: boolean
-	isDone     ?: boolean
 
-	progress ?: number
-	deltaTime?: number
-}
+export type RAFEvent<S> = (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
-// ---------- ---------- ---------- ---------- ----------
-// interface RAFTask
-// ---------- ---------- ---------- ---------- ----------
-/**
- * rAF を管理するためのオブジェクト
- * 
- * @template S
- * @type {Object} RAFTask
- * @property {string} id          - ユニークID
- * @property {string} [groupID]   - グループナンバー
- * @property {number} duration    - 1回あたりの処理時間 (ms)
- * @property {number} [delay]     - 開始までの待機時間 (ms)
+export class RAFTask <S> {
+	// field
+	#id        : string
+	#groupID  ?: string
+	#duration  : number
+	#delay     : number
+	#action    : RAFEvent<S>
+	#finish   ?: RAFEvent<S>
+	#priority  : number
+	#extension : { [key: string]: any }
 
- * @property {number}  [progress]  - 進捗状況 (0 - 1)   // readOnly
- * @property {number}  [deltaTime] - 前回からの実行時間 // readOnly
- * @property {boolean} [paused]    - 一時停止フラフ     // runtime.paused の公開用プロパティ
- * 
- * @property {(state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]}  action  - アクション
- * @property {(state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]} [finish] - 終了時アクション
- * 
- * @property {RAFRuntime} runtime   - runtime (mutable)
- * @property {number}    [priority] - 処理優先順位
- * 
- * @property {{ [key: string]: any }} [extension] - 拡張用オプション
- */
-export interface RAFTask<S> {
-	id      : string
-	groupID?: string
-	duration: number
-	delay  ?: number
+	#startTime  ?: number
+	#currentTime?: number
+	#pausedTime ?: number
 
-	// runtime accessors
-	readonly progress ?: number
-	readonly deltaTime?: number
-	paused?: boolean
+	#deltaTime?: number
 
-	// event
-	action : (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-	finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
+	#isDone: boolean
 
-	// mutable
-	runtime: RAFRuntime
+	// constructor
+	constructor (props: {
+		id        : string
+		groupID  ?: string
+		duration  : number
+		delay    ?: number
+		action    : RAFEvent<S>
+		finish   ?: RAFEvent<S>
+		priority ?: number
+		extension?: { [key: string]: any }
+	}) {
+		this.#id        = props.id
+		this.#groupID   = props.groupID
+		this.#duration  = props.duration
+		this.#delay     = props.delay ?? 0
+		this.#action    = props.action
+		this.#finish    = props.finish
+		this.#priority  = props.priority ?? 0
+		this.#extension = props.extension ?? {}
+		this.#isDone    = false
+	}
 
-	// extension
-	priority ?: number
-	extension?: { [key: string]: any }
-}
+	// getter
+	get id()         : string { return this.#id }
+	get groupID()    : string | undefined { return this.#groupID }
+	get duration()   : number { return this.#duration }
+	get delay()      : number { return this.#delay }
+	get action()     : RAFEvent<S> { return this.#action }
+	get finish()     : RAFEvent<S> | undefined { return this.#finish }
+	get priority()   : number { return this.#priority }
+	get extension()  : { [key: string]: any } { return this.#extension }
+	get progress()   : number {
+		if (this.#startTime === undefined || this.#currentTime === undefined) return 0
+		return Math.min(
+			1,
+			Math.max(
+				0,
+				(this.#currentTime - this.#startTime) /
+				Math.max(1, this.#duration)
+			)
+		)
+	}
+	get deltaTime(): number { return this.#deltaTime ?? 0 }
+	get isDone()   : boolean {
+		if (this.#pausedTime) return false
+		return this.progress === 1
+	}
+	get paused()   : boolean { return this.#pausedTime !== undefined }
 
-// ---------- ---------- ---------- ---------- ----------
-// attachRuntimeAccessors
-// ---------- ---------- ---------- ---------- ----------
-/**
- * RAFTask に runtime のプロパティアクセスを追加
- * - progress / deltaTime は参照専用
- * - paused は読み書き可能で runtime と同期
- */
-const attachRuntimeAccessors = <S>(task: RAFTask<S>) => {
-	const desc = Object.getOwnPropertyDescriptor(task, "progress")
-	if (desc?.get) return
+	// setter
+	set groupID(val: string | undefined) { this.#groupID = val }
+	set priority(val: number) { this.#priority = val }
+	set extension(val: { [key: string]: any }) { this.#extension = val}
+	set isDone(val: boolean) { this.#isDone = val }
+	set paused(val: boolean) {
+		if (val) {
+			if (this.#pausedTime === undefined) this.#pausedTime = this.#currentTime ?? 0
+		} else {
+			if (this.#pausedTime !== undefined) {
+				this.#startTime  = (this.#startTime ?? 0) + (this.#currentTime ?? 0) - (this.#pausedTime ?? 0)
+				this.#pausedTime = undefined
+			}
+		}
+	}
 
-	// progress / deltaTime は参照専用
-	Object.defineProperty(task, "progress", {
-		get() {
-			return task.runtime.progress
-		},
-		enumerable  : true,
-		configurable: true
-	})
+	// method: isStart
+	/**
+	 * アクションを開始して良いか判定する
+	 * 現在時間等のアップデートも同時に行われる
+	 * 
+	 * @param   {number} now - requestAnimatinFrame が返す絶対時間
+	 * @returns {boolan}     - アクションを実行して良いか判定
+	 */
+	isStart(now: number): boolean {
+		// done
+		if (this.#isDone) return false
 
-	Object.defineProperty(task, "deltaTime", {
-		get() {
-			return task.runtime.deltaTime
-		},
-		enumerable  : true,
-		configurable: true
-	})
+		// pause
+		if (this.paused) {
+			this.#deltaTime   = 0
+			this.#currentTime = now
+			return false
+		}
 
-	// paused は読み書き可能にして runtime と同期
-	Object.defineProperty(task, "paused", {
-		get() {
-			return !!task.runtime.paused
-		},
-		set(val: boolean) {
-			task.runtime.paused = val
-		},
-		enumerable  : true,
-		configurable: true
-	})
+		// startTime
+		if (this.#startTime === undefined) this.#startTime = now + this.#delay
+
+		// deltaTime
+		this.#deltaTime = now < this.#startTime
+			? 0
+			: now - (this.#currentTime ?? now)
+
+		// currentTime
+		this.#currentTime = now
+
+		// result
+		this.#isDone = this.progress === 1
+		return !this.#isDone
+	}
+
+	// method: clone
+	/**
+	 * 時間を初期化したクローンを作成して返す
+	 */
+	clone(): RAFTask<S> {
+		return new RAFTask<S> ({
+			id       : this.id,
+			groupID  : this.groupID,
+			duration : this.duration,
+			delay    : this.delay,
+			action   : this.action,
+			finish   : this.finish,
+			priority : this.priority,
+			extension: this.extension
+		})
+	}
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -141,106 +167,68 @@ const attachRuntimeAccessors = <S>(task: RAFTask<S>) => {
  * @returns {Subscription<S>}
  */
 export const subscription_RAFManager = function <S>(
-	state: S,
+	state   : S,
 	keyNames: string[]
 ): Subscription<S> {
-
-	// get tasks
-	const tasks = [...getValue(state, keyNames, [] as RAFTask<S>[])]
-		.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
-
-	// progress, deltaTime, paused を task に追加
-	tasks.forEach(task => attachRuntimeAccessors(task))
+	let rID = 0 // rAF timerID
 
 	// result
 	return [
 		(dispatch: Dispatch<S>, payload: RAFTask<S>[]) => {
-			if (!payload.length) return () => {}
-
-			// rAF ID
-			let rafId = 0
+			if (payload.length === 0) return () => {
+				if (rID !== 0) cancelAnimationFrame(rID)
+			}
 
 			// rAF callback
 			const loop = (now: number) => {
-				let hasTasks = false
-
 				dispatch((state: S) => {
-					// tasks
-					const tasks = [...getValue(state, keyNames, [] as RAFTask<S>[])]
+					const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
 
-					// newTasks
 					const newTasks: RAFTask<S>[] = tasks.map(task => {
+						if (task.isDone) return null
 
-						// isDone
-						if (task.runtime.isDone) return null
-
-						// init startTime
-						if (task.runtime.startTime === undefined) {
-							task.runtime.startTime = now + (task.delay ?? 0)
-						}
-
-						// paused
-						if (task.runtime.paused) {
-							task.runtime.pausedTime = task.runtime.pausedTime ?? now
-							task.runtime.deltaTime = 0
-							return task
-						}
-
-						// resume
-						if (task.runtime.pausedTime !== undefined) {
-							task.runtime.startTime += now - task.runtime.pausedTime
-							task.runtime.pausedTime = undefined
-						}
-
-						// deltaTime
-						const prevTime = task.runtime.currentTime ?? now
-						task.runtime.deltaTime = task.runtime.paused ? 0 : now - prevTime
-
-						// currentTime
-						task.runtime.currentTime = now
-
-						// progress
-						task.runtime.progress = Math.min(
-							1,
-							(now - task.runtime.startTime)
-							/ Math.max(1, task.duration)
-						)
-
-						// action dispatch
-						if (now >= task.runtime.startTime) {
-							requestAnimationFrame(() => {
+						// action
+						if (task.isStart(now)) {
+							requestAnimationFrame(() =>
 								dispatch((state: S) => task.action(state, task))
-							})
+							)
 						}
 
 						// finish
-						if (task.runtime.progress >= 1) {
-							task.runtime.isDone = true
-
-							const finish = task.finish
-							if (finish) {
-								requestAnimationFrame(() => dispatch((state: S) => finish(state, task)))
+						if (task.isDone) {
+							const fn = task.finish
+							if (fn) {
+								requestAnimationFrame(() =>
+									dispatch((state: S) => fn(state, task))
+								)
 							}
-
 							return null
 						}
 
+						// next
 						return task
-					}).filter(task => task !== null) as RAFTask<S>[]
+					}).filter(task => task !== null)
 
-					hasTasks = newTasks.length > 0
+					// next loop
+					if (newTasks.length !== 0) rID = requestAnimationFrame(loop)
 
+					// set state
 					return setValue(state, keyNames, newTasks)
 				})
-
-				if (hasTasks) rafId = requestAnimationFrame(loop)
 			}
 
-			rafId = requestAnimationFrame(loop)
+			// set animation
+			rID = requestAnimationFrame(loop)
 
-			return () => cancelAnimationFrame(rafId)
+			// finalize
+			return () => {
+				if (rID !== 0) cancelAnimationFrame(rID)
+			}
 		},
 
-		tasks
+		// payload
+		getValue(state, keyNames, [] as RAFTask<S>[])
+			.filter(task => !task.isDone)
+			.sort((a, b) => b.priority - a.priority)
 	]
 }

@@ -7,8 +7,6 @@ hyperappのステート管理と連携させたシステムです
 - ステートの値が変更された時点で、サブスクリプションにより `requestAnimationFrame` がセットされます
 - RAFTask に保存された情報によりアニメーションが処理され、必要に応じて次の `requestAnimationFrame` がセットされます
 - アニメーションは `RAFTask.duration` の時間 (ms) 実行され、必要に応じて `finish` イベントが実行されます
-- リアルタイム制御のため、ステート内の `RAFTask.runtime` オブジェクトは直接変更されます  
-（フレーム単位の時間管理を immutable update で行うとオーバーヘッドが大きいため）
 
 フロー図:
 ```
@@ -42,7 +40,8 @@ rAF 実行 (rafTask.action)
 
 ## 補足
 
-- RAFTask は データ構造＋描画ロジック を持つオブジェクト
+- RAFTask は、内部でリアルタイムに更新する値を持つクラスオブジェクト  
+`action` `finish` に描画ロジックを持ちます
 - createRAFxxx は RAFTask 作成用の補助関数
 - effect_RAFxxx は作成した RAFTask をステートに登録するためのラッパー
 - この構造により、ステート管理と rAF のリアルタイム描画が統合され、  
@@ -163,13 +162,14 @@ Effectの型エイリアス
 Dispatch の中から呼ばれるイベントの戻り値として設定されています  
 値を返さず、Dispatch 内部専用という役割を明示するものです
 
-### RAFRuntime
-即時反映が必要な mutable 処理を前提としたオブジェクト  
-ステートにセットする際にクローンしないこと
+### RAFEvent
+RAFTask で使用されるイベント  
+hyperapp で使用される通常のアクション と同一なものですが  
+`payload` と `Effect` の型名が再定義されています
 
 ### RAFTask
-`requestAnimationFrame` 管理用オブジェクト  
-このオブジェクトは **情報管理と描画** を担当します  
+`requestAnimationFrame` (rAF) を管理するためのクラス
+このクラスは **情報管理と描画** を担当します  
 
 ### subscription_RAFManager
 `requestAnimationFrame` を利用し `RAFTask` をフレームごとに実行するサブスクリプション  
@@ -221,7 +221,7 @@ Carousel 管理用オブジェクト
 
 ## 最後に
 
-この animation-system は、`RAFRuntime` `RAFTask` `subscription_RAFManager`  
+この animation-system は、`RAFTask` `subscription_RAFManager`  
 のみで、基本的にはどのようなアニメーションでも実装できるよう作成しています
 
 その他に作成したエフェクト類は、これをベースに汎用性があるよう作成しているものです  

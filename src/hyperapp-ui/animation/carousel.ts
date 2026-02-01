@@ -55,6 +55,8 @@ export const createRAFCarousel = function <S> (
 	// finish
 	const finish = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 		const dom = document.getElementById(id) as HTMLElement
+		if (!dom) return state
+
 		const children = Array.from(dom?.children) as HTMLElement[]
 		if (!children || children.length < 2) return state
 
@@ -116,6 +118,8 @@ export const effect_carouselStart = function <S> (
 	const finish = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 		// dom
 		const dom = document.getElementById(id) as HTMLElement
+		if (!dom) return state
+
 		const children = Array.from(dom?.children) as HTMLElement[]
 		if (!children || children.length < 2) return state
 

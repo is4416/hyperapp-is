@@ -111,16 +111,15 @@ export const createRAFProperties = function <S> (
 		]
 	}
 
-	return {
+	return new RAFTask<S>({
 		id, groupID, duration, delay,
 		action, finish,
-		runtime: {},
 		priority,
 		extension: {
 			...extension,
 			properties
 		}
-	}
+	})
 }
 
 // ---------- ---------- ---------- ---------- ----------

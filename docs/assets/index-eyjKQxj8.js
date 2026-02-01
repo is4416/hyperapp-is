@@ -535,91 +535,178 @@ const effect_throwMessageResume = function(id2) {
     });
   };
 };
-const attachRuntimeAccessors = (task) => {
-  const desc = Object.getOwnPropertyDescriptor(task, "progress");
-  if (desc?.get) return;
-  Object.defineProperty(task, "progress", {
-    get() {
-      return task.runtime.progress;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  Object.defineProperty(task, "deltaTime", {
-    get() {
-      return task.runtime.deltaTime;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  Object.defineProperty(task, "paused", {
-    get() {
-      return !!task.runtime.paused;
-    },
-    set(val) {
-      task.runtime.paused = val;
-    },
-    enumerable: true,
-    configurable: true
-  });
-};
+class RAFTask {
+  // field
+  #id;
+  #groupID;
+  #duration;
+  #delay;
+  #action;
+  #finish;
+  #priority;
+  #extension;
+  #startTime;
+  #currentTime;
+  #pausedTime;
+  #deltaTime;
+  #isDone;
+  // constructor
+  constructor(props) {
+    this.#id = props.id;
+    this.#groupID = props.groupID;
+    this.#duration = props.duration;
+    this.#delay = props.delay ?? 0;
+    this.#action = props.action;
+    this.#finish = props.finish;
+    this.#priority = props.priority ?? 0;
+    this.#extension = props.extension ?? {};
+    this.#isDone = false;
+  }
+  // getter
+  get id() {
+    return this.#id;
+  }
+  get groupID() {
+    return this.#groupID;
+  }
+  get duration() {
+    return this.#duration;
+  }
+  get delay() {
+    return this.#delay;
+  }
+  get action() {
+    return this.#action;
+  }
+  get finish() {
+    return this.#finish;
+  }
+  get priority() {
+    return this.#priority;
+  }
+  get extension() {
+    return this.#extension;
+  }
+  get progress() {
+    if (this.#startTime === void 0 || this.#currentTime === void 0) return 0;
+    return Math.min(
+      1,
+      Math.max(
+        0,
+        (this.#currentTime - this.#startTime) / Math.max(1, this.#duration)
+      )
+    );
+  }
+  get deltaTime() {
+    return this.#deltaTime ?? 0;
+  }
+  get isDone() {
+    if (this.#pausedTime) return false;
+    return this.progress === 1;
+  }
+  get paused() {
+    return this.#pausedTime !== void 0;
+  }
+  // setter
+  set groupID(val) {
+    this.#groupID = val;
+  }
+  set priority(val) {
+    this.#priority = val;
+  }
+  set extension(val) {
+    this.#extension = val;
+  }
+  set isDone(val) {
+    this.#isDone = val;
+  }
+  set paused(val) {
+    if (val) {
+      if (this.#pausedTime === void 0) this.#pausedTime = this.#currentTime ?? 0;
+    } else {
+      if (this.#pausedTime !== void 0) {
+        this.#startTime = (this.#startTime ?? 0) + (this.#currentTime ?? 0) - (this.#pausedTime ?? 0);
+        this.#pausedTime = void 0;
+      }
+    }
+  }
+  // method: isStart
+  /**
+   * アクションを開始して良いか判定する
+   * 現在時間等のアップデートも同時に行われる
+   * 
+   * @param   {number} now - requestAnimatinFrame が返す絶対時間
+   * @returns {boolan}     - アクションを実行して良いか判定
+   */
+  isStart(now) {
+    if (this.#isDone) return false;
+    if (this.paused) {
+      this.#deltaTime = 0;
+      this.#currentTime = now;
+      return false;
+    }
+    if (this.#startTime === void 0) this.#startTime = now + this.#delay;
+    this.#deltaTime = now < this.#startTime ? 0 : now - (this.#currentTime ?? now);
+    this.#currentTime = now;
+    this.#isDone = this.progress === 1;
+    return !this.#isDone;
+  }
+  // method: clone
+  /**
+   * 時間を初期化したクローンを作成して返す
+   */
+  clone() {
+    return new RAFTask({
+      id: this.id,
+      groupID: this.groupID,
+      duration: this.duration,
+      delay: this.delay,
+      action: this.action,
+      finish: this.finish,
+      priority: this.priority,
+      extension: this.extension
+    });
+  }
+}
 const subscription_RAFManager = function(state, keyNames) {
-  const tasks = [...getValue(state, keyNames, [])].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-  tasks.forEach((task) => attachRuntimeAccessors(task));
+  let rID = 0;
   return [
     (dispatch, payload) => {
-      if (!payload.length) return () => {
+      if (payload.length === 0) return () => {
+        if (rID !== 0) cancelAnimationFrame(rID);
       };
-      let rafId = 0;
       const loop = (now) => {
-        let hasTasks = false;
         dispatch((state2) => {
-          const tasks2 = [...getValue(state2, keyNames, [])];
-          const newTasks = tasks2.map((task) => {
-            if (task.runtime.isDone) return null;
-            if (task.runtime.startTime === void 0) {
-              task.runtime.startTime = now + (task.delay ?? 0);
+          const tasks = getValue(state2, keyNames, []);
+          const newTasks = tasks.map((task) => {
+            if (task.isDone) return null;
+            if (task.isStart(now)) {
+              requestAnimationFrame(
+                () => dispatch((state3) => task.action(state3, task))
+              );
             }
-            if (task.runtime.paused) {
-              task.runtime.pausedTime = task.runtime.pausedTime ?? now;
-              task.runtime.deltaTime = 0;
-              return task;
-            }
-            if (task.runtime.pausedTime !== void 0) {
-              task.runtime.startTime += now - task.runtime.pausedTime;
-              task.runtime.pausedTime = void 0;
-            }
-            const prevTime = task.runtime.currentTime ?? now;
-            task.runtime.deltaTime = task.runtime.paused ? 0 : now - prevTime;
-            task.runtime.currentTime = now;
-            task.runtime.progress = Math.min(
-              1,
-              (now - task.runtime.startTime) / Math.max(1, task.duration)
-            );
-            if (now >= task.runtime.startTime) {
-              requestAnimationFrame(() => {
-                dispatch((state3) => task.action(state3, task));
-              });
-            }
-            if (task.runtime.progress >= 1) {
-              task.runtime.isDone = true;
-              const finish = task.finish;
-              if (finish) {
-                requestAnimationFrame(() => dispatch((state3) => finish(state3, task)));
+            if (task.isDone) {
+              const fn = task.finish;
+              if (fn) {
+                requestAnimationFrame(
+                  () => dispatch((state3) => fn(state3, task))
+                );
               }
               return null;
             }
             return task;
           }).filter((task) => task !== null);
-          hasTasks = newTasks.length > 0;
+          if (newTasks.length !== 0) rID = requestAnimationFrame(loop);
           return setValue(state2, keyNames, newTasks);
         });
-        if (hasTasks) rafId = requestAnimationFrame(loop);
       };
-      rafId = requestAnimationFrame(loop);
-      return () => cancelAnimationFrame(rafId);
+      rID = requestAnimationFrame(loop);
+      return () => {
+        if (rID !== 0) cancelAnimationFrame(rID);
+      };
     },
-    tasks
+    // payload
+    getValue(state, keyNames, []).filter((task) => !task.isDone).sort((a, b) => b.priority - a.priority)
   ];
 };
 const createUnits = function(properties) {
@@ -662,20 +749,19 @@ const createRAFProperties = function(props) {
       }
     ];
   };
-  return {
+  return new RAFTask({
     id: id2,
     groupID,
     duration,
     delay,
     action,
     finish,
-    runtime: {},
     priority,
     extension: {
       ...extension,
       properties
     }
-  };
+  });
 };
 const GPU_LAYER = /* @__PURE__ */ new Set(["transform", "opacity"]);
 const effect_RAFProperties = function(props) {
@@ -752,6 +838,7 @@ const createRAFCarousel = function(props) {
   };
   const finish = (state, rafTask) => {
     const dom = document.getElementById(id2);
+    if (!dom) return state;
     const children = Array.from(dom?.children);
     if (!children || children.length < 2) return state;
     dom.style.transform = "translateX(0px)";
@@ -787,6 +874,7 @@ const effect_carouselStart = function(props) {
   const { id: id2, groupID, duration, delay, priority, extension, easing, keyNames } = props;
   const finish = (state, rafTask) => {
     const dom = document.getElementById(id2);
+    if (!dom) return state;
     const children = Array.from(dom?.children);
     if (!children || children.length < 2) return state;
     const width = children[1].offsetLeft - children[0].offsetLeft;
@@ -956,30 +1044,6 @@ const subscription_nodesCleanup = function(nodes) {
     node
   ]);
 };
-const action_reset = (state) => ({
-  debug: "",
-  tabName: "",
-  selectButton: {
-    selected: []
-  },
-  optionButton: {
-    group1: "",
-    group2: ""
-  },
-  effect: {
-    timedText: "",
-    throwMsg: "",
-    node: null,
-    easing: "linear"
-  },
-  subscriptions: {
-    finalize: false,
-    tasks: []
-  },
-  dom: {
-    margin: { top: 0, left: 0, right: 0, bottom: 0 }
-  }
-});
 const action_effectButtonClick = (state) => {
   const label = /* @__PURE__ */ h("label", null, "Label");
   const text2 = Array.from({ length: 40 }).map((_, i) => i).join("");
@@ -1096,9 +1160,40 @@ const action_carouselButtonClick = (state) => {
   ];
 };
 const action_carouselPause = (state) => {
-  const task = getValue(state, ["subscriptions", "tasks"], []).find((task2) => task2.id === "carousel");
-  if (task) task.paused = true;
-  return state;
+  const tasks = getValue(state, ["subscriptions", "tasks"], []);
+  const task = tasks.find((task2) => task2.id === "carousel");
+  if (!task) return state;
+  task.paused = true;
+  const dom = document.getElementById(task.id);
+  if (!dom) return state;
+  const children = Array.from(dom.children);
+  if (!children || children.length < 2) return state;
+  const width = (children[1].offsetLeft - children[0].offsetLeft) * progress_easing.easeOutCubic(task.progress);
+  const cloneTask = task.clone();
+  const newTask = new RAFTask({
+    id: "carousel_remove",
+    duration: 300,
+    action: (state2, rafTask) => {
+      const val = -width + progress_easing.easeOutCubic(rafTask.progress) * width;
+      dom.style.transform = `translateX(${val}px)`;
+      return state2;
+    },
+    // 巻き戻しアニメーション終了時には、クローンした元のアニメーションに差し替える
+    finish: (state2, rafTask) => {
+      dom.style.transform = "translateX(0px)";
+      cloneTask.paused = false;
+      return setValue(
+        state2,
+        ["subscriptions", "tasks"],
+        getValue(state2, ["subscriptions", "tasks"], []).filter((task2) => task2.id !== "carousel" && task2.id !== "carousel_remove").concat(cloneTask)
+      );
+    }
+  });
+  return setValue(
+    state,
+    ["subscriptions", "tasks"],
+    tasks.filter((task2) => task2.id !== "carousel").concat(newTask)
+  );
 };
 const action_carouselResume = (state) => {
   const task = getValue(state, ["subscriptions", "tasks"], []).find((task2) => task2.id === "carousel");
@@ -1161,7 +1256,7 @@ addEventListener("load", () => {
         onclick: action_carouselButtonClick
       },
       "Carousel"
-    ), /* @__PURE__ */ h("button", { type: "button", onclick: action_reset }, "reset")), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page1" }, /* @__PURE__ */ h("h2", null, "SelectButton example"), /* @__PURE__ */ h("h3", null, "select / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn1" }, "select / none"), /* @__PURE__ */ h("h3", null, "select / reverse / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn2", reverse: true }, "select / reverse / none")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page2" }, /* @__PURE__ */ h("h2", null, "OptionButton example"), /* @__PURE__ */ h("h3", null, "select"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn1" }, "group1_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn2" }, "group1_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn3" }, "group1_btn3"), /* @__PURE__ */ h("h3", null, "select / reverse"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn1", reverse: true }, "group2_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn2", reverse: true }, "group2_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn3", reverse: true }, "group2_btn3")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page3" }, /* @__PURE__ */ h("h2", null, "Effect example"), /* @__PURE__ */ h("h3", null, "effect_initializeNodes"), /* @__PURE__ */ h("input", { type: "text", id: "initTest" }), /* @__PURE__ */ h("h3", null, "effect_setTimedValue"), /* @__PURE__ */ h("input", { type: "text", id: "timedText", value: state.effect.timedText }), state.effect.node, /* @__PURE__ */ h("h3", null, "effect_throwMessage"), /* @__PURE__ */ h("input", { type: "text", id: "msg", value: state.effect.throwMsg }), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(
+    )), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page1" }, /* @__PURE__ */ h("h2", null, "SelectButton example"), /* @__PURE__ */ h("h3", null, "select / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn1" }, "select / none"), /* @__PURE__ */ h("h3", null, "select / reverse / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn2", reverse: true }, "select / reverse / none")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page2" }, /* @__PURE__ */ h("h2", null, "OptionButton example"), /* @__PURE__ */ h("h3", null, "select"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn1" }, "group1_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn2" }, "group1_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn3" }, "group1_btn3"), /* @__PURE__ */ h("h3", null, "select / reverse"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn1", reverse: true }, "group2_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn2", reverse: true }, "group2_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn3", reverse: true }, "group2_btn3")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page3" }, /* @__PURE__ */ h("h2", null, "Effect example"), /* @__PURE__ */ h("h3", null, "effect_initializeNodes"), /* @__PURE__ */ h("input", { type: "text", id: "initTest" }), /* @__PURE__ */ h("h3", null, "effect_setTimedValue"), /* @__PURE__ */ h("input", { type: "text", id: "timedText", value: state.effect.timedText }), state.effect.node, /* @__PURE__ */ h("h3", null, "effect_throwMessage"), /* @__PURE__ */ h("input", { type: "text", id: "msg", value: state.effect.throwMsg }), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(
       "button",
       {
         type: "button",
