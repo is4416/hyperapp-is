@@ -212,6 +212,9 @@ Carousel 管理用オブジェクト
 ### effect_carouselRollback
 アニメーション中のカルーセルを、元の位置に戻すエフェクト
 
+### effect_carouselRollforward
+アニメーション中のカルーセルを、早送りする
+
 ## その他
 
 - `step.ts` は、rAF を使用したアニメーションライブラリではありません

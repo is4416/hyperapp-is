@@ -51,6 +51,7 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 - [createRAFCarousel](#createrafcarousel)
 - [effect_carouselStart](#effect_carouselstart)
 - [effect_carouselRollback](#effect_carouselrollback)
+- [effect_carouselRollforward](#effect_carouselrollforward)
 
 **dom / utils.ts**
 - [ScrollMargin](#scrollmargin)
@@ -137,10 +138,11 @@ rAF を利用した CSS設定
 
 ### animation / carousel.ts
 
-- `CarouselState`           : Carousel 管理用オブジェクト
-- `createRAFCarousel`       : Carousel アニメーション RAFTask を作成する
-- `effect_carouselStart`    : subscription_RAFManager をベースにした Carousel アニメーションエフェクト
-- `effect_carouselRollback` : カルーセル中のアニメーションを元に戻すエフェクト
+- `CarouselState`              : Carousel 管理用オブジェクト
+- `createRAFCarousel`          : Carousel アニメーション RAFTask を作成する
+- `effect_carouselStart`       : subscription_RAFManager をベースにした Carousel アニメーションエフェクト
+- `effect_carouselRollback`    : カルーセル中のアニメーションを元に戻すエフェクト
+- `effect_carouselRollforward` : カルーセル中のアニメーションを早送りするエフェクト
 
 ---
 
@@ -203,6 +205,7 @@ src
      │       createRAFCarousel
      │       effect_carouselStart
      │       effect_carouselRollback
+     │       effect_carouselRollforward
      │
      └ dom
          ├ utils.ts
@@ -777,6 +780,27 @@ marquee はステートを通さず直接 DOM に対して副作用を発生さ�
 
 ```ts
 export const effect_carouselRollback = function <S> (
+	props: {
+		id      : string
+		keyNames: string[]
+		paused ?: boolean
+		finish ?: RAFEvent<S>
+	}
+): (dispatch: Dispatch<S>)
+```
+
+- id      : ユニークID
+- keyNames: RAFTask 配列までのパス
+- paused  : 実行後、一時停止するか
+- finish  : 実行後に呼び出されるイベント
+
+---
+
+### effect_carouselRollforward
+アニメーション中のカルーセルを、早送りする
+
+```ts
+export const effect_carouselRollforward = function <S> (
 	props: {
 		id      : string
 		keyNames: string[]

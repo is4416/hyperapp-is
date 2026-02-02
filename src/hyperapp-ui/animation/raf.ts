@@ -95,6 +95,7 @@ export class RAFTask <S> {
 	}
 	get deltaTime(): number { return this.#deltaTime ?? 0 }
 	get isDone()   : boolean {
+		if (this.#isDone) return true
 		if (this.#pausedTime !== undefined) return false
 		return this.progress === 1
 	}
@@ -118,7 +119,7 @@ export class RAFTask <S> {
 	 */
 	private [_isStart](now: number): boolean {
 		// done
-		if (this.#isDone) return false
+		if (this.isDone) return false
 
 		// startTime
 		if (this.#startTime === undefined) this.#startTime = now + this.#delay
@@ -135,7 +136,6 @@ export class RAFTask <S> {
 		if (!this.paused && this.#pausedTime !== undefined) {
 			this.#startTime  = this.#startTime + now - this.#pausedTime
 			this.#pausedTime = undefined
-			this.#deltaTime  = now
 		}
 
 		// deltaTime

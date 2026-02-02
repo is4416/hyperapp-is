@@ -117,6 +117,7 @@ export const effect_carouselStart = function <S> (
 
 	// finish
 	const finish = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
+
 		// dom
 		const dom = document.getElementById(id) as HTMLElement
 		if (!dom) return state
@@ -233,9 +234,9 @@ export const effect_carouselRollback = function <S> (
 			// newTask (動作済みの幅を戻すアニメーション)
 			const newTask = new RAFTask<S>({
 				id      : `${ id }_remove`,
-				duration: 300,
+				duration: 200,
 				action: (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
-					const val = - width + param.easing(rafTask.progress) * width
+					const val = - width + rafTask.progress * width
 					dom.style.transform = `translateX(${ val }px)`
 					return state
 				},
@@ -259,6 +260,98 @@ export const effect_carouselRollback = function <S> (
 			}) // end newTask
 
 			// 巻き戻しアニメーションに差し替える
+			return setValue(
+				state,
+				keyNames,
+				tasks
+					.filter(task => task.id !== id)
+					.concat(newTask)
+			)
+		}) // end dispatch
+	}
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// effect_carouselRollforward
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * アニメーション中のカルーセルを、早送りする
+ */
+export const effect_carouselRollforward = function <S> (
+	props: {
+		id      : string
+		keyNames: string[]
+		paused ?: boolean
+		finish ?: RAFEvent<S>
+	}
+): (dispatch: Dispatch<S>) => void {
+	const { id, keyNames, paused } = props
+
+	return (dispatch: Dispatch<S>) => {
+		dispatch((state: S) => {
+			// get tasks
+			const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
+			const task  = tasks.find(task => task.id === id)
+			if (!task) return state
+
+			// get carouseState
+			const param = task.extension?.carouselState
+			if (!param) return state
+
+			// pause
+			task.paused = true
+
+			// get dom
+			const dom = document.getElementById(id)
+			if (!dom) return state
+
+			const children = Array.from(dom.children) as HTMLElement[]
+			if (!children || children.length < 2) return state
+
+			// get maxWidth
+			const maxWidth = children[1].offsetLeft - children[0].offsetLeft
+
+			// get width (動作済みの幅を取得)
+			const width = maxWidth * param.easing(task.progress)
+
+			// clone
+			const cloneTask = task.clone()
+
+			// newTask (残りの幅を進めるアニメーション)
+			const newTask = new RAFTask<S>({
+				id      : `${ id }_remove`,
+				duration: 200,
+				action: (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
+					const val = - width - rafTask.progress * (maxWidth - width)
+					dom.style.transform = `translateX(${ val }px)`
+					return state
+				},
+				finish: (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
+					cloneTask.paused = paused ?? false
+
+					// props.finish
+					const propsFn = props.finish
+					if (propsFn) {
+						requestAnimationFrame(() => dispatch((state: S) => propsFn(state, cloneTask)))
+					}
+
+					// cloneTask.finish
+					const cloneFn = cloneTask.finish
+					if (cloneFn) {
+						requestAnimationFrame(() => dispatch((state: S) => cloneFn(state, cloneTask)))
+					}
+
+					return setValue(
+						state,
+						keyNames,
+						getValue(state, keyNames, [] as RAFTask<S>[])
+							.filter(task => task.id !== id && task.id !== `${ id }_remove`)
+							.concat(cloneTask)
+					)
+				}
+			}) // end newTask
+
+			// 早送りアニメーションに差し替える
 			return setValue(
 				state,
 				keyNames,

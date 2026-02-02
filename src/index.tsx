@@ -17,11 +17,12 @@ import {
 
 	effect_RAFProperties,
 	
-	CarouselState, effect_carouselStart, effect_carouselRollback,
+	CarouselState, effect_carouselStart, effect_carouselRollback, effect_carouselRollforward,
 
 	ScrollMargin, getScrollMargin,
 	marquee,
 	getValue,
+	RAFEvent,
 } from "./hyperapp-ui"
 
 // ---------- ---------- ---------- ---------- ----------
@@ -268,7 +269,6 @@ const action_carouselButtonClick = (state: State) => {
 // ---------- ---------- ---------- ---------- ----------
 // action_carouselPause
 // ---------- ---------- ---------- ---------- ----------
-
 // アニメーション中にマウスが離れてしまうとイベントが追えないため
 // とりあえずフラグとして管理
 let isMouseOver = false
@@ -286,13 +286,26 @@ const action_carouselPause = (state: State) => {
 	if (task) task.paused = true
 	return state
 */
+
+	const id = "carousel"
+	const keyNames = ["subscriptions", "tasks"]
+
+	// get task
+	const task = getValue(state, keyNames, [] as RAFTask<State>[])
+		.find(task => task.id === id)
+	if (!task) return state
+
+	// 現在の進行状態に合わせて、進めるか戻すか決定する
+	const effect = task.progress < 0.2
+		? effect_carouselRollback
+		: effect_carouselRollforward
+
 	return [
 		state,
-		effect_carouselRollback({
-			id      : "carousel",
-			keyNames: ["subscriptions", "tasks"],
-			paused  : false,
-			finish  : (state: State, rafTask: RAFTask<State>) => {
+		effect({
+			id, keyNames,
+			paused: false,
+			finish: (state: State, rafTask: RAFTask<State>) => {
 				rafTask.paused = isMouseOver
 				return state
 			}
@@ -313,6 +326,18 @@ const action_carouselResume = (state: State) => {
 		.find(task => task.id === "carousel")
 	if (task) task.paused = false
 
+	return state
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// action_carouselSlide
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * カルーセルのステータスバー実装のテスト
+ */
+const action_carouselSlide = (state: State, index: number) => {
+	// index までスライドする
+	// とりあえず実装はまだ。先に effect_carouselRollforward から。
 	return state
 }
 
@@ -488,7 +513,14 @@ addEventListener("load", () => {
 					>{
 						Array.from({length: 5}).map((_, i) => (<li>{i}</li>))
 					}</ul>
-					<div>{ state.carousel.index }</div>
+					<div
+						id = "carouselBar"
+					><div title = "jump index">{
+						Array.from({length: 5}).map((_, i) => (<div
+							class   = { state.carousel.index === i && "select" }
+							onclick = { state.carousel.index !== i && [action_carouselSlide, i] }
+						>{ i }</div>))
+					}</div></div>
 
 					<h2>marquee</h2>
 					<ul id="marquee">{

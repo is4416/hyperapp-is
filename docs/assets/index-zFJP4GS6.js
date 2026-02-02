@@ -604,6 +604,7 @@ class RAFTask {
     return this.#deltaTime ?? 0;
   }
   get isDone() {
+    if (this.#isDone) return true;
     if (this.#pausedTime !== void 0) return false;
     return this.progress === 1;
   }
@@ -636,7 +637,7 @@ class RAFTask {
    * @returns {boolan}     - アクションを実行して良いか判定
    */
   [_isStart](now) {
-    if (this.#isDone) return false;
+    if (this.isDone) return false;
     if (this.#startTime === void 0) this.#startTime = now + this.#delay;
     if (this.paused) {
       if (this.#pausedTime === void 0) this.#pausedTime = now;
@@ -647,7 +648,6 @@ class RAFTask {
     if (!this.paused && this.#pausedTime !== void 0) {
       this.#startTime = this.#startTime + now - this.#pausedTime;
       this.#pausedTime = void 0;
-      this.#deltaTime = now;
     }
     this.#deltaTime = now < this.#startTime ? 0 : now - (this.#currentTime ?? now);
     this.#currentTime = now;
@@ -953,9 +953,9 @@ const effect_carouselRollback = function(props) {
       const cloneTask = task.clone();
       const newTask = new RAFTask({
         id: `${id2}_remove`,
-        duration: 300,
+        duration: 200,
         action: (state2, rafTask) => {
-          const val = -width + param.easing(rafTask.progress) * width;
+          const val = -width + rafTask.progress * width;
           dom.style.transform = `translateX(${val}px)`;
           return state2;
         },
@@ -965,6 +965,56 @@ const effect_carouselRollback = function(props) {
           const fn = props.finish;
           if (fn) {
             requestAnimationFrame(() => dispatch((state3) => fn(state3, cloneTask)));
+          }
+          return setValue(
+            state2,
+            keyNames,
+            getValue(state2, keyNames, []).filter((task2) => task2.id !== id2 && task2.id !== `${id2}_remove`).concat(cloneTask)
+          );
+        }
+      });
+      return setValue(
+        state,
+        keyNames,
+        tasks.filter((task2) => task2.id !== id2).concat(newTask)
+      );
+    });
+  };
+};
+const effect_carouselRollforward = function(props) {
+  const { id: id2, keyNames, paused } = props;
+  return (dispatch) => {
+    dispatch((state) => {
+      const tasks = getValue(state, keyNames, []);
+      const task = tasks.find((task2) => task2.id === id2);
+      if (!task) return state;
+      const param = task.extension?.carouselState;
+      if (!param) return state;
+      task.paused = true;
+      const dom = document.getElementById(id2);
+      if (!dom) return state;
+      const children = Array.from(dom.children);
+      if (!children || children.length < 2) return state;
+      const maxWidth = children[1].offsetLeft - children[0].offsetLeft;
+      const width = maxWidth * param.easing(task.progress);
+      const cloneTask = task.clone();
+      const newTask = new RAFTask({
+        id: `${id2}_remove`,
+        duration: 200,
+        action: (state2, rafTask) => {
+          const val = -width - rafTask.progress * (maxWidth - width);
+          dom.style.transform = `translateX(${val}px)`;
+          return state2;
+        },
+        finish: (state2, rafTask) => {
+          cloneTask.paused = paused ?? false;
+          const propsFn = props.finish;
+          if (propsFn) {
+            requestAnimationFrame(() => dispatch((state3) => propsFn(state3, cloneTask)));
+          }
+          const cloneFn = cloneTask.finish;
+          if (cloneFn) {
+            requestAnimationFrame(() => dispatch((state3) => cloneFn(state3, cloneTask)));
           }
           return setValue(
             state2,
@@ -1212,11 +1262,16 @@ const action_carouselButtonClick = (state) => {
 let isMouseOver = false;
 const action_carouselPause = (state) => {
   isMouseOver = true;
+  const id2 = "carousel";
+  const keyNames = ["subscriptions", "tasks"];
+  const task = getValue(state, keyNames, []).find((task2) => task2.id === id2);
+  if (!task) return state;
+  const effect = task.progress < 0.2 ? effect_carouselRollback : effect_carouselRollforward;
   return [
     state,
-    effect_carouselRollback({
-      id: "carousel",
-      keyNames: ["subscriptions", "tasks"],
+    effect({
+      id: id2,
+      keyNames,
       paused: false,
       finish: (state2, rafTask) => {
         rafTask.paused = isMouseOver;
@@ -1229,6 +1284,9 @@ const action_carouselResume = (state) => {
   isMouseOver = false;
   const task = getValue(state, ["subscriptions", "tasks"], []).find((task2) => task2.id === "carousel");
   if (task) task.paused = false;
+  return state;
+};
+const action_carouselSlide = (state, index) => {
   return state;
 };
 addEventListener("load", () => {
@@ -1309,7 +1367,20 @@ addEventListener("load", () => {
         onmouseleave: action_carouselResume
       },
       Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i))
-    ), /* @__PURE__ */ h("div", null, state.carousel.index), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))))),
+    ), /* @__PURE__ */ h(
+      "div",
+      {
+        id: "carouselBar"
+      },
+      /* @__PURE__ */ h("div", { title: "jump index" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h(
+        "div",
+        {
+          class: state.carousel.index === i && "select",
+          onclick: state.carousel.index !== i && [action_carouselSlide, i]
+        },
+        i
+      )))
+    ), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))))),
     subscriptions: (state) => [
       ...subscription_nodesCleanup([{
         id: "dom",

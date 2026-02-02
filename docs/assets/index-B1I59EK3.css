@@ -130,3 +130,41 @@ input[type="text"] {
 		border     : 1px gray solid;
 	}
 }
+
+#carouselBar {
+	font-size: 0.7rem;
+
+	> div {
+		display  : flex;
+		margin   : 0.5rem auto;
+		max-width: 300px;
+
+		> div {
+			flex-grow    : 1;
+			margin       : 0.5rem;
+			padding      : 0.5rem;
+			border       : 1px gray solid;
+			border-radius: 0.5rem;
+			text-align   : center;
+			color        : gray;
+			cursor       : pointer;
+
+			&:hover:not(.select) {
+				border          : 1px black solid;
+				color           : black;
+				background-color: lightslategray;
+				box-shadow      : inset 2px 2px 4px white;
+			}
+
+			&:active:not(.select) {
+				box-shadow: inset 2px 2px 4px darkblue;
+			}
+
+			&.select {
+				color : black;
+				border: 1px black solid;
+				cursor: auto;
+			}
+		}
+	}
+}
