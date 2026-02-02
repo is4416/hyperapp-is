@@ -52,6 +52,7 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 - [effect_carouselStart](#effect_carouselstart)
 - [effect_carouselRollback](#effect_carouselrollback)
 - [effect_carouselRollforward](#effect_carouselrollforward)
+- [effect_carouselSlide](#effect_carouselslide)
 
 **dom / utils.ts**
 - [ScrollMargin](#scrollmargin)
@@ -143,6 +144,7 @@ rAF を利用した CSS設定
 - `effect_carouselStart`       : subscription_RAFManager をベースにした Carousel アニメーションエフェクト
 - `effect_carouselRollback`    : カルーセル中のアニメーションを元に戻すエフェクト
 - `effect_carouselRollforward` : カルーセル中のアニメーションを早送りするエフェクト
+- `effect_carouselSlide`       : カルーセルを任意のインデックスまで移動する
 
 ---
 
@@ -206,6 +208,7 @@ src
      │       effect_carouselStart
      │       effect_carouselRollback
      │       effect_carouselRollforward
+     │       effect_carouselSlide
      │
      └ dom
          ├ utils.ts
@@ -794,6 +797,10 @@ export const effect_carouselRollback = function <S> (
 - paused  : 実行後、一時停止するか
 - finish  : 実行後に呼び出されるイベント
 
+**注意**
+`effect_carouselStart` に依存しています  
+上記エフェクトでループしている id に対して使用します
+
 ---
 
 ### effect_carouselRollforward
@@ -814,6 +821,37 @@ export const effect_carouselRollforward = function <S> (
 - keyNames: RAFTask 配列までのパス
 - paused  : 実行後、一時停止するか
 - finish  : 実行後に呼び出されるイベント
+
+**注意**
+`effect_carouselStart` に依存しています  
+上記エフェクトでループしている id に対して使用します
+
+---
+
+### effect_carouselSlide
+カルーセルを任意のインデックスまで移動する
+
+```ts
+export const effect_carouselSlide = function <S> (
+	props: {
+		id      : string
+		keyNames: string[]
+		index   : number
+		paused ?: boolean
+		finish ?: RAFEvent<S>
+	}
+): (dispatch: Dispatch<S>) => void
+```
+
+- id      : ユニークID
+- keyNames: RAFTask 配列までのパス
+- index   : 移動先のインデックス
+- paused  : 実行後、一時停止するか
+- finish  : 実行後に呼び出されるイベント
+
+**注意**
+`effect_carouselStart` に依存しています  
+上記エフェクトでループしている id に対して使用します
 
 ---
 

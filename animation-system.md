@@ -210,10 +210,19 @@ Carousel 管理用オブジェクト
 **ステートに登録** するためのラッパーです
 
 ### effect_carouselRollback
-アニメーション中のカルーセルを、元の位置に戻すエフェクト
+アニメーション中のカルーセルを、元の位置に戻すエフェクト  
+`effect_carouselStar` に依存しており `effect_carouselStar` 実行中の id に対して  
+エフェクトを適用する前提となっています
 
 ### effect_carouselRollforward
-アニメーション中のカルーセルを、早送りする
+アニメーション中のカルーセルを、早送りする  
+`effect_carouselStar` に依存しており `effect_carouselStar` 実行中の id に対して  
+エフェクトを適用する前提となっています
+
+### effect_carouselRollforward
+カルーセルを任意のインデックスまで移動する  
+`effect_carouselStar` に依存しており `effect_carouselStar` 実行中の id に対して  
+エフェクトを適用する前提となっています
 
 ## その他
 
@@ -235,3 +244,7 @@ Carousel 管理用オブジェクト
 
 ライブラリの理解が進んだユーザーは、エフェクト類はコードの参考例として頂き  
 `RAFTask` の `action` や `finish` 等を直接作成されるとよろしいでしょう
+
+`effect_carouselStart` 及びそれに関連するエフェクトも作成しましたが  
+`effect_carouselStart` に依存し過ぎなところがあります  
+一旦開発を終了し、そのうちカルーセルはコンポーネント化するかも

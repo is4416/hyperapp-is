@@ -1031,6 +1031,121 @@ const effect_carouselRollforward = function(props) {
     });
   };
 };
+const effect_carouselSlide = function(props) {
+  const { id: id2, keyNames, index, paused, finish } = props;
+  return (dispatch) => {
+    const dom = document.getElementById(id2);
+    if (!dom) return;
+    const children = Array.from(dom.children);
+    if (!children || children.length < index || children.length < 2) return;
+    dispatch((state) => {
+      const tasks = getValue(state, keyNames, []);
+      const task = tasks.find((task2) => task2.id === id2);
+      if (!task) return state;
+      const param = task.extension?.carouselState;
+      if (!param) return state;
+      const moveTo = index - param.index;
+      if (moveTo === 0) {
+        return [state, effect_carouselRollback({
+          id: id2,
+          keyNames,
+          paused,
+          finish
+        })];
+      }
+      task.paused = true;
+      const cloneTask = task.clone();
+      const maxWidth = children[1].offsetLeft - children[0].offsetLeft;
+      const width = param.easing(task.progress) * maxWidth;
+      const cloneNodes = [];
+      let newTask;
+      if (moveTo > 0) {
+        for (let i = 0; i < moveTo - 1; i++) {
+          const cloneNode = children[i].cloneNode(true);
+          cloneNodes.push(cloneNode);
+          dom.appendChild(cloneNode);
+        }
+        const reWidth = dom.children[moveTo].offsetLeft - children[0].offsetLeft - width;
+        newTask = new RAFTask({
+          id: `${id2}_slide`,
+          duration: 200,
+          action: (state2, rafTask) => {
+            const val = -width - rafTask.progress * reWidth;
+            dom.style.transform = `translateX(${val}px)`;
+            return state2;
+          },
+          finish: (state2, rafTask) => {
+            cloneTask.paused = paused ?? false;
+            cloneNodes.forEach((node) => node.remove());
+            for (let i = 0; i < moveTo - 1; i++) {
+              const firstChild = dom.firstChild;
+              if (firstChild) dom.appendChild(firstChild);
+            }
+            cloneTask.extension.carouselState.index = index === 0 ? cloneTask.extension.carouselState.total : index - 1;
+            const propsFn = props.finish;
+            if (propsFn) {
+              requestAnimationFrame(() => dispatch((state3) => propsFn(state3, cloneTask)));
+            }
+            const cloneFn = cloneTask.finish;
+            if (cloneFn) {
+              requestAnimationFrame(() => dispatch((state3) => cloneFn(state3, cloneTask)));
+            }
+            return setValue(
+              state2,
+              keyNames,
+              getValue(state2, keyNames, []).filter((task2) => task2.id !== id2 && task2.id !== `${id2}_slide`).concat(cloneTask)
+            );
+          }
+        });
+      } else {
+        const need = Math.abs(moveTo);
+        for (let i = 0; i < need; i++) {
+          const cloneNode = children[children.length - 1 - i].cloneNode(true);
+          cloneNodes.push(cloneNode);
+          dom.insertBefore(cloneNode, dom.firstChild);
+        }
+        const reWidth = dom.children[need].offsetLeft - dom.children[0].offsetLeft + width;
+        dom.style.transform = `translateX(${-reWidth}px)`;
+        newTask = new RAFTask({
+          id: `${id2}_slide`,
+          duration: 200,
+          action: (state2, rafTask) => {
+            const val = -width + rafTask.progress * reWidth;
+            dom.style.transform = `translateX(${val}px)`;
+            return state2;
+          },
+          finish: (state2, rafTask) => {
+            cloneTask.paused = paused ?? false;
+            cloneNodes.forEach((node) => node.remove());
+            for (let i = 0; i < need + 1; i++) {
+              const lastChild = dom.children[dom.children.length - 1];
+              if (lastChild) dom.insertBefore(lastChild, dom.firstChild);
+            }
+            cloneTask.extension.carouselState.index = index === 0 ? cloneTask.extension.carouselState.total : index - 1;
+            const propsFn = props.finish;
+            if (propsFn) {
+              requestAnimationFrame(() => dispatch((state3) => propsFn(state3, cloneTask)));
+            }
+            const cloneFn = cloneTask.finish;
+            if (cloneFn) {
+              requestAnimationFrame(() => dispatch((state3) => cloneFn(state3, cloneTask)));
+            }
+            return setValue(
+              state2,
+              keyNames,
+              getValue(state2, keyNames, []).filter((task2) => task2.id !== id2 && task2.id !== `${id2}_slide`).concat(cloneTask)
+            );
+          }
+        });
+      }
+      return setValue(
+        state,
+        keyNames,
+        tasks.filter((task2) => task2.id !== id2).concat(newTask)
+      );
+    });
+  };
+};
 const getScrollMargin = function(e) {
   const el2 = e.currentTarget;
   if (!el2) return { top: 0, left: 0, right: 0, bottom: 0 };
@@ -1287,7 +1402,12 @@ const action_carouselResume = (state) => {
   return state;
 };
 const action_carouselSlide = (state, index) => {
-  return state;
+  const id2 = "carousel";
+  const keyNames = ["subscriptions", "tasks"];
+  return [
+    state,
+    effect_carouselSlide({ id: id2, keyNames, index })
+  ];
 };
 addEventListener("load", () => {
   const easingList = (() => {
@@ -1375,8 +1495,8 @@ addEventListener("load", () => {
       /* @__PURE__ */ h("div", { title: "jump index" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h(
         "div",
         {
-          class: state.carousel.index === i && "select",
-          onclick: state.carousel.index !== i && [action_carouselSlide, i]
+          class: i === state.carousel.index && "select",
+          onclick: [action_carouselSlide, i]
         },
         i
       )))

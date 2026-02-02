@@ -149,21 +149,20 @@ input[type="text"] {
 			color        : gray;
 			cursor       : pointer;
 
-			&:hover:not(.select) {
+			&:hover {
 				border          : 1px black solid;
 				color           : black;
 				background-color: lightslategray;
 				box-shadow      : inset 2px 2px 4px white;
 			}
 
-			&:active:not(.select) {
+			&:active {
 				box-shadow: inset 2px 2px 4px darkblue;
 			}
 
 			&.select {
 				color : black;
 				border: 1px black solid;
-				cursor: auto;
 			}
 		}
 	}

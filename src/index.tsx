@@ -5,7 +5,7 @@
 import { app, VNode, Dispatch } from "hyperapp"
 import h from "hyperapp-jsx-pragma"
 import {
-	setValue,
+	getValue, setValue,
 	Route, SelectButton, OptionButton,
 
 	effect_nodesInitialize, effect_setTimedValue, subscription_nodesCleanup,
@@ -18,11 +18,10 @@ import {
 	effect_RAFProperties,
 	
 	CarouselState, effect_carouselStart, effect_carouselRollback, effect_carouselRollforward,
+	effect_carouselSlide,
 
 	ScrollMargin, getScrollMargin,
 	marquee,
-	getValue,
-	RAFEvent,
 } from "./hyperapp-ui"
 
 // ---------- ---------- ---------- ---------- ----------
@@ -329,16 +328,17 @@ const action_carouselResume = (state: State) => {
 	return state
 }
 
-// ---------- ---------- ---------- ---------- ----------
-// action_carouselSlide
-// ---------- ---------- ---------- ---------- ----------
 /**
  * カルーセルのステータスバー実装のテスト
  */
 const action_carouselSlide = (state: State, index: number) => {
-	// index までスライドする
-	// とりあえず実装はまだ。先に effect_carouselRollforward から。
-	return state
+	const id = "carousel"
+	const keyNames = ["subscriptions", "tasks"]
+
+	return [
+		state,
+		effect_carouselSlide({id, keyNames, index})
+	]
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -517,8 +517,8 @@ addEventListener("load", () => {
 						id = "carouselBar"
 					><div title = "jump index">{
 						Array.from({length: 5}).map((_, i) => (<div
-							class   = { state.carousel.index === i && "select" }
-							onclick = { state.carousel.index !== i && [action_carouselSlide, i] }
+							class   = { i === state.carousel.index && "select"}
+							onclick = { [action_carouselSlide, i] }
 						>{ i }</div>))
 					}</div></div>
 
