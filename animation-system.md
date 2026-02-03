@@ -194,34 +194,34 @@ CSS設定オブジェクト
 このエフェクトは `createRAFProperties` により作成した `RAFTask` を  
 **ステートに登録** するためのラッパーです
 
-## carousel.ts
+## translate.ts
 
-### CarouselState
-Carousel 管理用オブジェクト  
-`RAFTask.extension.carouselState` に登録します
+### TranslateState
+Translate 管理用オブジェクト  
+`RAFTask.extension.translateState` に登録します
 
-### createRAFCarousel
-`subscription_RAFManager` をベースにした Carousel アニメーション RAFTask を作成する  
+### createRAFTranslate
+`subscription_RAFManager` をベースにした Translate アニメーション RAFTask を作成する  
 このオブジェクトは **情報管理と描画** を担当します  
 
-### effect_carouselStart
-`subscription_RAFManager` をベースにした Carousel アニメーションエフェクト  
-このエフェクトは `createRAFCarousel` により作成した `RAFTask` を  
+### effect_translateStart
+`subscription_RAFManager` をベースにした Translate アニメーションエフェクト  
+このエフェクトは `createRAFTranslate` により作成した `RAFTask` を  
 **ステートに登録** するためのラッパーです
 
-### effect_carouselRollback
-アニメーション中のカルーセルを、元の位置に戻すエフェクト  
-`effect_carouselStar` に依存しており `effect_carouselStar` 実行中の id に対して  
+### effect_translateRollback
+アニメーション中の Translate を、元の位置に戻すエフェクト  
+`effect_translateStar` に依存しており `effect_translateStar` 実行中の id に対して  
 エフェクトを適用する前提となっています
 
-### effect_carouselRollforward
-アニメーション中のカルーセルを、早送りする  
-`effect_carouselStar` に依存しており `effect_carouselStar` 実行中の id に対して  
+### effect_translateRollforward
+アニメーション中の Translate を、早送りする  
+`effect_translateStar` に依存しており `effect_translateStar` 実行中の id に対して  
 エフェクトを適用する前提となっています
 
-### effect_carouselRollforward
-カルーセルを任意のインデックスまで移動する  
-`effect_carouselStar` に依存しており `effect_carouselStar` 実行中の id に対して  
+### effect_translateRollforward
+Translate を任意のインデックスまで移動する  
+`effect_translateStar` に依存しており `effect_translateStar` 実行中の id に対して  
 エフェクトを適用する前提となっています
 
 ## その他
@@ -244,7 +244,3 @@ Carousel 管理用オブジェクト
 
 ライブラリの理解が進んだユーザーは、エフェクト類はコードの参考例として頂き  
 `RAFTask` の `action` や `finish` 等を直接作成されるとよろしいでしょう
-
-`effect_carouselStart` 及びそれに関連するエフェクトも作成しましたが  
-`effect_carouselStart` に依存し過ぎなところがあります  
-一旦開発を終了し、そのうちカルーセルはコンポーネント化するかも

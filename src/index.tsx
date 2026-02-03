@@ -16,9 +16,9 @@ import {
 	progress_easing,
 
 	effect_RAFProperties,
-	
-	CarouselState, effect_carouselStart, effect_carouselRollback, effect_carouselRollforward,
-	effect_carouselSlide,
+
+	TranslateState, effect_translateStart, effect_translateRollback, effect_translateRollforward,
+	effect_translateSlide,
 
 	ScrollMargin, getScrollMargin,
 	marquee,
@@ -60,7 +60,7 @@ interface State {
 		margin: ScrollMargin
 	},
 
-	carousel: {
+	translate: {
 		index: number
 	}
 }
@@ -201,16 +201,16 @@ const action_scroll = (state: State, e: Event) => {
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// action_carouselButtonClick
+// action_translateButtonClick
 // ---------- ---------- ---------- ---------- ----------
 
 // Marquee controler
 let controls: { start: () => void, stop: () => void } | null = null
 
 /**
- * carousel タブのクリック
+ * translate タブのクリック
  */
-const action_carouselButtonClick = (state: State) => {
+const action_translateButtonClick = (state: State) => {
 
 	// ---------- ---------- ----------
 	// marquee
@@ -239,26 +239,26 @@ const action_carouselButtonClick = (state: State) => {
 	}
 
 	// ---------- ---------- ----------
-	// carousel_finish
+	// translate_finish
 	// ---------- ---------- ----------
 
-	// carousel: finish (アクティブな index 番号を取得して、ステートを変更)
-	const carousel_finish = (state: State, rafTask: RAFTask<State>): State | [State, InternalEffect<State>] => {
-		const carouselState: CarouselState = rafTask.extension?.carouselState
-		if (!carouselState) return state
+	// translate: finish (アクティブな index 番号を取得して、ステートを変更)
+	const translate_finish = (state: State, rafTask: RAFTask<State>): State | [State, InternalEffect<State>] => {
+		const translateState: TranslateState = rafTask.extension?.translateState
+		if (!translateState) return state
 
-		return setValue(state, ["carousel", "index"], carouselState.index)
+		return setValue(state, ["translate", "index"], translateState.index)
 	}
 
 	// result
 	return [
 		state,
 		effect_setMarquee,
-		effect_carouselStart({
-			id      : "carousel",
+		effect_translateStart({
+			id      : "translate",
 			duration: 2000,
 			delay   : 1000,
-			finish  : carousel_finish,
+			finish  : translate_finish,
 			easing  : progress_easing.easeOutCubic,
 			keyNames: ["subscriptions", "tasks"]
 		})
@@ -266,27 +266,27 @@ const action_carouselButtonClick = (state: State) => {
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// action_carouselPause
+// action_translatePause
 // ---------- ---------- ---------- ---------- ----------
 // アニメーション中にマウスが離れてしまうとイベントが追えないため
 // とりあえずフラグとして管理
 let isMouseOver = false
 
 /**
- * #carousel にマウスが乗った場合のアニメーション
+ * #translate にマウスが乗った場合のアニメーション
  * 動作途中の rAF アニメーションを差し替えるテスト
  */
-const action_carouselPause = (state: State) => {
+const action_translatePause = (state: State) => {
 	isMouseOver = true
 
 /* 単純な一時停止を行いたい場合は、これだけ
 	const task = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
-		.find(task => task.id === "carousel")
+		.find(task => task.id === "translate")
 	if (task) task.paused = true
 	return state
 */
 
-	const id = "carousel"
+	const id = "translate"
 	const keyNames = ["subscriptions", "tasks"]
 
 	// get task
@@ -296,8 +296,8 @@ const action_carouselPause = (state: State) => {
 
 	// 現在の進行状態に合わせて、進めるか戻すか決定する
 	const effect = task.progress < 0.2
-		? effect_carouselRollback
-		: effect_carouselRollforward
+		? effect_translateRollback
+		: effect_translateRollforward
 
 	return [
 		state,
@@ -313,16 +313,16 @@ const action_carouselPause = (state: State) => {
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// action_carouselResume
+// action_translateResume
 // ---------- ---------- ---------- ---------- ----------
 /**
  * #カルーセルからマウスが離れた場合のアニメーション
  */
-const action_carouselResume = (state: State) => {
+const action_translateResume = (state: State) => {
 	isMouseOver = false
 
 	const task = getValue(state, ["subscriptions", "tasks"], [] as RAFTask<State>[])
-		.find(task => task.id === "carousel")
+		.find(task => task.id === "translate")
 	if (task) task.paused = false
 
 	return state
@@ -331,13 +331,13 @@ const action_carouselResume = (state: State) => {
 /**
  * カルーセルのステータスバー実装のテスト
  */
-const action_carouselSlide = (state: State, index: number) => {
-	const id = "carousel"
+const action_translateSlide = (state: State, index: number) => {
+	const id = "translate"
 	const keyNames = ["subscriptions", "tasks"]
 
 	return [
 		state,
-		effect_carouselSlide({id, keyNames, index})
+		effect_translateSlide({id, keyNames, index})
 	]
 }
 
@@ -386,7 +386,7 @@ addEventListener("load", () => {
 			margin: { top: 0, left: 0, right: 0, bottom: 0 },
 		},
 
-		carousel: {
+		translate: {
 			index: 0
 		}
 	}
@@ -414,8 +414,8 @@ addEventListener("load", () => {
 					state    = {state}
 					keyNames = {["tabName"]}
 					id       = "page6"
-					onclick  = { action_carouselButtonClick }
-				>Carousel</OptionButton>
+					onclick  = { action_translateButtonClick }
+				>Translate</OptionButton>
 			</div>
 
 			{/* *** Tabs Body *** */}
@@ -503,22 +503,22 @@ addEventListener("load", () => {
 					<div>{ JSON.stringify(state.dom.margin) }</div>
 				</Route>
 
-				{/* *** page6: Carousel *** */}
+				{/* *** page6: Translate *** */}
 				<Route state={state} keyNames={["tabName"]} match="page6">
-					<h2>Carousel</h2>
+					<h2>Translate</h2>
 					<ul
-						id           = "carousel"
-						onmouseenter = { action_carouselPause }
-						onmouseleave = { action_carouselResume }
+						id           = "translate"
+						onmouseenter = { action_translatePause }
+						onmouseleave = { action_translateResume }
 					>{
 						Array.from({length: 5}).map((_, i) => (<li>{i}</li>))
 					}</ul>
 					<div
-						id = "carouselBar"
+						id = "translateBar"
 					><div title = "jump index">{
 						Array.from({length: 5}).map((_, i) => (<div
-							class   = { i === state.carousel.index && "select"}
-							onclick = { [action_carouselSlide, i] }
+							class   = { i === state.translate.index && "select"}
+							onclick = { [action_translateSlide, i] }
 						>{ i }</div>))
 					}</div></div>
 

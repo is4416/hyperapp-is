@@ -46,13 +46,13 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 **animation / easing.ts**
 - [progress_easing](#progress_easing)
 
-**animation / carousel.ts**
-- [CarouselState](#carouselstate)
-- [createRAFCarousel](#createrafcarousel)
-- [effect_carouselStart](#effect_carouselstart)
-- [effect_carouselRollback](#effect_carouselrollback)
-- [effect_carouselRollforward](#effect_carouselrollforward)
-- [effect_carouselSlide](#effect_carouselslide)
+**animation / translate.ts**
+- [TranslateState](#translatestate)
+- [createRAFTranslate](#createraftranslate)
+- [effect_translateStart](#effect_translatestart)
+- [effect_translateRollback](#effect_translaterollback)
+- [effect_translateRollforward](#effect_translaterollforward)
+- [effect_translateSlide](#effect_translateslide)
 
 **dom / utils.ts**
 - [ScrollMargin](#scrollmargin)
@@ -137,14 +137,14 @@ rAF を利用した CSS設定
 
 ---
 
-### animation / carousel.ts
+### animation / translate.ts
 
-- `CarouselState`              : Carousel 管理用オブジェクト
-- `createRAFCarousel`          : Carousel アニメーション RAFTask を作成する
-- `effect_carouselStart`       : subscription_RAFManager をベースにした Carousel アニメーションエフェクト
-- `effect_carouselRollback`    : カルーセル中のアニメーションを元に戻すエフェクト
-- `effect_carouselRollforward` : カルーセル中のアニメーションを早送りするエフェクト
-- `effect_carouselSlide`       : カルーセルを任意のインデックスまで移動する
+- `TranslateState`              : Translate 管理用オブジェクト
+- `createRAFTranslate`          : Translate アニメーション RAFTask を作成する
+- `effect_translateStart`       : subscription_RAFManager をベースにした Translate アニメーションエフェクト
+- `effect_translateRollback`    : Translate中のアニメーションを元に戻すエフェクト
+- `effect_translateRollforward` : Translate中のアニメーションを早送りするエフェクト
+- `effect_translateSlide`       : Translateを任意のインデックスまで移動する
 
 ---
 
@@ -156,7 +156,7 @@ DOM を直接扱うユーティリティ
 - `getScrollMargin` : スクロールの余白を取得
 - `MatrixState`     : transform 情報
 - `getMatrixState`  : DOM から transfrom 情報を取得する
-- `marquee`         : Carousel 風に DOM が流れるアニメーションを実行する
+- `marquee`         : Translate 風に DOM が流れるアニメーションを実行する
 
 ---
 
@@ -202,13 +202,13 @@ src
      │  ├ easing.ts
      │  │   progress_easing
      │  │
-     │  └ carousel.ts
-     │       CarouselState
-     │       createRAFCarousel
-     │       effect_carouselStart
-     │       effect_carouselRollback
-     │       effect_carouselRollforward
-     │       effect_carouselSlide
+     │  └ translate.ts
+     │       TranslateState
+     │       createRAFTranslate
+     │       effect_translateStart
+     │       effect_translateRollback
+     │       effect_translateRollforward
+     │       effect_translateSlide
      │
      └ dom
          ├ utils.ts
@@ -695,11 +695,11 @@ props は、基本的に RAFTask の値
 
 ---
 
-### CarouselState
-Carousel 管理用オブジェクト
+### TranslateState
+Translate 管理用オブジェクト
 
 ```ts
-export interface CarouselState {
+export interface TranslateState {
 	width : number
 	index : number
 	total : number
@@ -714,11 +714,11 @@ export interface CarouselState {
 
 ---
 
-### createRAFCarousel
-subscription_RAFManager をベースにした Carousel アニメーション RAFTask を作成する
+### createRAFTranslate
+subscription_RAFManager をベースにした Translate アニメーション RAFTask を作成する
 
 ```ts
-export const createRAFCarousel = function <S> (
+export const createRAFTranslate = function <S> (
 	props: {
 		id      : string
 		groupID?: string
@@ -730,21 +730,21 @@ export const createRAFCarousel = function <S> (
 		priority ?: number
 		extension?: { [key: string]: any }
 
-		carouselState: CarouselState
+		translateState: TranslateState
 	}
 ): RAFTask<S>
 ```
 
 - props は、基本的に RAFTask の値
-- carouselState: カルーセル情報
+- translateState: Translate情報
 
 ---
 
-### effect_carouselStart
-`subscription_RAFManager` をベースにした Carousel アニメーションエフェクトです
+### effect_translateStart
+`subscription_RAFManager` をベースにした Translate アニメーションエフェクトです
 
 ```ts
-export const effect_carouselStart = function <S> (
+export const effect_translateStart = function <S> (
 	props: {
 		id      : string
 		groupID?: string
@@ -769,20 +769,20 @@ export const effect_carouselStart = function <S> (
 
 **説明**
 
-marquee は単純な DOM に対しての副作用で、Carousel としての動作は  
+marquee は単純な DOM に対しての副作用で、Translate としての動作は  
 ステート経由で rAF を制御しているこちらに集約されることになります
 
 marquee はステートを通さず直接 DOM に対して副作用を発生させるため  
 用途によっては marquee に優位性があります
 
 - marquee : DOM 直接操作。軽量で即時反映
-- effect_carouselStart : Hyperapp のステート経由で管理。RAFManager と連携可能
+- effect_translateStart : Hyperapp のステート経由で管理。RAFManager と連携可能
 
-### effect_carouselRollback
-アニメーション中のカルーセルを、元の位置に戻す
+### effect_translateRollback
+アニメーション中のTranslateを、元の位置に戻す
 
 ```ts
-export const effect_carouselRollback = function <S> (
+export const effect_translateRollback = function <S> (
 	props: {
 		id      : string
 		keyNames: string[]
@@ -798,16 +798,16 @@ export const effect_carouselRollback = function <S> (
 - finish  : 実行後に呼び出されるイベント
 
 **注意**
-`effect_carouselStart` に依存しています  
+`effect_translateStart` に依存しています  
 上記エフェクトでループしている id に対して使用します
 
 ---
 
-### effect_carouselRollforward
-アニメーション中のカルーセルを、早送りする
+### effect_translateRollforward
+アニメーション中のTranslateを、早送りする
 
 ```ts
-export const effect_carouselRollforward = function <S> (
+export const effect_translateRollforward = function <S> (
 	props: {
 		id      : string
 		keyNames: string[]
@@ -823,16 +823,16 @@ export const effect_carouselRollforward = function <S> (
 - finish  : 実行後に呼び出されるイベント
 
 **注意**
-`effect_carouselStart` に依存しています  
+`effect_translateStart` に依存しています  
 上記エフェクトでループしている id に対して使用します
 
 ---
 
-### effect_carouselSlide
-カルーセルを任意のインデックスまで移動する
+### effect_translateSlide
+Translateを任意のインデックスまで移動する
 
 ```ts
-export const effect_carouselSlide = function <S> (
+export const effect_translateSlide = function <S> (
 	props: {
 		id      : string
 		keyNames: string[]
@@ -850,7 +850,7 @@ export const effect_carouselSlide = function <S> (
 - finish  : 実行後に呼び出されるイベント
 
 **注意**
-`effect_carouselStart` に依存しています  
+`effect_translateStart` に依存しています  
 上記エフェクトでループしている id に対して使用します
 
 ---
@@ -993,7 +993,7 @@ export const getMatrixState = (
 ---
 
 ### marquee
-Carousel 風に DOM が流れるアニメーションを実行します
+Translate 風に DOM が流れるアニメーションを実行します
 
 ```ts
 export const marquee = function <S> (

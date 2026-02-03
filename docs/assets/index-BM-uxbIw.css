@@ -115,7 +115,7 @@ input[type="text"] {
 	background-color: yellow;
 }
 
-#carousel,
+#translate,
 #marquee {
 	list-style: none;
 	display   : flex;
@@ -131,7 +131,7 @@ input[type="text"] {
 	}
 }
 
-#carouselBar {
+#translateBar {
 	font-size: 0.7rem;
 
 	> div {

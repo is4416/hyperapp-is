@@ -15,8 +15,8 @@ export { createUnits, createRAFProperties, effect_RAFProperties } from "./animat
 
 export { progress_easing } from "./animation/easing"
 
-export type { CarouselState } from "./animation/carousel"
-export { createRAFCarousel, effect_carouselStart, effect_carouselRollback, effect_carouselRollforward, effect_carouselSlide } from "./animation/carousel"
+export type { TranslateState } from "./animation/translate"
+export { createRAFTranslate, effect_translateStart, effect_translateRollback, effect_translateRollforward, effect_translateSlide} from "./animation/translate"
 
 // dom
 export type { ScrollMargin, MatrixState } from "./dom/utils"

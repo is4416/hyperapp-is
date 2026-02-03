@@ -833,11 +833,11 @@ const progress_easing = {
     return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
   }
 };
-const createRAFCarousel = function(props) {
-  const { id: id2, groupID, duration, delay, priority, carouselState } = props;
+const createRAFTranslate = function(props) {
+  const { id: id2, groupID, duration, delay, priority, translateState } = props;
   const extension = {
     ...props.extension,
-    carouselState
+    translateState
   };
   const finish = (state, rafTask) => {
     const dom = document.getElementById(id2);
@@ -859,7 +859,7 @@ const createRAFCarousel = function(props) {
   };
   const properties = [{
     [`#${id2}`]: {
-      "transform": (progress) => `translateX(${-carouselState.easing(progress) * carouselState.width}px)`
+      "transform": (progress) => `translateX(${-translateState.easing(progress) * translateState.width}px)`
     }
   }];
   return createRAFProperties({
@@ -873,7 +873,7 @@ const createRAFCarousel = function(props) {
     properties
   });
 };
-const effect_carouselStart = function(props) {
+const effect_translateStart = function(props) {
   const { id: id2, groupID, duration, delay, priority, extension, keyNames } = props;
   const easing = props.easing ? props.easing : (t) => t;
   const finish = (state, rafTask) => {
@@ -882,9 +882,9 @@ const effect_carouselStart = function(props) {
     const children = Array.from(dom?.children);
     if (!children || children.length < 2) return state;
     const width = children[1].offsetLeft - children[0].offsetLeft;
-    const carouselState = rafTask.extension?.carouselState;
-    if (!carouselState) return state;
-    const newTask = createRAFCarousel({
+    const translateState = rafTask.extension?.translateState;
+    if (!translateState) return state;
+    const newTask = createRAFTranslate({
       id: id2,
       groupID,
       duration,
@@ -892,11 +892,11 @@ const effect_carouselStart = function(props) {
       finish,
       priority,
       extension,
-      carouselState: {
-        index: carouselState.index + 1 < children.length ? carouselState.index + 1 : 0,
+      translateState: {
+        index: translateState.index + 1 < children.length ? translateState.index + 1 : 0,
         total: children.length,
         width,
-        easing: carouselState.easing
+        easing: translateState.easing
       }
     });
     return [
@@ -914,7 +914,7 @@ const effect_carouselStart = function(props) {
     const children = Array.from(dom?.children);
     if (!children || children.length < 2) return;
     const width = children[1].offsetLeft - children[0].offsetLeft;
-    const newTask = createRAFCarousel({
+    const newTask = createRAFTranslate({
       id: id2,
       groupID,
       duration,
@@ -922,7 +922,7 @@ const effect_carouselStart = function(props) {
       finish,
       priority,
       extension,
-      carouselState: {
+      translateState: {
         index: 0,
         total: children.length,
         width,
@@ -935,14 +935,14 @@ const effect_carouselStart = function(props) {
     });
   };
 };
-const effect_carouselRollback = function(props) {
+const effect_translateRollback = function(props) {
   const { id: id2, keyNames, paused } = props;
   return (dispatch) => {
     dispatch((state) => {
       const tasks = getValue(state, keyNames, []);
       const task = tasks.find((task2) => task2.id === id2);
       if (!task) return state;
-      const param = task.extension?.carouselState;
+      const param = task.extension?.translateState;
       if (!param) return state;
       task.paused = true;
       const dom = document.getElementById(id2);
@@ -981,14 +981,14 @@ const effect_carouselRollback = function(props) {
     });
   };
 };
-const effect_carouselRollforward = function(props) {
+const effect_translateRollforward = function(props) {
   const { id: id2, keyNames, paused } = props;
   return (dispatch) => {
     dispatch((state) => {
       const tasks = getValue(state, keyNames, []);
       const task = tasks.find((task2) => task2.id === id2);
       if (!task) return state;
-      const param = task.extension?.carouselState;
+      const param = task.extension?.translateState;
       if (!param) return state;
       task.paused = true;
       const dom = document.getElementById(id2);
@@ -1031,7 +1031,7 @@ const effect_carouselRollforward = function(props) {
     });
   };
 };
-const effect_carouselSlide = function(props) {
+const effect_translateSlide = function(props) {
   const { id: id2, keyNames, index, paused, finish } = props;
   return (dispatch) => {
     const dom = document.getElementById(id2);
@@ -1042,11 +1042,11 @@ const effect_carouselSlide = function(props) {
       const tasks = getValue(state, keyNames, []);
       const task = tasks.find((task2) => task2.id === id2);
       if (!task) return state;
-      const param = task.extension?.carouselState;
+      const param = task.extension?.translateState;
       if (!param) return state;
       const moveTo = index - param.index;
       if (moveTo === 0) {
-        return [state, effect_carouselRollback({
+        return [state, effect_translateRollback({
           id: id2,
           keyNames,
           paused,
@@ -1081,7 +1081,7 @@ const effect_carouselSlide = function(props) {
               const firstChild = dom.firstChild;
               if (firstChild) dom.appendChild(firstChild);
             }
-            cloneTask.extension.carouselState.index = index === 0 ? cloneTask.extension.carouselState.total : index - 1;
+            cloneTask.extension.translateState.index = index === 0 ? cloneTask.extension.translateState.total : index - 1;
             const propsFn = props.finish;
             if (propsFn) {
               requestAnimationFrame(() => dispatch((state3) => propsFn(state3, cloneTask)));
@@ -1099,7 +1099,7 @@ const effect_carouselSlide = function(props) {
         });
       } else {
         const need = Math.abs(moveTo);
-        for (let i = 0; i < need; i++) {
+        for (let i = 0; i < need + 1; i++) {
           const cloneNode = children[children.length - 1 - i].cloneNode(true);
           cloneNodes.push(cloneNode);
           dom.insertBefore(cloneNode, dom.firstChild);
@@ -1121,7 +1121,7 @@ const effect_carouselSlide = function(props) {
               const lastChild = dom.children[dom.children.length - 1];
               if (lastChild) dom.insertBefore(lastChild, dom.firstChild);
             }
-            cloneTask.extension.carouselState.index = index === 0 ? cloneTask.extension.carouselState.total : index - 1;
+            cloneTask.extension.translateState.index = index === 0 ? cloneTask.extension.translateState.total : index - 1;
             const propsFn = props.finish;
             if (propsFn) {
               requestAnimationFrame(() => dispatch((state3) => propsFn(state3, cloneTask)));
@@ -1340,7 +1340,7 @@ const action_scroll = (state, e) => {
   return setValue(state, ["dom", "margin"], getScrollMargin(e));
 };
 let controls = null;
-const action_carouselButtonClick = (state) => {
+const action_translateButtonClick = (state) => {
   if (controls) controls.stop();
   const effect_setMarquee = (dispatch) => {
     dispatch((state2) => {
@@ -1356,32 +1356,32 @@ const action_carouselButtonClick = (state) => {
       return state2;
     });
   };
-  const carousel_finish = (state2, rafTask) => {
-    const carouselState = rafTask.extension?.carouselState;
-    if (!carouselState) return state2;
-    return setValue(state2, ["carousel", "index"], carouselState.index);
+  const translate_finish = (state2, rafTask) => {
+    const translateState = rafTask.extension?.translateState;
+    if (!translateState) return state2;
+    return setValue(state2, ["translate", "index"], translateState.index);
   };
   return [
     state,
     effect_setMarquee,
-    effect_carouselStart({
-      id: "carousel",
+    effect_translateStart({
+      id: "translate",
       duration: 2e3,
       delay: 1e3,
-      finish: carousel_finish,
+      finish: translate_finish,
       easing: progress_easing.easeOutCubic,
       keyNames: ["subscriptions", "tasks"]
     })
   ];
 };
 let isMouseOver = false;
-const action_carouselPause = (state) => {
+const action_translatePause = (state) => {
   isMouseOver = true;
-  const id2 = "carousel";
+  const id2 = "translate";
   const keyNames = ["subscriptions", "tasks"];
   const task = getValue(state, keyNames, []).find((task2) => task2.id === id2);
   if (!task) return state;
-  const effect = task.progress < 0.2 ? effect_carouselRollback : effect_carouselRollforward;
+  const effect = task.progress < 0.2 ? effect_translateRollback : effect_translateRollforward;
   return [
     state,
     effect({
@@ -1395,18 +1395,18 @@ const action_carouselPause = (state) => {
     })
   ];
 };
-const action_carouselResume = (state) => {
+const action_translateResume = (state) => {
   isMouseOver = false;
-  const task = getValue(state, ["subscriptions", "tasks"], []).find((task2) => task2.id === "carousel");
+  const task = getValue(state, ["subscriptions", "tasks"], []).find((task2) => task2.id === "translate");
   if (task) task.paused = false;
   return state;
 };
-const action_carouselSlide = (state, index) => {
-  const id2 = "carousel";
+const action_translateSlide = (state, index) => {
+  const id2 = "translate";
   const keyNames = ["subscriptions", "tasks"];
   return [
     state,
-    effect_carouselSlide({ id: id2, keyNames, index })
+    effect_translateSlide({ id: id2, keyNames, index })
   ];
 };
 addEventListener("load", () => {
@@ -1440,7 +1440,7 @@ addEventListener("load", () => {
     dom: {
       margin: { top: 0, left: 0, right: 0, bottom: 0 }
     },
-    carousel: {
+    translate: {
       index: 0
     }
   };
@@ -1462,9 +1462,9 @@ addEventListener("load", () => {
         state,
         keyNames: ["tabName"],
         id: "page6",
-        onclick: action_carouselButtonClick
+        onclick: action_translateButtonClick
       },
-      "Carousel"
+      "Translate"
     )), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page1" }, /* @__PURE__ */ h("h2", null, "SelectButton example"), /* @__PURE__ */ h("h3", null, "select / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn1" }, "select / none"), /* @__PURE__ */ h("h3", null, "select / reverse / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn2", reverse: true }, "select / reverse / none")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page2" }, /* @__PURE__ */ h("h2", null, "OptionButton example"), /* @__PURE__ */ h("h3", null, "select"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn1" }, "group1_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn2" }, "group1_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn3" }, "group1_btn3"), /* @__PURE__ */ h("h3", null, "select / reverse"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn1", reverse: true }, "group2_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn2", reverse: true }, "group2_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn3", reverse: true }, "group2_btn3")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page3" }, /* @__PURE__ */ h("h2", null, "Effect example"), /* @__PURE__ */ h("h3", null, "effect_initializeNodes"), /* @__PURE__ */ h("input", { type: "text", id: "initTest" }), /* @__PURE__ */ h("h3", null, "effect_setTimedValue"), /* @__PURE__ */ h("input", { type: "text", id: "timedText", value: state.effect.timedText }), state.effect.node, /* @__PURE__ */ h("h3", null, "effect_throwMessage"), /* @__PURE__ */ h("input", { type: "text", id: "msg", value: state.effect.throwMsg }), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(
       "button",
       {
@@ -1479,24 +1479,24 @@ addEventListener("load", () => {
         onclick: (state2) => [state2, effect_throwMessageResume("msg")]
       },
       "resume"
-    )), /* @__PURE__ */ h("h2", null, "rAF / Animation System"), /* @__PURE__ */ h("h3", null, "effect_rAFProperties - transform"), /* @__PURE__ */ h("button", { state, onclick: action_move, id: "raf" }, state.effect.easing), /* @__PURE__ */ h("br", null), /* @__PURE__ */ h("select", { onchange: action_setEasing }, easingList.map((p) => /* @__PURE__ */ h("option", null, p))), /* @__PURE__ */ h("h3", null, "effect_rAFProperties - font-size"), /* @__PURE__ */ h("button", { state, onclick: action_setProperties, id: "rafP" }, "font")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page4" }, /* @__PURE__ */ h("h2", null, "Subscriptions example"), /* @__PURE__ */ h("h2", null, "subscription_nodesCleanup"), /* @__PURE__ */ h("button", { type: "button", onclick: action_throwAction }, "throw action"), /* @__PURE__ */ h("button", { type: "button", onclick: action_toggleFinalize }, "toggle object"), state.subscriptions.finalize ? /* @__PURE__ */ h("span", { id: "dom" }, "object") : null), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page5" }, /* @__PURE__ */ h("h2", null, "DOM / Event example"), /* @__PURE__ */ h("h3", null, "getScrollMargin"), /* @__PURE__ */ h("div", { id: "parent", onscroll: action_scroll }, /* @__PURE__ */ h("div", { id: "child" }, "スクロールしてください")), /* @__PURE__ */ h("div", null, JSON.stringify(state.dom.margin))), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page6" }, /* @__PURE__ */ h("h2", null, "Carousel"), /* @__PURE__ */ h(
+    )), /* @__PURE__ */ h("h2", null, "rAF / Animation System"), /* @__PURE__ */ h("h3", null, "effect_rAFProperties - transform"), /* @__PURE__ */ h("button", { state, onclick: action_move, id: "raf" }, state.effect.easing), /* @__PURE__ */ h("br", null), /* @__PURE__ */ h("select", { onchange: action_setEasing }, easingList.map((p) => /* @__PURE__ */ h("option", null, p))), /* @__PURE__ */ h("h3", null, "effect_rAFProperties - font-size"), /* @__PURE__ */ h("button", { state, onclick: action_setProperties, id: "rafP" }, "font")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page4" }, /* @__PURE__ */ h("h2", null, "Subscriptions example"), /* @__PURE__ */ h("h2", null, "subscription_nodesCleanup"), /* @__PURE__ */ h("button", { type: "button", onclick: action_throwAction }, "throw action"), /* @__PURE__ */ h("button", { type: "button", onclick: action_toggleFinalize }, "toggle object"), state.subscriptions.finalize ? /* @__PURE__ */ h("span", { id: "dom" }, "object") : null), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page5" }, /* @__PURE__ */ h("h2", null, "DOM / Event example"), /* @__PURE__ */ h("h3", null, "getScrollMargin"), /* @__PURE__ */ h("div", { id: "parent", onscroll: action_scroll }, /* @__PURE__ */ h("div", { id: "child" }, "スクロールしてください")), /* @__PURE__ */ h("div", null, JSON.stringify(state.dom.margin))), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page6" }, /* @__PURE__ */ h("h2", null, "Translate"), /* @__PURE__ */ h(
       "ul",
       {
-        id: "carousel",
-        onmouseenter: action_carouselPause,
-        onmouseleave: action_carouselResume
+        id: "translate",
+        onmouseenter: action_translatePause,
+        onmouseleave: action_translateResume
       },
       Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i))
     ), /* @__PURE__ */ h(
       "div",
       {
-        id: "carouselBar"
+        id: "translateBar"
       },
       /* @__PURE__ */ h("div", { title: "jump index" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h(
         "div",
         {
-          class: i === state.carousel.index && "select",
-          onclick: [action_carouselSlide, i]
+          class: i === state.translate.index && "select",
+          onclick: [action_translateSlide, i]
         },
         i
       )))

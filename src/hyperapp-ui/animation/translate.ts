@@ -4,18 +4,18 @@ import { InternalEffect, RAFEvent, RAFTask } from "./raf";
 import { CSSProperty, createRAFProperties } from "./properties";
 
 // ---------- ---------- ---------- ---------- ----------
-// interface CarouselState
+// interface TranslateState
 // ---------- ---------- ---------- ---------- ----------
 /**
- * Carousel 管理用オブジェクト
+ * Translate 管理用オブジェクト
  * 
- * @type {Object} CarouselState
+ * @type {Object} TranslateState
  * @property {number} width - 移動量
  * @property {number} index - 先頭のインデックス
  * @property {number} total - 子の数
  * @property {(t: number) => number} easing - easing 関数
  */
-export interface CarouselState {
+export interface TranslateState {
 	width : number
 	index : number
 	total : number
@@ -23,15 +23,15 @@ export interface CarouselState {
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// createRAFCarousel
+// createRAFTranslate
 // ---------- ---------- ---------- ---------- ----------
 /**
- * subscription_RAFManager をベースにした Carousel アニメーション RAFTask を作成する
+ * subscription_RAFManager をベースにした Translate アニメーション RAFTask を作成する
  * props は、基本的に RAFTask の値
  * 
- * @param {CarouselState} props.carouselState  - カルーセル情報
+ * @param {TranslateState} props.translateState  - カルーセル情報
  */
-export const createRAFCarousel = function <S> (
+export const createRAFTranslate = function <S> (
 	props: {
 		id      : string
 		groupID?: string
@@ -43,13 +43,13 @@ export const createRAFCarousel = function <S> (
 		priority ?: number
 		extension?: { [key: string]: any }
 
-		carouselState: CarouselState
+		translateState: TranslateState
 	}
 ): RAFTask<S> {
-	const { id, groupID, duration, delay, priority, carouselState } = props
+	const { id, groupID, duration, delay, priority, translateState } = props
 	const extension = {
 		...props.extension,
-		carouselState
+		translateState
 	}
 
 	// finish
@@ -79,7 +79,7 @@ export const createRAFCarousel = function <S> (
 	// properties
 	const properties: CSSProperty[] = [{
 		[`#${ id }`]: {
-			"transform": (progress: number) => `translateX(${ - carouselState.easing(progress) * carouselState.width }px)`
+			"transform": (progress: number) => `translateX(${ - translateState.easing(progress) * translateState.width }px)`
 		}
 	}]
 
@@ -90,12 +90,12 @@ export const createRAFCarousel = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// effect_carouselStart
+// effect_translateStart
 // ---------- ---------- ---------- ---------- ----------
 /**
- * subscription_RAFManager をベースにした Carousel アニメーションエフェクト
+ * subscription_RAFManager をベースにした Translate アニメーションエフェクト
  */
-export const effect_carouselStart = function <S> (
+export const effect_translateStart = function <S> (
 	props: {
 		id      : string
 		groupID?: string
@@ -128,18 +128,18 @@ export const effect_carouselStart = function <S> (
 		// width
 		const width = children[1].offsetLeft - children[0].offsetLeft
 
-		// carouselState
-		const carouselState: CarouselState = rafTask.extension?.carouselState
-		if (!carouselState) return state
+		// translateState
+		const translateState: TranslateState = rafTask.extension?.translateState
+		if (!translateState) return state
 
 		// newTask
-		const newTask = createRAFCarousel({
+		const newTask = createRAFTranslate({
 			id, groupID, duration, delay, finish, priority, extension,
-			carouselState: {
-				index : carouselState.index + 1 < children.length ? carouselState.index + 1 : 0,
+			translateState: {
+				index : translateState.index + 1 < children.length ? translateState.index + 1 : 0,
 				total : children.length,
 				width : width,
-				easing: carouselState.easing
+				easing: translateState.easing
 			}
 		})
 
@@ -167,9 +167,9 @@ export const effect_carouselStart = function <S> (
 		const width = children[1].offsetLeft - children[0].offsetLeft
 
 		// newTask
-		const newTask = createRAFCarousel({
+		const newTask = createRAFTranslate({
 			id, groupID, duration, delay, finish, priority, extension,
-			carouselState: {
+			translateState: {
 				index : 0,
 				total : children.length,
 				width : width,
@@ -188,12 +188,12 @@ export const effect_carouselStart = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// effect_carouselRollback
+// effect_translateRollback
 // ---------- ---------- ---------- ---------- ----------
 /**
  * アニメーション中のカルーセルを、元の位置に戻す
  */
-export const effect_carouselRollback = function <S> (
+export const effect_translateRollback = function <S> (
 	props: {
 		id      : string
 		keyNames: string[]
@@ -211,7 +211,7 @@ export const effect_carouselRollback = function <S> (
 			if (!task) return state
 
 			// get carouseState
-			const param = task.extension?.carouselState
+			const param = task.extension?.translateState
 			if (!param) return state
 
 			// pause
@@ -272,12 +272,12 @@ export const effect_carouselRollback = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// effect_carouselRollforward
+// effect_translateRollforward
 // ---------- ---------- ---------- ---------- ----------
 /**
  * アニメーション中のカルーセルを、早送りする
  */
-export const effect_carouselRollforward = function <S> (
+export const effect_translateRollforward = function <S> (
 	props: {
 		id      : string
 		keyNames: string[]
@@ -295,7 +295,7 @@ export const effect_carouselRollforward = function <S> (
 			if (!task) return state
 
 			// get carouseState
-			const param = task.extension?.carouselState
+			const param = task.extension?.translateState
 			if (!param) return state
 
 			// pause
@@ -366,12 +366,12 @@ export const effect_carouselRollforward = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// action_carouselSlide
+// action_translateSlide
 // ---------- ---------- ---------- ---------- ----------
 /**
  * カルーセルを任意のインデックスまで移動する
  */
-export const effect_carouselSlide = function <S> (
+export const effect_translateSlide = function <S> (
 	props: {
 		id      : string
 		keyNames: string[]
@@ -398,8 +398,8 @@ export const effect_carouselSlide = function <S> (
 			const task  = tasks.find(task => task.id === id)
 			if (!task) return state
 
-			// get carouselState
-			const param = task.extension?.carouselState
+			// get translateState
+			const param = task.extension?.translateState
 			if (!param) return state
 
 			// 移動先の取得
@@ -408,7 +408,7 @@ export const effect_carouselSlide = function <S> (
 			// moveTo が 0 のときは、移動せずに Rollback だけ行う
 			// Rollback
 			if (moveTo === 0) {
-				return [state, effect_carouselRollback({
+				return [state, effect_translateRollback({
 					id, keyNames, paused, finish
 				})]
 			}
@@ -464,16 +464,16 @@ export const effect_carouselSlide = function <S> (
 						cloneNodes.forEach(node => node.remove())
 
 						// move children
-						// carouselStart は、右にバッファを一つ持つ構造です
+						// translateStart は、右にバッファを一つ持つ構造です
 						// そのため move children は 1つ少なくなります
 						for (let i = 0; i < moveTo - 1; i++) {
 							const firstChild = dom.firstChild
 							if (firstChild) dom.appendChild(firstChild)
 						}
 
-						// carouselState.index を、一つ手前の数に調整
-						cloneTask.extension.carouselState.index = index === 0
-							? cloneTask.extension.carouselState.total
+						// translateState.index を、一つ手前の数に調整
+						cloneTask.extension.translateState.index = index === 0
+							? cloneTask.extension.translateState.total
 							: index - 1
 
 						// props.finish
@@ -502,7 +502,7 @@ export const effect_carouselSlide = function <S> (
 				const need = Math.abs(moveTo)
 
 				// 足りない DOM をクローン
-				for (let i = 0; i < need; i++) {
+				for (let i = 0; i < need + 1; i++) {
 					const cloneNode = children[children.length - 1 - i].cloneNode(true) as HTMLElement
 					cloneNodes.push(cloneNode)
 					dom.insertBefore(cloneNode, dom.firstChild)
@@ -541,9 +541,9 @@ export const effect_carouselSlide = function <S> (
 							if (lastChild) dom.insertBefore(lastChild, dom.firstChild)
 						}
 
-						// carouselState.index を、一つ手前の数に調整
-						cloneTask.extension.carouselState.index = index === 0
-							? cloneTask.extension.carouselState.total
+						// translateState.index を、一つ手前の数に調整
+						cloneTask.extension.translateState.index = index === 0
+							? cloneTask.extension.translateState.total
 							: index - 1
 
 							// props.finish
@@ -580,3 +580,4 @@ export const effect_carouselSlide = function <S> (
 		})
 	}
 }
+
