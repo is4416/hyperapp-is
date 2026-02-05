@@ -303,7 +303,7 @@ children の処理も同時に行っているため、本ライブラリでは V
 ```ts
 export const el = (tag: string) => <S> (
 	props   ?: { [key: string]: any },
-	children?: Array<any>
+	children?: Array
 ): VNode<S>
 ```
 

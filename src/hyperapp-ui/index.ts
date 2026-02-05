@@ -23,3 +23,7 @@ export type { ScrollMargin, MatrixState } from "./dom/utils"
 
 export { getScrollMargin, getMatrixState, marquee } from "./dom/utils"
 export { effect_setTimedValue, effect_nodesInitialize, subscription_nodesCleanup, subscription_nodesLifecycleByIds } from "./dom/lifecycle"
+
+// animationView
+export type { CarouselState, CarouselController } from "./animationView/carousel"
+export { Carousel, effect_InitCarousel } from "./animationView/carousel"

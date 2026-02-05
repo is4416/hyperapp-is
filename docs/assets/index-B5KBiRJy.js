@@ -403,7 +403,7 @@ const setLocalState = function(state, id2, value) {
 const el = (tag) => (props, children) => h$1(
   tag,
   props ?? {},
-  children ? children.map((child) => typeof child === "object" ? child : text(child)) : []
+  children ? Array.isArray(children) ? children.map((child) => typeof child === "object" ? child : text(child)) : children : []
 );
 const button = el("button");
 const concatAction = function(action, newState, e) {
@@ -1259,6 +1259,167 @@ const subscription_nodesCleanup = function(nodes) {
     node
   ]);
 };
+const div = el("div");
+const ul = el("ul");
+const li = el("li");
+const Carousel = function(props, children) {
+  const { state, keyNames, controlButton, controlBar } = props;
+  const items = Array.isArray(children) ? children : [children];
+  return div(
+    {
+      ...deleteKeys(props, "state", "keyNames")
+    },
+    ul(
+      {},
+      items.map((item) => li({}, item))
+    )
+  );
+};
+const effect_InitCarousel = function(keyNames, carouselState) {
+  const id2 = carouselState.id;
+  return (dispatch) => {
+    const div2 = document.getElementById(id2);
+    if (!div2) return;
+    const ul2 = div2.children[0];
+    if (!ul2) return;
+    const children = Array.from(ul2.children);
+    if (!children || children.length === 0) return;
+    const carouselPrivateState = {
+      ul: ul2,
+      index: 0,
+      step: 0,
+      startOffset: 0,
+      targetOffset: 0,
+      cloneNodes: []
+    };
+    const carouselController = {
+      getPageNumber: () => carouselPrivateState.index,
+      setPageNumber: (pageNumber) => {
+      },
+      rollBack: () => {
+      },
+      rollForward: () => {
+      }
+    };
+    const action = (state, rafTask) => {
+      const carouselState2 = rafTask.extension?.carouselState;
+      if (!carouselState2) return state;
+      const easing = carouselState2.easing ?? ((t) => t);
+      if (!carouselPrivateState.ul.isConnected) {
+        rafTask.isDone = true;
+        return state;
+      }
+      if (rafTask.paused) return state;
+      if (carouselPrivateState.step === 0) return state;
+      if (carouselPrivateState.cloneNodes.length !== Math.abs(carouselPrivateState.step)) {
+        carouselPrivateState.cloneNodes.forEach((node) => node.remove());
+        carouselPrivateState.cloneNodes = [];
+        for (let i = 0; i < Math.abs(carouselPrivateState.step); i++) {
+          if (carouselPrivateState.step < 0) {
+            const child = ul2.children[ul2.children.length - 1 - i];
+            if (child) {
+              const clone = child.cloneNode(true);
+              ul2.insertBefore(clone, ul2.firstChild);
+              carouselPrivateState.cloneNodes.push(clone);
+            }
+          } else {
+            const child = ul2.children[i];
+            if (child) {
+              const clone = child.cloneNode(true);
+              ul2.appendChild(clone);
+              carouselPrivateState.cloneNodes.push(clone);
+            }
+          }
+        }
+        const step = carouselPrivateState.step;
+        const nodeA = ul2.children[0];
+        const nodeB = ul2.children[Math.abs(step)];
+        const rectA = nodeA.getBoundingClientRect();
+        const rectB = nodeB.getBoundingClientRect();
+        carouselPrivateState.startOffset = step < 0 ? rectB.left - rectA.left : 0;
+        carouselPrivateState.targetOffset = step < 0 ? 0 : rectB.left - rectA.left;
+      }
+      const currentOffset = -carouselPrivateState.startOffset - (carouselPrivateState.targetOffset - carouselPrivateState.startOffset) * easing(rafTask.progress);
+      ul2.style.transform = `translateX(${currentOffset}px)`;
+      return [state, (dispatch2) => {
+        const fn = carouselState2.action;
+        if (fn) {
+          requestAnimationFrame(() => dispatch2((state2) => fn(state2, rafTask)));
+        }
+      }];
+    };
+    const finish = (state, rafTask) => {
+      const carouselState2 = rafTask.extension?.carouselState;
+      if (!carouselState2) return state;
+      if (!carouselPrivateState.ul.isConnected) {
+        rafTask.isDone = true;
+        return state;
+      }
+      if (rafTask.paused) return state;
+      carouselPrivateState.cloneNodes.forEach((node) => node.remove());
+      carouselPrivateState.cloneNodes = [];
+      for (let i = 0; i < Math.abs(carouselPrivateState.step); i++) {
+        if (carouselPrivateState.step < 0) {
+          const child = ul2.lastChild;
+          if (child) ul2.insertBefore(child, ul2.firstChild);
+        } else {
+          const child = ul2.firstChild;
+          if (child) ul2.appendChild(child);
+        }
+      }
+      ul2.style.transform = "translateX(0px)";
+      ul2.style.willChange = "";
+      const length = carouselPrivateState.ul.children.length;
+      const index = carouselPrivateState.index;
+      const step = carouselState2.step;
+      carouselPrivateState.index = ((index + step) % length + length) % length;
+      carouselPrivateState.step = carouselState2.step;
+      carouselPrivateState.startOffset = 0;
+      carouselPrivateState.targetOffset = 0;
+      const newTask = new RAFTask({
+        id: id2,
+        groupID: carouselState2.groupID,
+        duration: carouselState2.duration ?? 1e3,
+        delay: carouselState2.delay ?? 2e3,
+        action,
+        finish,
+        priority: carouselState2.priority ?? 0,
+        extension: {
+          ...carouselState2.extension,
+          carouselState: carouselState2,
+          carouselController
+        }
+      });
+      const tasks = getValue(state, keyNames, []).filter((task) => task.id !== carouselState2.id);
+      const newState = setValue(state, keyNames, tasks.concat(newTask));
+      return [newState, (dispatch2) => {
+        const fn = carouselState2.finish;
+        if (fn) {
+          requestAnimationFrame(() => dispatch2((state2) => fn(state2, rafTask)));
+        }
+      }];
+    };
+    ul2.style.willChange = "transform";
+    dispatch((state) => {
+      const tasks = getValue(state, keyNames, []).filter((task2) => task2.id !== carouselState.id);
+      const task = new RAFTask({
+        id: carouselState.id,
+        groupID: carouselState.groupID,
+        duration: 0,
+        delay: 0,
+        action: (state2, rafTask) => state2,
+        finish,
+        priority: carouselState.priority ?? 0,
+        extension: {
+          ...carouselState.extension,
+          carouselState,
+          carouselController
+        }
+      });
+      return setValue(state, keyNames, tasks.concat(task));
+    });
+  };
+};
 const action_effectButtonClick = (state) => {
   const label = /* @__PURE__ */ h("label", null, "Label");
   const text2 = Array.from({ length: 40 }).map((_, i) => i).join("");
@@ -1344,10 +1505,10 @@ const action_translateButtonClick = (state) => {
   if (controls) controls.stop();
   const effect_setMarquee = (dispatch) => {
     dispatch((state2) => {
-      const ul = document.getElementById("marquee");
-      if (!ul) return state2;
+      const ul2 = document.getElementById("marquee");
+      if (!ul2) return state2;
       controls = marquee({
-        element: ul,
+        element: ul2,
         duration: 2e3,
         interval: 1e3,
         easing: progress_easing.easeOutCubic
@@ -1409,6 +1570,15 @@ const action_translateSlide = (state, index) => {
     effect_translateSlide({ id: id2, keyNames, index })
   ];
 };
+const action_carouselButtonClick = (state) => {
+  const keyNames = ["subscriptions", "tasks"];
+  const param = {
+    id: "carousel",
+    step: 3,
+    easing: progress_easing.easeOutBounce
+  };
+  return [state, effect_InitCarousel(keyNames, param)];
+};
 addEventListener("load", () => {
   const easingList = (() => {
     const r = [];
@@ -1465,6 +1635,15 @@ addEventListener("load", () => {
         onclick: action_translateButtonClick
       },
       "Translate"
+    ), /* @__PURE__ */ h(
+      OptionButton,
+      {
+        state,
+        keyNames: ["tabName"],
+        id: "page7",
+        onclick: action_carouselButtonClick
+      },
+      "Carousel Component"
     )), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page1" }, /* @__PURE__ */ h("h2", null, "SelectButton example"), /* @__PURE__ */ h("h3", null, "select / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn1" }, "select / none"), /* @__PURE__ */ h("h3", null, "select / reverse / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn2", reverse: true }, "select / reverse / none")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page2" }, /* @__PURE__ */ h("h2", null, "OptionButton example"), /* @__PURE__ */ h("h3", null, "select"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn1" }, "group1_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn2" }, "group1_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn3" }, "group1_btn3"), /* @__PURE__ */ h("h3", null, "select / reverse"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn1", reverse: true }, "group2_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn2", reverse: true }, "group2_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn3", reverse: true }, "group2_btn3")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page3" }, /* @__PURE__ */ h("h2", null, "Effect example"), /* @__PURE__ */ h("h3", null, "effect_initializeNodes"), /* @__PURE__ */ h("input", { type: "text", id: "initTest" }), /* @__PURE__ */ h("h3", null, "effect_setTimedValue"), /* @__PURE__ */ h("input", { type: "text", id: "timedText", value: state.effect.timedText }), state.effect.node, /* @__PURE__ */ h("h3", null, "effect_throwMessage"), /* @__PURE__ */ h("input", { type: "text", id: "msg", value: state.effect.throwMsg }), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(
       "button",
       {
@@ -1500,7 +1679,7 @@ addEventListener("load", () => {
         },
         i
       )))
-    ), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))))),
+    ), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page7" }, /* @__PURE__ */ h("h2", null, "Carousel Component"), /* @__PURE__ */ h(Carousel, { state, id: "carousel", keyNames: ["subscriptions", "tasks"] }, /* @__PURE__ */ h("div", null, "page1"), /* @__PURE__ */ h("div", null, "page2"), /* @__PURE__ */ h("div", null, "page3"))))),
     subscriptions: (state) => [
       ...subscription_nodesCleanup([{
         id: "dom",

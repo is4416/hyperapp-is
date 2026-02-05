@@ -18,11 +18,13 @@ import { getValue, setValue } from "./state"
  * @param   {string} tag - タグ名
  * @returns {VNode<S>}
  */
-export const el = (tag: string) => <S> (props?:{ [key: string]: any }, children?: Array<any>): VNode<S> => h(
+export const el = (tag: string) => <S> (props?:{ [key: string]: any }, children?: any): VNode<S> => h(
 	tag,
 	props ?? {},
 	children
+		? Array.isArray(children)
 		? children.map((child: any) => typeof child === "object" ? child : text(child))
+		: children
 		: []
 )
 

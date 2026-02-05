@@ -22,6 +22,8 @@ import {
 
 	ScrollMargin, getScrollMargin,
 	marquee,
+
+	CarouselState, CarouselController, Carousel, effect_InitCarousel
 } from "./hyperapp-ui"
 
 // ---------- ---------- ---------- ---------- ----------
@@ -342,6 +344,21 @@ const action_translateSlide = (state: State, index: number) => {
 }
 
 // ---------- ---------- ---------- ---------- ----------
+// action_carouselButtonClick
+// ---------- ---------- ---------- ---------- ----------
+
+const action_carouselButtonClick = (state: State) => {
+	const keyNames = ["subscriptions", "tasks"]
+
+	const param: CarouselState<State> = {
+		id  : "carousel",
+		step: 3,
+		easing: progress_easing.easeOutBounce
+	}
+	return [state, effect_InitCarousel(keyNames, param)]
+}
+
+// ---------- ---------- ---------- ---------- ----------
 // Entry Point
 // ---------- ---------- ---------- ---------- ----------
 
@@ -416,6 +433,12 @@ addEventListener("load", () => {
 					id       = "page6"
 					onclick  = { action_translateButtonClick }
 				>Translate</OptionButton>
+				<OptionButton
+					state    = {state}
+					keyNames = {["tabName"]}
+					id       = "page7"
+					onclick  = { action_carouselButtonClick }
+				>Carousel Component</OptionButton>
 			</div>
 
 			{/* *** Tabs Body *** */}
@@ -526,6 +549,16 @@ addEventListener("load", () => {
 					<ul id="marquee">{
 						Array.from({length: 5}).map((_, i) => (<li>{i}</li>))
 					}</ul>
+				</Route>
+
+				{/* *** page6: Translate *** */}
+				<Route state={state} keyNames={["tabName"]} match="page7">
+					<h2>Carousel Component</h2>
+					<Carousel state={state} id="carousel" keyNames={["subscriptions", "tasks"]}>
+						<div>page1</div>
+						<div>page2</div>
+						<div>page3</div>
+					</Carousel>
 				</Route>
 			</div>
 		</main>),
