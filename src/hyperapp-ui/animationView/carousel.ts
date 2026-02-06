@@ -117,7 +117,13 @@ export const Carousel = function <S> (
 		...deleteKeys(props, "state", "keyNames")
 	},
 		ul({},
-			items.map(item => li({}, item))
+			items.map(item => li({
+				style: {
+					margin    : 0,
+					border    : "none",
+					flexShrink: 0
+				}
+			}, item))
 		)
 	)
 }
@@ -174,6 +180,12 @@ export const effect_InitCarousel = function <S> (
 		const children = Array.from(ul.children) as HTMLLIElement[]
 		if (!children || children.length === 0) return
 
+		// get widths
+		const widths: number[] = []
+		for (let i = 0; i < children.length; i++) {
+			widths[i] = children[i].getBoundingClientRect().width
+		}
+
 		// CarouselPrivateState
 		const carouselPrivateState: CarouselPrivateState = {
 			ul          : ul,
@@ -220,33 +232,73 @@ export const effect_InitCarousel = function <S> (
 			if (carouselPrivateState.step === 0) return state
 
 			// クローンノードがなければ作成
-			if (carouselPrivateState.cloneNodes.length !== Math.abs(carouselPrivateState.step)) {
+			if (carouselPrivateState.cloneNodes.length === 0) {
+				// step
+				const step  = carouselPrivateState.step
+
 				// remove cloneNodes
 				carouselPrivateState.cloneNodes.forEach(node => node.remove())
 				carouselPrivateState.cloneNodes = []
 
-				// add cloneNodes
-				for (let i = 0; i < Math.abs(carouselPrivateState.step); i++) {
-					if (carouselPrivateState.step < 0) {
-						const child = ul.children[ul.children.length - 1 - i]
-						if (child) {
-							const clone = child.cloneNode(true) as HTMLLIElement
+				const reverseLookup = (index: number) => {
+					const leftIndex = carouselPrivateState.index
+					return ((index - leftIndex) % children.length + children.length) % children.length
+				}
+
+				// 移動幅を取得する関数
+				const getMoveSize = () => {
+					let result  = 0
+
+					for (let i = 0; i < Math.abs(step); i++) {
+						const index = step < 0
+							? children.length - 1 - (i % children.length)
+							: i % children.length
+						result += widths[reverseLookup(index)]
+					}
+
+					return result
+				}
+
+				// 移動幅から、clone が必要な数を取得する
+				const getCloneCount = () => {
+					let size = 0
+					const safeMargin = 1 // 丸め誤差を考慮したマージン
+					const moveSize   = getMoveSize() + safeMargin
+
+					let i = 0
+					while (size < moveSize - safeMargin) {
+						const index = step < 0
+							? children.length - 1 - (i % children.length)
+							: i % children.length
+						size += widths[reverseLookup(index)]
+
+						i = i + 1 // next
+					}
+
+					return i
+				}
+
+				// add cloneNode
+				for (let i = 0, count = getCloneCount(); i < count; i++) {
+					const index = step < 0
+						? children.length - 1 - (i % children.length) + i
+						: i % children.length
+					const child = ul.children[index] as HTMLLIElement
+
+					if (child) {
+						const clone = child.cloneNode(true) as HTMLLIElement
+
+						if (step < 0) {
 							ul.insertBefore(clone, ul.firstChild)
-							carouselPrivateState.cloneNodes.push(clone)
-						}
-					} else {
-						const child = ul.children[i]
-						if (child) {
-							const clone = child.cloneNode(true) as HTMLLIElement
+						} else {
 							ul.appendChild(clone)
-							carouselPrivateState.cloneNodes.push(clone)
 						}
+
+						carouselPrivateState.cloneNodes.push(clone)
 					}
 				}
 
 				// get startOffset, targetOffset
-				const step  = carouselPrivateState.step
-
 				const nodeA = ul.children[0] as HTMLLIElement
 				const nodeB = ul.children[Math.abs(step)] as HTMLElement
 				const rectA = nodeA.getBoundingClientRect()

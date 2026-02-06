@@ -1271,7 +1271,13 @@ const Carousel = function(props, children) {
     },
     ul(
       {},
-      items.map((item) => li({}, item))
+      items.map((item) => li({
+        style: {
+          margin: 0,
+          border: "none",
+          flexShrink: 0
+        }
+      }, item))
     )
   );
 };
@@ -1284,6 +1290,10 @@ const effect_InitCarousel = function(keyNames, carouselState) {
     if (!ul2) return;
     const children = Array.from(ul2.children);
     if (!children || children.length === 0) return;
+    const widths = [];
+    for (let i = 0; i < children.length; i++) {
+      widths[i] = children[i].getBoundingClientRect().width;
+    }
     const carouselPrivateState = {
       ul: ul2,
       index: 0,
@@ -1311,27 +1321,47 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       }
       if (rafTask.paused) return state;
       if (carouselPrivateState.step === 0) return state;
-      if (carouselPrivateState.cloneNodes.length !== Math.abs(carouselPrivateState.step)) {
+      if (carouselPrivateState.cloneNodes.length === 0) {
+        const step = carouselPrivateState.step;
         carouselPrivateState.cloneNodes.forEach((node) => node.remove());
         carouselPrivateState.cloneNodes = [];
-        for (let i = 0; i < Math.abs(carouselPrivateState.step); i++) {
-          if (carouselPrivateState.step < 0) {
-            const child = ul2.children[ul2.children.length - 1 - i];
-            if (child) {
-              const clone = child.cloneNode(true);
+        const reverseLookup = (index) => {
+          const leftIndex = carouselPrivateState.index;
+          return ((index - leftIndex) % children.length + children.length) % children.length;
+        };
+        const getMoveSize = () => {
+          let result = 0;
+          for (let i = 0; i < Math.abs(step); i++) {
+            const index = step < 0 ? children.length - 1 - i % children.length : i % children.length;
+            result += widths[reverseLookup(index)];
+          }
+          return result;
+        };
+        const getCloneCount = () => {
+          let size = 0;
+          const safeMargin = 1;
+          const moveSize = getMoveSize() + safeMargin;
+          let i = 0;
+          while (size < moveSize - safeMargin) {
+            const index = step < 0 ? children.length - 1 - i % children.length : i % children.length;
+            size += widths[reverseLookup(index)];
+            i = i + 1;
+          }
+          return i;
+        };
+        for (let i = 0, count = getCloneCount(); i < count; i++) {
+          const index = step < 0 ? children.length - 1 - i % children.length + i : i % children.length;
+          const child = ul2.children[index];
+          if (child) {
+            const clone = child.cloneNode(true);
+            if (step < 0) {
               ul2.insertBefore(clone, ul2.firstChild);
-              carouselPrivateState.cloneNodes.push(clone);
-            }
-          } else {
-            const child = ul2.children[i];
-            if (child) {
-              const clone = child.cloneNode(true);
+            } else {
               ul2.appendChild(clone);
-              carouselPrivateState.cloneNodes.push(clone);
             }
+            carouselPrivateState.cloneNodes.push(clone);
           }
         }
-        const step = carouselPrivateState.step;
         const nodeA = ul2.children[0];
         const nodeB = ul2.children[Math.abs(step)];
         const rectA = nodeA.getBoundingClientRect();
@@ -1574,8 +1604,8 @@ const action_carouselButtonClick = (state) => {
   const keyNames = ["subscriptions", "tasks"];
   const param = {
     id: "carousel",
-    step: 3,
-    easing: progress_easing.easeOutBounce
+    step: 3
+    // easing: progress_easing.easeOutBounce
   };
   return [state, effect_InitCarousel(keyNames, param)];
 };
@@ -1679,7 +1709,7 @@ addEventListener("load", () => {
         },
         i
       )))
-    ), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page7" }, /* @__PURE__ */ h("h2", null, "Carousel Component"), /* @__PURE__ */ h(Carousel, { state, id: "carousel", keyNames: ["subscriptions", "tasks"] }, /* @__PURE__ */ h("div", null, "page1"), /* @__PURE__ */ h("div", null, "page2"), /* @__PURE__ */ h("div", null, "page3"))))),
+    ), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page7" }, /* @__PURE__ */ h("h2", null, "Carousel Component"), /* @__PURE__ */ h(Carousel, { state, id: "carousel", keyNames: ["subscriptions", "tasks"] }, /* @__PURE__ */ h("div", { id: "item1" }, "page1"), /* @__PURE__ */ h("div", { id: "item2" }, "page2"), /* @__PURE__ */ h("div", { id: "item3" }, "page3"))))),
     subscriptions: (state) => [
       ...subscription_nodesCleanup([{
         id: "dom",
