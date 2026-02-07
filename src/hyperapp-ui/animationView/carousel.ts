@@ -107,10 +107,17 @@ export const Carousel = function <S> (
 	},
 	children: any
 ): VNode<S> {
-	const { state, keyNames, controlButton, controlBar } = props
+	const { state, id, keyNames, controlButton, controlBar } = props
 
 	// children
 	const items = Array.isArray(children) ? children : [children]
+
+	// get rafTask
+	const rafTask = getValue(state, keyNames, [] as RAFTask<S>[])
+		.find(task => task.id === id)
+
+	// controlBar
+	const controller = rafTask ? rafTask.extension?.carouselController : null
 
 	// VNode
 	return div({
@@ -124,7 +131,8 @@ export const Carousel = function <S> (
 					flexShrink: 0
 				}
 			}, item))
-		)
+		),
+		div({}, controller ? "index: " + controller.getPageNumber() : "index: ")
 	)
 }
 
@@ -198,7 +206,12 @@ export const effect_InitCarousel = function <S> (
 
 		// CarouselController
 		const carouselController: CarouselController = {
-			getPageNumber: () => carouselPrivateState.index,
+			getPageNumber: () => {
+				const index = carouselPrivateState.index
+				return index === 0
+					? children.length - 1
+					: index - 1
+			},
 			setPageNumber: (pageNumber: number) => {
 				// 後で実装
 			},

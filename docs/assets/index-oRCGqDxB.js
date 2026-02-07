@@ -400,10 +400,10 @@ const setLocalState = function(state, id2, value) {
     }
   };
 };
-const el = (tag) => (props, children) => h$1(
+const el = (tag) => (props, ...children) => h$1(
   tag,
   props ?? {},
-  children ? Array.isArray(children) ? children.map((child) => typeof child === "object" ? child : text(child)) : children : []
+  children.flat().map((child) => typeof child === "object" ? child : text(child))
 );
 const button = el("button");
 const concatAction = function(action, newState, e) {
@@ -1263,8 +1263,10 @@ const div = el("div");
 const ul = el("ul");
 const li = el("li");
 const Carousel = function(props, children) {
-  const { state, keyNames, controlButton, controlBar } = props;
+  const { state, id: id2, keyNames, controlButton, controlBar } = props;
   const items = Array.isArray(children) ? children : [children];
+  const rafTask = getValue(state, keyNames, []).find((task) => task.id === id2);
+  const controller = rafTask ? rafTask.extension?.carouselController : null;
   return div(
     {
       ...deleteKeys(props, "state", "keyNames")
@@ -1278,7 +1280,8 @@ const Carousel = function(props, children) {
           flexShrink: 0
         }
       }, item))
-    )
+    ),
+    div({}, controller ? "index: " + controller.getPageNumber() : "index: ")
   );
 };
 const effect_InitCarousel = function(keyNames, carouselState) {
@@ -1303,7 +1306,10 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       cloneNodes: []
     };
     const carouselController = {
-      getPageNumber: () => carouselPrivateState.index,
+      getPageNumber: () => {
+        const index = carouselPrivateState.index;
+        return index === 0 ? children.length - 1 : index - 1;
+      },
       setPageNumber: (pageNumber) => {
       },
       rollBack: () => {
@@ -1604,8 +1610,8 @@ const action_carouselButtonClick = (state) => {
   const keyNames = ["subscriptions", "tasks"];
   const param = {
     id: "carousel",
-    step: 3
-    // easing: progress_easing.easeOutBounce
+    step: 1,
+    easing: progress_easing.easeInOutCubic
   };
   return [state, effect_InitCarousel(keyNames, param)];
 };
@@ -1709,7 +1715,18 @@ addEventListener("load", () => {
         },
         i
       )))
-    ), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page7" }, /* @__PURE__ */ h("h2", null, "Carousel Component"), /* @__PURE__ */ h(Carousel, { state, id: "carousel", keyNames: ["subscriptions", "tasks"] }, /* @__PURE__ */ h("div", { id: "item1" }, "page1"), /* @__PURE__ */ h("div", { id: "item2" }, "page2"), /* @__PURE__ */ h("div", { id: "item3" }, "page3"))))),
+    ), /* @__PURE__ */ h("h2", null, "marquee"), /* @__PURE__ */ h("ul", { id: "marquee" }, Array.from({ length: 5 }).map((_, i) => /* @__PURE__ */ h("li", null, i)))), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page7" }, /* @__PURE__ */ h("h2", null, "Carousel Component"), /* @__PURE__ */ h(
+      Carousel,
+      {
+        state,
+        id: "carousel",
+        keyNames: ["subscriptions", "tasks"],
+        controlBar: true
+      },
+      /* @__PURE__ */ h("div", { id: "item1" }, "page1"),
+      /* @__PURE__ */ h("div", { id: "item2" }, "page2"),
+      /* @__PURE__ */ h("div", { id: "item3" }, "page3")
+    )))),
     subscriptions: (state) => [
       ...subscription_nodesCleanup([{
         id: "dom",

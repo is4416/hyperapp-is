@@ -16,16 +16,17 @@ import { getValue, setValue } from "./state"
  * 
  * @template S
  * @param   {string} tag - タグ名
- * @returns {VNode<S>}
+ * @returns {(props:{ [key: string] any }, ...children:any[]) => VNode<S>}
  */
-export const el = (tag: string) => <S> (props?:{ [key: string]: any }, children?: any): VNode<S> => h(
+export const el =(tag: string) => <S> (
+	props?: { [key: string]: any },
+	...children: any[]
+): VNode<S> => h(
 	tag,
 	props ?? {},
 	children
-		? Array.isArray(children)
-		? children.map((child: any) => typeof child === "object" ? child : text(child))
-		: children
-		: []
+		.flat()
+		.map((child: any) => typeof child === "object" ? child : text(child))
 )
 
 /* element */

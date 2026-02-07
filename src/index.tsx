@@ -352,9 +352,10 @@ const action_carouselButtonClick = (state: State) => {
 
 	const param: CarouselState<State> = {
 		id  : "carousel",
-		step: 3,
-		// easing: progress_easing.easeOutBounce
+		step: 1,
+		easing: progress_easing.easeInOutCubic
 	}
+
 	return [state, effect_InitCarousel(keyNames, param)]
 }
 
@@ -554,7 +555,12 @@ addEventListener("load", () => {
 				{/* *** page6: Translate *** */}
 				<Route state={state} keyNames={["tabName"]} match="page7">
 					<h2>Carousel Component</h2>
-					<Carousel state={state} id="carousel" keyNames={["subscriptions", "tasks"]}>
+					<Carousel
+						state      = {state}
+						id         = "carousel"
+						keyNames   = {["subscriptions", "tasks"]}
+						controlBar = {true}
+					>
 						<div id="item1">page1</div>
 						<div id="item2">page2</div>
 						<div id="item3">page3</div>
