@@ -1264,15 +1264,39 @@ const ul = el("ul");
 const li = el("li");
 const Carousel = function(props, children) {
   const { state, id: id2, keyNames, controlButton, controlBar } = props;
+  const task = getValue(state, keyNames, []).find((task2) => task2.id === id2);
+  const carouselState = task?.extension?.carouselState;
+  const controller = task?.extension.carouselController;
+  const index = carouselState?.reportPageIndex ? getValue(state, carouselState.reportPageIndex, 0) : getLocalState(state, id2, { index: 0 }).index;
   const items = Array.isArray(children) ? children : [children];
-  const rafTask = getValue(state, keyNames, []).find((task) => task.id === id2);
-  const controller = rafTask ? rafTask.extension?.carouselController : null;
+  const action_mouseenter = (state2) => {
+    const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
+    if (!task2) return state2;
+    if (controller) {
+      if (task2.progress < 0.5) {
+        controller.rollBack(task2);
+      } else {
+        controller.rollForward(task2);
+      }
+    }
+    task2.paused = true;
+    return state2;
+  };
+  const action_mouseleave = (state2) => {
+    const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
+    if (!task2) return state2;
+    task2.paused = false;
+    return state2;
+  };
   return div(
     {
       ...deleteKeys(props, "state", "keyNames")
     },
     ul(
-      {},
+      {
+        onmouseenter: action_mouseenter,
+        onmouseleave: action_mouseleave
+      },
       items.map((item) => li({
         style: {
           margin: 0,
@@ -1281,10 +1305,11 @@ const Carousel = function(props, children) {
         }
       }, item))
     ),
-    div({}, controller ? "index: " + controller.getPageNumber() : "index: ")
+    controlBar && div({}, index)
   );
 };
 const effect_InitCarousel = function(keyNames, carouselState) {
+  const SKIP_SPEED = 200;
   const id2 = carouselState.id;
   return (dispatch) => {
     const div2 = document.getElementById(id2);
@@ -1306,15 +1331,73 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       cloneNodes: []
     };
     const carouselController = {
-      getPageNumber: () => {
-        const index = carouselPrivateState.index;
-        return index === 0 ? children.length - 1 : index - 1;
+      // rollBack
+      rollBack: (rafTask) => {
+        if (rafTask.progress === 0) return;
+        const cloneTask = rafTask.clone();
+        const easing = carouselState.easing ?? ((t) => t);
+        const maxWidth = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset);
+        const currentOffset = easing(rafTask.progress) * maxWidth;
+        const newTask = new RAFTask({
+          id: `${rafTask.id}_rollBack`,
+          groupID: rafTask.groupID,
+          duration: SKIP_SPEED,
+          delay: 0,
+          // action
+          action: (state, rafTask2) => {
+            const val = carouselPrivateState.step < 0 ? -maxWidth + currentOffset - rafTask2.progress * currentOffset : -currentOffset + rafTask2.progress * currentOffset;
+            carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
+            return state;
+          },
+          // finish
+          finish: (state, rafTask2) => {
+            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== `${rafTask2.id}_rollBack`);
+            return setValue(state, keyNames, tasks.concat(cloneTask));
+          }
+        });
+        requestAnimationFrame(() => dispatch((state) => {
+          const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id);
+          return setValue(state, keyNames, tasks.concat(newTask));
+        }));
       },
-      setPageNumber: (pageNumber) => {
-      },
-      rollBack: () => {
-      },
-      rollForward: () => {
+      // rollForward
+      rollForward: (rafTask) => {
+        if (rafTask.progress === 0) return;
+        const cloneTask = rafTask.clone();
+        const easing = carouselState.easing ?? ((t) => t);
+        const maxWidth = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset);
+        const currentOffset = easing(rafTask.progress) * maxWidth;
+        const width = maxWidth - currentOffset;
+        const newTask = new RAFTask({
+          id: `${rafTask.id}_rollForward`,
+          groupID: rafTask.groupID,
+          duration: SKIP_SPEED,
+          delay: 0,
+          // action
+          action: (state, rafTask2) => {
+            const val = carouselPrivateState.step < 0 ? -maxWidth + currentOffset + rafTask2.progress * width : -currentOffset - rafTask2.progress * width;
+            carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
+            return state;
+          },
+          // finish
+          finish: (state, rafTask2) => {
+            const paused = cloneTask.paused;
+            cloneTask.paused = false;
+            let newState = state;
+            const fn = cloneTask.finish;
+            if (fn) {
+              const res = fn(state, cloneTask);
+              newState = Array.isArray(res) ? res[0] : res;
+            }
+            cloneTask.paused = paused;
+            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== `${rafTask2.id}_rollForward`);
+            return setValue(newState, keyNames, tasks.concat(cloneTask));
+          }
+        });
+        requestAnimationFrame(() => dispatch((state) => {
+          const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id);
+          return setValue(state, keyNames, tasks.concat(newTask));
+        }));
       }
     };
     const action = (state, rafTask) => {
@@ -1427,7 +1510,22 @@ const effect_InitCarousel = function(keyNames, carouselState) {
         }
       });
       const tasks = getValue(state, keyNames, []).filter((task) => task.id !== carouselState2.id);
-      const newState = setValue(state, keyNames, tasks.concat(newTask));
+      let newState = setValue(state, keyNames, tasks.concat(newTask));
+      if (carouselState2.reportPageIndex) {
+        newState = setValue(
+          newState,
+          carouselState2.reportPageIndex,
+          ((carouselPrivateState.index - step) % children.length + children.length) % children.length
+        );
+      } else {
+        newState = setLocalState(
+          newState,
+          id2,
+          {
+            index: ((carouselPrivateState.index - step) % children.length + children.length) % children.length
+          }
+        );
+      }
       return [newState, (dispatch2) => {
         const fn = carouselState2.finish;
         if (fn) {
@@ -1610,7 +1708,8 @@ const action_carouselButtonClick = (state) => {
   const keyNames = ["subscriptions", "tasks"];
   const param = {
     id: "carousel",
-    step: 1,
+    duration: 2e3,
+    step: 2,
     easing: progress_easing.easeInOutCubic
   };
   return [state, effect_InitCarousel(keyNames, param)];

@@ -351,8 +351,9 @@ const action_carouselButtonClick = (state: State) => {
 	const keyNames = ["subscriptions", "tasks"]
 
 	const param: CarouselState<State> = {
-		id  : "carousel",
-		step: 1,
+		id    : "carousel",
+		duration: 2000,
+		step  : 2,
 		easing: progress_easing.easeInOutCubic
 	}
 
