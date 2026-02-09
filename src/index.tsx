@@ -351,9 +351,9 @@ const action_carouselButtonClick = (state: State) => {
 	const keyNames = ["subscriptions", "tasks"]
 
 	const param: CarouselState<State> = {
-		id    : "carousel",
+		id      : "carousel",
 		duration: 2000,
-		step  : 2,
+		step    : 2,
 		easing: progress_easing.easeInOutCubic
 	}
 
@@ -559,12 +559,13 @@ addEventListener("load", () => {
 					<Carousel
 						state      = {state}
 						id         = "carousel"
+						class      = "carousel"
 						keyNames   = {["subscriptions", "tasks"]}
 						controlBar = {true}
 					>
-						<div id="item1">page1</div>
-						<div id="item2">page2</div>
-						<div id="item3">page3</div>
+						<img id="item1" src="sample-image/image1.webp" />
+						<img id="item2" src="sample-image/image2.webp" />
+						<img id="item3" src="sample-image/image3.webp" />
 					</Carousel>
 				</Route>
 			</div>

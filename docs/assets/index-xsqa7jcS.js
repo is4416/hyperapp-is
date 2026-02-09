@@ -1297,15 +1297,17 @@ const Carousel = function(props, children) {
         onmouseenter: action_mouseenter,
         onmouseleave: action_mouseleave
       },
-      items.map((item) => li({
-        style: {
-          margin: 0,
-          border: "none",
-          flexShrink: 0
-        }
-      }, item))
+      items.map((item) => li({}, item))
     ),
-    controlBar && div({}, index)
+    controlBar && div(
+      {},
+      ul(
+        {},
+        items.map((item, i) => li({
+          class: i === index && "select"
+        }, "○"))
+      )
+    )
   );
 };
 const effect_InitCarousel = function(keyNames, carouselState) {
@@ -1316,7 +1318,13 @@ const effect_InitCarousel = function(keyNames, carouselState) {
     if (!div2) return;
     const ul2 = div2.children[0];
     if (!ul2) return;
-    const children = Array.from(ul2.children);
+    const children = Array.from(ul2.children).filter((child) => {
+      if (child.classList.contains("carousel_clone")) {
+        child.remove();
+        return false;
+      }
+      return true;
+    });
     if (!children || children.length === 0) return;
     const widths = [];
     for (let i = 0; i < children.length; i++) {
@@ -1448,6 +1456,7 @@ const effect_InitCarousel = function(keyNames, carouselState) {
             } else {
               ul2.appendChild(clone);
             }
+            clone.classList.add("carousel_clone");
             carouselPrivateState.cloneNodes.push(clone);
           }
         }
@@ -1458,8 +1467,11 @@ const effect_InitCarousel = function(keyNames, carouselState) {
         carouselPrivateState.startOffset = step < 0 ? rectB.left - rectA.left : 0;
         carouselPrivateState.targetOffset = step < 0 ? 0 : rectB.left - rectA.left;
       }
-      const currentOffset = -carouselPrivateState.startOffset - (carouselPrivateState.targetOffset - carouselPrivateState.startOffset) * easing(rafTask.progress);
-      ul2.style.transform = `translateX(${currentOffset}px)`;
+      const maxWidth = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset);
+      const currentOffset = easing(rafTask.progress) * maxWidth;
+      const width = maxWidth - currentOffset;
+      const val = carouselPrivateState.step < 0 ? -maxWidth + currentOffset + rafTask.progress * width : -currentOffset - rafTask.progress * width;
+      ul2.style.transform = `translateX(${val}px)`;
       return [state, (dispatch2) => {
         const fn = carouselState2.action;
         if (fn) {
@@ -1819,12 +1831,13 @@ addEventListener("load", () => {
       {
         state,
         id: "carousel",
+        class: "carousel",
         keyNames: ["subscriptions", "tasks"],
         controlBar: true
       },
-      /* @__PURE__ */ h("div", { id: "item1" }, "page1"),
-      /* @__PURE__ */ h("div", { id: "item2" }, "page2"),
-      /* @__PURE__ */ h("div", { id: "item3" }, "page3")
+      /* @__PURE__ */ h("img", { id: "item1", src: "sample-image/image1.webp" }),
+      /* @__PURE__ */ h("img", { id: "item2", src: "sample-image/image2.webp" }),
+      /* @__PURE__ */ h("img", { id: "item3", src: "sample-image/image3.webp" })
     )))),
     subscriptions: (state) => [
       ...subscription_nodesCleanup([{

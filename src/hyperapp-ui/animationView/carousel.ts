@@ -122,6 +122,9 @@ export const Carousel = function <S> (
 
 	// get index
 	// reportPageIndex が指定されていなければ、ローカルステートから取得する
+	// ただし、前回のローカルステートが残っている可能性がある
+	// 今の所回避方法が思いつかない
+	// スタートの表示順番がずれる程度なので、とりあえず気にしないことにする
 	const index = carouselState?.reportPageIndex
 		? getValue(state, carouselState.reportPageIndex, 0)
 		: getLocalState(state, id, { index: 0 }).index
@@ -168,15 +171,15 @@ export const Carousel = function <S> (
 			onmouseenter: action_mouseenter,
 			onmouseleave: action_mouseleave
 		},
-			items.map(item => li({
-				style: {
-					margin    : 0,
-					border    : "none",
-					flexShrink: 0
-				}
-			}, item))
+			items.map(item => li({}, item))
 		),
-		controlBar && div({}, index)
+		controlBar && div({},
+			ul({},
+				items.map((item, i) => li({
+					class: i === index && "select"
+				}, "○"))
+			)
+		)
 	)
 }
 
@@ -231,7 +234,15 @@ export const effect_InitCarousel = function <S> (
 		if (!ul) return
 
 		// get children
-		const children = Array.from(ul.children) as HTMLLIElement[]
+		// クローンが混在している可能性があるので、排除する
+		const children = (Array.from(ul.children) as HTMLLIElement[])
+			.filter(child => {
+				if (child.classList.contains("carousel_clone")) {
+					child.remove()
+					return false
+				}
+				return true
+			})
 		if (!children || children.length === 0) return
 
 		// get widths
@@ -435,6 +446,10 @@ export const effect_InitCarousel = function <S> (
 							ul.appendChild(clone)
 						}
 
+						// 初回時にすでにクローンが存在する可能性がある
+						// どうしても DOM に判別用のキーが必要なので追加する
+						clone.classList.add("carousel_clone")
+
 						carouselPrivateState.cloneNodes.push(clone)
 					}
 				}
@@ -450,12 +465,15 @@ export const effect_InitCarousel = function <S> (
 			}
 
 			// 移動位置を取得
-			const currentOffset = - carouselPrivateState.startOffset
-				- (carouselPrivateState.targetOffset - carouselPrivateState.startOffset)
-				* easing(rafTask.progress)
+			const maxWidth      = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset)
+			const currentOffset = easing(rafTask.progress) * maxWidth
+			const width         = maxWidth - currentOffset
 
 			// style 適用
-			ul.style.transform = `translateX(${ currentOffset }px)`
+			const val = carouselPrivateState.step < 0
+				? - maxWidth + currentOffset + rafTask.progress * width
+				: - currentOffset - rafTask.progress * width
+			ul.style.transform = `translateX(${ val }px)`
 
 			// result
 			return [state, (dispatch: Dispatch<S>) => {
