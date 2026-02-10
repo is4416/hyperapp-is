@@ -1270,22 +1270,16 @@ const Carousel = function(props, children) {
   const index = carouselState?.reportPageIndex ? getValue(state, carouselState.reportPageIndex, 0) : getLocalState(state, id2, { index: 0 }).index;
   const items = Array.isArray(children) ? children : [children];
   const action_mouseenter = (state2) => {
-    const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
-    if (!task2) return state2;
-    if (controller) {
-      if (task2.progress < 0.5) {
-        controller.rollBack(task2);
-      } else {
-        controller.rollForward(task2);
-      }
+    const rafTask = getValue(state2, keyNames, []).find((task2) => task2.id === id2);
+    if (!rafTask) return state2;
+    if (rafTask.progress < 0.4) {
+      controller.rollBack(rafTask);
+    } else {
+      controller.rollForward(rafTask);
     }
-    task2.paused = true;
     return state2;
   };
   const action_mouseleave = (state2) => {
-    const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
-    if (!task2) return state2;
-    task2.paused = false;
     return state2;
   };
   return div(
@@ -1336,76 +1330,99 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       step: 0,
       startOffset: 0,
       targetOffset: 0,
+      currentOffset: 0,
       cloneNodes: []
     };
     const carouselController = {
+      // step
+      step: (rafTask, delta, callback) => {
+      },
       // rollBack
-      rollBack: (rafTask) => {
+      rollBack: (rafTask, callback) => {
         if (rafTask.progress === 0) return;
+        const paused = rafTask.paused;
+        rafTask.paused = true;
+        const carouselState2 = rafTask.extension?.carouselState;
+        if (!carouselState2) return;
+        if (!carouselPrivateState.ul.isConnected) {
+          rafTask.isDone = true;
+          return;
+        }
         const cloneTask = rafTask.clone();
-        const easing = carouselState.easing ?? ((t) => t);
-        const maxWidth = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset);
-        const currentOffset = easing(rafTask.progress) * maxWidth;
         const newTask = new RAFTask({
           id: `${rafTask.id}_rollBack`,
-          groupID: rafTask.groupID,
           duration: SKIP_SPEED,
           delay: 0,
-          // action
           action: (state, rafTask2) => {
-            const val = carouselPrivateState.step < 0 ? -maxWidth + currentOffset - rafTask2.progress * currentOffset : -currentOffset + rafTask2.progress * currentOffset;
+            const val = carouselPrivateState.currentOffset + (carouselPrivateState.startOffset - carouselPrivateState.currentOffset) * rafTask2.progress;
+            carouselPrivateState.currentOffset = val;
             carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
             return state;
           },
-          // finish
           finish: (state, rafTask2) => {
-            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== `${rafTask2.id}_rollBack`);
-            return setValue(state, keyNames, tasks.concat(cloneTask));
+            cloneTask.paused = paused;
+            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask2.id).concat(cloneTask);
+            return [
+              setValue(state, keyNames, tasks),
+              (dispatch2) => {
+                if (callback) callback(cloneTask);
+              }
+            ];
           }
         });
-        requestAnimationFrame(() => dispatch((state) => {
-          const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id);
-          return setValue(state, keyNames, tasks.concat(newTask));
-        }));
+        requestAnimationFrame(() => {
+          dispatch((state) => {
+            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id).concat(newTask);
+            return setValue(state, keyNames, tasks);
+          });
+        });
       },
       // rollForward
-      rollForward: (rafTask) => {
-        if (rafTask.progress === 0) return;
+      rollForward: (rafTask, callback) => {
+        const paused = rafTask.paused;
+        rafTask.paused = true;
+        const carouselState2 = rafTask.extension?.carouselState;
+        if (!carouselState2) return;
+        if (!carouselPrivateState.ul.isConnected) {
+          rafTask.isDone = true;
+          return;
+        }
         const cloneTask = rafTask.clone();
-        const easing = carouselState.easing ?? ((t) => t);
-        const maxWidth = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset);
-        const currentOffset = easing(rafTask.progress) * maxWidth;
-        const width = maxWidth - currentOffset;
         const newTask = new RAFTask({
           id: `${rafTask.id}_rollForward`,
-          groupID: rafTask.groupID,
           duration: SKIP_SPEED,
           delay: 0,
-          // action
           action: (state, rafTask2) => {
-            const val = carouselPrivateState.step < 0 ? -maxWidth + currentOffset + rafTask2.progress * width : -currentOffset - rafTask2.progress * width;
+            const val = carouselPrivateState.currentOffset + (carouselPrivateState.targetOffset - carouselPrivateState.currentOffset) * rafTask2.progress;
+            carouselPrivateState.currentOffset = val;
             carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
             return state;
           },
-          // finish
           finish: (state, rafTask2) => {
-            const paused = cloneTask.paused;
-            cloneTask.paused = false;
-            let newState = state;
-            const fn = cloneTask.finish;
-            if (fn) {
-              const res = fn(state, cloneTask);
-              newState = Array.isArray(res) ? res[0] : res;
-            }
             cloneTask.paused = paused;
-            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== `${rafTask2.id}_rollForward`);
-            return setValue(newState, keyNames, tasks.concat(cloneTask));
+            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask2.id).concat(cloneTask);
+            return [
+              setValue(state, keyNames, tasks),
+              (dispatch2) => {
+                const fn = cloneTask.finish;
+                if (fn) {
+                  requestAnimationFrame(() => {
+                    dispatch2((state2) => fn(state2, cloneTask));
+                    if (callback) callback(cloneTask);
+                  });
+                } else {
+                  if (callback) callback(cloneTask);
+                }
+              }
+            ];
           }
         });
-        requestAnimationFrame(() => dispatch((state) => {
-          const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id);
-          return setValue(state, keyNames, tasks.concat(newTask));
-        }));
+        requestAnimationFrame(() => {
+          dispatch((state) => {
+            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id).concat(newTask);
+            return setValue(state, keyNames, tasks);
+          });
+        });
       }
     };
     const action = (state, rafTask) => {
@@ -1464,14 +1481,11 @@ const effect_InitCarousel = function(keyNames, carouselState) {
         const nodeB = ul2.children[Math.abs(step)];
         const rectA = nodeA.getBoundingClientRect();
         const rectB = nodeB.getBoundingClientRect();
-        carouselPrivateState.startOffset = step < 0 ? rectB.left - rectA.left : 0;
-        carouselPrivateState.targetOffset = step < 0 ? 0 : rectB.left - rectA.left;
+        carouselPrivateState.startOffset = step < 0 ? rectA.left - rectB.left : 0;
+        carouselPrivateState.targetOffset = step < 0 ? 0 : rectA.left - rectB.left;
       }
-      const maxWidth = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset);
-      const currentOffset = easing(rafTask.progress) * maxWidth;
-      const width = maxWidth - currentOffset;
-      const val = carouselPrivateState.step < 0 ? -maxWidth + currentOffset + rafTask.progress * width : -currentOffset - rafTask.progress * width;
-      ul2.style.transform = `translateX(${val}px)`;
+      carouselPrivateState.currentOffset = carouselPrivateState.startOffset + (carouselPrivateState.targetOffset - carouselPrivateState.startOffset) * easing(rafTask.progress);
+      ul2.style.transform = `translateX(${carouselPrivateState.currentOffset}px)`;
       return [state, (dispatch2) => {
         const fn = carouselState2.action;
         if (fn) {
@@ -1721,7 +1735,7 @@ const action_carouselButtonClick = (state) => {
   const param = {
     id: "carousel",
     duration: 2e3,
-    step: 2,
+    step: -2,
     easing: progress_easing.easeInOutCubic
   };
   return [state, effect_InitCarousel(keyNames, param)];

@@ -69,13 +69,11 @@ export interface CarouselState <S> {
  * 
  * @template S
  * @typedef {Object} CarouselController
- * 
- * @property {(rafTask: RAFTask<S>) => void} rollBack    - 強制ルールバック
- * @property {(rafTask: RAFTask<S>) => void} rollForward - 強制早送り
  */
 export interface CarouselController <S> {
-	rollBack   : (rafTask: RAFTask<S>) => void
-	rollForward: (rafTask: RAFTask<S>) => void
+	step       : (rafTask: RAFTask<S>, delta: number, callback?: (rafTask: RAFTask<S>) => void) => void
+	rollBack   : (rafTask: RAFTask<S>, callback?: (rafTask: RAFTask<S>) => void) => void
+	rollForward: (rafTask: RAFTask<S>, callback?: (rafTask: RAFTask<S>) => void ) => void
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -133,33 +131,23 @@ export const Carousel = function <S> (
 	const items = Array.isArray(children) ? children : [children]
 
 	// action_mouseenter
-	// rollBack or rollForward and pause
 	const action_mouseenter = (state: S) => {
-		const task = getValue(state, keyNames, [] as RAFTask<S>[])
+		const rafTask = getValue(state, keyNames, [] as RAFTask<S>[])
 			.find(task => task.id === id)
-		if (!task) return state
+		if (!rafTask) return state
 
-		if (controller) {
-			if (task.progress < 0.5) {
-				controller.rollBack(task)
-			} else {
-				controller.rollForward(task)
-			}
+		if (rafTask.progress < 0.4) {
+			controller.rollBack(rafTask)
+		} else {
+			controller.rollForward(rafTask)
 		}
-
-		task.paused = true
 
 		return state
 	}
 
 	// action_mouseleave
 	const action_mouseleave = (state: S) => {
-		const task = getValue(state, keyNames, [] as RAFTask<S>[])
-			.find(task => task.id === id)
-		if (!task) return state
-
-		task.paused = false
-
+		// 実装やりなおし
 		return state
 	}
 
@@ -191,20 +179,22 @@ export const Carousel = function <S> (
  * 
  * @typedef {Object} CarouselPrivateState
  * 
- * @property {HTMLUListElement} ul           - DOM
- * @property {number}           index        - 先頭の index 番号
- * @property {number}           step         - 移動するページ数 (負で逆順。0で停止)
- * @property {number}           startOffset  - 移動開始位置
- * @property {number}           targetOffset - 移動終了位置
- * @property {HTMLLIElement[]}  cloneNodes   - クローンノードの配列
+ * @property {HTMLUListElement} ul            - DOM
+ * @property {number}           index         - 先頭の index 番号
+ * @property {number}           step          - 移動するページ数 (負で逆順。0で停止)
+ * @property {number}           startOffset   - 移動開始位置
+ * @property {number}           targetOffset  - 移動終了位置
+ * @property {number}           currentOffset - 現在位置
+ * @property {HTMLLIElement[]}  cloneNodes    - クローンノードの配列
  */
 interface CarouselPrivateState {
-	ul          : HTMLUListElement
-	index       : number
-	step        : number
-	startOffset : number
-	targetOffset: number
-	cloneNodes  : HTMLLIElement[]
+	ul           : HTMLUListElement
+	index        : number
+	step         : number
+	startOffset  : number
+	targetOffset : number
+	currentOffset: number
+	cloneNodes   : HTMLLIElement[]
 }
 
 /**
@@ -219,7 +209,7 @@ export const effect_InitCarousel = function <S> (
 	carouselState: CarouselState<S>
 ): (dispatch: Dispatch<S>) => void {
 	const SKIP_SPEED = 200
-
+	
 	// get id
 	const id = carouselState.id
 
@@ -253,112 +243,146 @@ export const effect_InitCarousel = function <S> (
 
 		// CarouselPrivateState
 		const carouselPrivateState: CarouselPrivateState = {
-			ul          : ul,
-			index       : 0,
-			step        : 0,
-			startOffset : 0,
-			targetOffset: 0,
-			cloneNodes  : []
+			ul           : ul,
+			index        : 0,
+			step         : 0,
+			startOffset  : 0,
+			targetOffset : 0,
+			currentOffset: 0,
+			cloneNodes   : []
 		}
 
 		// CarouselController
 		const carouselController: CarouselController <S> = {
+
+			// step
+			step: (rafTask: RAFTask<S>, delta: number, callback?: (rafTask: RAFTask<S>) => void): void => {
+			},
+
 			// rollBack
-			rollBack: (rafTask: RAFTask<S>) => {
+			rollBack: (rafTask: RAFTask<S>, callback?: (rafTask: RAFTask<S>) => void) => {
+				// progress === 0 で終了
 				if (rafTask.progress === 0) return
 
+				// 一時停止
+				const paused = rafTask.paused
+				rafTask.paused = true
+
+				// get carouselState
+				const carouselState: CarouselState<S> = rafTask.extension?.carouselState
+				if (!carouselState) return
+
+				// ul が消えていれば終了
+				if (!carouselPrivateState.ul.isConnected) {
+					rafTask.isDone = true
+					return
+				}
+
+				// クローン作成
 				const cloneTask = rafTask.clone()
 
-				const easing = carouselState.easing ?? ((t: number) => t)
-
-				const maxWidth      = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset)
-				const currentOffset = easing(rafTask.progress) * maxWidth
-
-				const newTask = new RAFTask({
+				// newTask
+				const newTask = new RAFTask<S>({
 					id      : `${ rafTask.id }_rollBack`,
-					groupID : rafTask.groupID,
 					duration: SKIP_SPEED,
 					delay   : 0,
-
-					// action
 					action: (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
-						const val = carouselPrivateState.step < 0
-							? - maxWidth + currentOffset - rafTask.progress * currentOffset
-							: - currentOffset + rafTask.progress * currentOffset
+						const val = carouselPrivateState.currentOffset
+							+ (carouselPrivateState.startOffset - carouselPrivateState.currentOffset)
+							* rafTask.progress
+						carouselPrivateState.currentOffset = val
 						carouselPrivateState.ul.style.transform = `translateX(${ val }px)`
 						return state
 					},
-
-					// finish
 					finish: (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
+						cloneTask.paused = paused
 						const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
-							.filter(task => task.id !== `${ rafTask.id }_rollBack`)
-
-						return setValue(state, keyNames, tasks.concat(cloneTask))
+							.filter(task => task.id !== rafTask.id)
+							.concat(cloneTask)
+						return [
+							setValue(state, keyNames, tasks),
+							(dispatch: Dispatch<S>) => {
+								if (callback) callback(cloneTask)
+							}
+						]
 					}
-				})
+				}) // end newTask
 
-				requestAnimationFrame(() => dispatch((state: S) => {
-					const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
-						.filter(task => task.id !== rafTask.id)
-					return setValue(state, keyNames, tasks.concat(newTask))
-				}))
+				// dispatch
+				requestAnimationFrame(() => {
+					dispatch((state: S) => {
+						const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
+							.filter(task => task.id !== rafTask.id)
+							.concat(newTask)
+						return setValue(state, keyNames, tasks)
+					})
+				})
 			},
 
 			// rollForward
-			rollForward: (rafTask: RAFTask<S>) => {
-				if (rafTask.progress === 0) return
+			rollForward: (rafTask: RAFTask<S>, callback?: (rafTask: RAFTask<S>) => void) => {
 
+				// 一時停止
+				const paused = rafTask.paused
+				rafTask.paused = true
+
+				// get carouselState
+				const carouselState: CarouselState<S> = rafTask.extension?.carouselState
+				if (!carouselState) return
+
+				// ul が消えていれば終了
+				if (!carouselPrivateState.ul.isConnected) {
+					rafTask.isDone = true
+					return
+				}
+
+				// クローン作成
 				const cloneTask = rafTask.clone()
 
-				const easing = carouselState.easing ?? ((t: number) => t)
-
-				const maxWidth      = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset)
-				const currentOffset = easing(rafTask.progress) * maxWidth
-				const width         = maxWidth - currentOffset
-
-				const newTask = new RAFTask({
+				// newTask
+				const newTask = new RAFTask<S>({
 					id      : `${ rafTask.id }_rollForward`,
-					groupID : rafTask.groupID,
 					duration: SKIP_SPEED,
-
 					delay   : 0,
-
-					// action
 					action: (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
-						const val = carouselPrivateState.step < 0
-							? - maxWidth + currentOffset + rafTask.progress * width
-							: - currentOffset - rafTask.progress * width
+						const val = carouselPrivateState.currentOffset
+							+ (carouselPrivateState.targetOffset - carouselPrivateState.currentOffset)
+							* rafTask.progress
+						carouselPrivateState.currentOffset = val
 						carouselPrivateState.ul.style.transform = `translateX(${ val }px)`
 						return state
 					},
-
-					// finish
 					finish: (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
-						const paused = cloneTask.paused
-						cloneTask.paused = false
-
-						let newState = state
-						const fn = cloneTask.finish
-						if (fn) {
-							const res = fn(state, cloneTask)
-							newState = Array.isArray(res) ? res[0] : res
-						}
-
 						cloneTask.paused = paused
-
 						const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
-							.filter(task => task.id !== `${ rafTask.id }_rollForward`)
-
-						return setValue(newState, keyNames, tasks.concat(cloneTask))
+							.filter(task => task.id !== rafTask.id)
+							.concat(cloneTask)
+						return [
+							setValue(state, keyNames, tasks),
+							(dispatch: Dispatch<S>) => {
+								const fn = cloneTask.finish
+								if (fn) {
+									requestAnimationFrame(() => {
+										dispatch((state: S) => fn(state, cloneTask))
+										if (callback) callback(cloneTask)
+									})
+								} else {
+									if (callback) callback(cloneTask)
+								}
+							}
+						]
 					}
-				})
+				}) // end newTask
 
-				requestAnimationFrame(() => dispatch((state: S) => {
-					const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
-						.filter(task => task.id !== rafTask.id)
-					return setValue(state, keyNames, tasks.concat(newTask))
-				}))
+				// dispatch
+				requestAnimationFrame(() => {
+					dispatch((state: S) => {
+						const tasks = getValue(state, keyNames, [] as RAFTask<S>[])
+							.filter(task => task.id !== rafTask.id)
+							.concat(newTask)
+						return setValue(state, keyNames, tasks)
+					})
+				})
 			}
 		}
 
@@ -460,20 +484,17 @@ export const effect_InitCarousel = function <S> (
 				const rectA = nodeA.getBoundingClientRect()
 				const rectB = nodeB.getBoundingClientRect()
 
-				carouselPrivateState.startOffset  = step < 0 ? rectB.left - rectA.left : 0
-				carouselPrivateState.targetOffset = step < 0 ? 0 : rectB.left - rectA.left
+				carouselPrivateState.startOffset  = step < 0 ? rectA.left - rectB.left : 0
+				carouselPrivateState.targetOffset = step < 0 ? 0 : rectA.left - rectB.left
 			}
 
-			// 移動位置を取得
-			const maxWidth      = Math.abs(carouselPrivateState.targetOffset - carouselPrivateState.startOffset)
-			const currentOffset = easing(rafTask.progress) * maxWidth
-			const width         = maxWidth - currentOffset
+			// 現在位置を作成
+			carouselPrivateState.currentOffset = carouselPrivateState.startOffset
+				+ (carouselPrivateState.targetOffset - carouselPrivateState.startOffset)
+				* easing(rafTask.progress)
 
 			// style 適用
-			const val = carouselPrivateState.step < 0
-				? - maxWidth + currentOffset + rafTask.progress * width
-				: - currentOffset - rafTask.progress * width
-			ul.style.transform = `translateX(${ val }px)`
+			ul.style.transform = `translateX(${ carouselPrivateState.currentOffset }px)`
 
 			// result
 			return [state, (dispatch: Dispatch<S>) => {

@@ -2,7 +2,7 @@
 // import 
 // ---------- ---------- ---------- ---------- ----------
 
-import { app, VNode, Dispatch } from "hyperapp"
+import { app, VNode, Dispatch, Effect } from "hyperapp"
 import h from "hyperapp-jsx-pragma"
 import {
 	getValue, setValue,
@@ -353,7 +353,7 @@ const action_carouselButtonClick = (state: State) => {
 	const param: CarouselState<State> = {
 		id      : "carousel",
 		duration: 2000,
-		step    : 2,
+		step    : -2,
 		easing: progress_easing.easeInOutCubic
 	}
 
