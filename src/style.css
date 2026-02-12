@@ -169,11 +169,12 @@ input[type="text"] {
 }
 
 #carousel {
-	width: 500px;
+	margin: 0 auto;
+	width : 500px;
 	border: 2px gray solid;
 }
 .carousel {
-	overflow: hidden;
+	/* overflow: hidden; */
 
 	/* carousel */
 	> ul {

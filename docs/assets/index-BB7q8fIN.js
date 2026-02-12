@@ -1280,6 +1280,15 @@ const Carousel = function(props, children) {
     return state2;
   };
   const action_mouseleave = (state2) => {
+    const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
+    if (!task2) return state2;
+    task2.paused = false;
+    return state2;
+  };
+  const action_controlBarClick = (state2, index2) => {
+    const rafTask = getValue(state2, keyNames, []).find((task2) => task2.id === id2);
+    if (!rafTask) return state2;
+    controller.step(rafTask, index2);
     return state2;
   };
   return div(
@@ -1298,7 +1307,8 @@ const Carousel = function(props, children) {
       ul(
         {},
         items.map((item, i) => li({
-          class: i === index && "select"
+          class: i === index && "select",
+          onclick: [action_controlBarClick, i]
         }, "○"))
       )
     )
@@ -1333,97 +1343,236 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       currentOffset: 0,
       cloneNodes: []
     };
-    const carouselController = {
-      // step
-      step: (rafTask, delta, callback) => {
-      },
-      // rollBack
-      rollBack: (rafTask, callback) => {
-        if (rafTask.progress === 0) return;
-        const paused = rafTask.paused;
-        rafTask.paused = true;
-        const carouselState2 = rafTask.extension?.carouselState;
-        if (!carouselState2) return;
-        if (!carouselPrivateState.ul.isConnected) {
-          rafTask.isDone = true;
-          return;
-        }
-        const cloneTask = rafTask.clone();
-        const newTask = new RAFTask({
-          id: `${rafTask.id}_rollBack`,
-          duration: SKIP_SPEED,
-          delay: 0,
-          action: (state, rafTask2) => {
-            const val = carouselPrivateState.currentOffset + (carouselPrivateState.startOffset - carouselPrivateState.currentOffset) * rafTask2.progress;
-            carouselPrivateState.currentOffset = val;
-            carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
-            return state;
-          },
-          finish: (state, rafTask2) => {
-            cloneTask.paused = paused;
-            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask2.id).concat(cloneTask);
-            return [
-              setValue(state, keyNames, tasks),
-              (dispatch2) => {
-                if (callback) callback(cloneTask);
-              }
-            ];
+    const reverseLookup = (index) => {
+      const leftIndex = carouselPrivateState.index;
+      return ((index - leftIndex) % children.length + children.length) % children.length;
+    };
+    const getMoveSize = () => {
+      let result = 0;
+      for (let i = 0; i < Math.abs(carouselPrivateState.step); i++) {
+        const index = carouselPrivateState.step < 0 ? children.length - 1 - i % children.length : i % children.length;
+        result += widths[reverseLookup(index)];
+      }
+      return result;
+    };
+    const getCloneCount = () => {
+      let size = 0;
+      const safeMargin = 1;
+      const moveSize = getMoveSize() + safeMargin;
+      let i = 0;
+      while (size < moveSize - safeMargin) {
+        const index = carouselPrivateState.step < 0 ? children.length - 1 - i % children.length : i % children.length;
+        size += widths[reverseLookup(index)];
+        i = i + 1;
+      }
+      return i;
+    };
+    const addClones = (count) => {
+      for (let i = 0; i < count; i++) {
+        const index = carouselPrivateState.step < 0 ? children.length - 1 - i % children.length + i : i % children.length;
+        const child = ul2.children[index];
+        if (child) {
+          const clone = child.cloneNode(true);
+          if (carouselPrivateState.step < 0) {
+            ul2.insertBefore(clone, ul2.firstChild);
+          } else {
+            ul2.appendChild(clone);
           }
-        });
-        requestAnimationFrame(() => {
-          dispatch((state) => {
-            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id).concat(newTask);
-            return setValue(state, keyNames, tasks);
-          });
-        });
-      },
-      // rollForward
-      rollForward: (rafTask, callback) => {
-        const paused = rafTask.paused;
-        rafTask.paused = true;
-        const carouselState2 = rafTask.extension?.carouselState;
-        if (!carouselState2) return;
-        if (!carouselPrivateState.ul.isConnected) {
-          rafTask.isDone = true;
-          return;
+          clone.classList.add("carousel_clone");
+          carouselPrivateState.cloneNodes.push(clone);
         }
-        const cloneTask = rafTask.clone();
-        const newTask = new RAFTask({
-          id: `${rafTask.id}_rollForward`,
-          duration: SKIP_SPEED,
-          delay: 0,
-          action: (state, rafTask2) => {
-            const val = carouselPrivateState.currentOffset + (carouselPrivateState.targetOffset - carouselPrivateState.currentOffset) * rafTask2.progress;
-            carouselPrivateState.currentOffset = val;
+      }
+    };
+    const carouselController = {
+      // ---------- ---------- ----------
+      // step
+      // ---------- ---------- ----------
+      step: (rafTask, delta) => {
+        return new Promise((resolve, reject) => {
+          const carouselState2 = rafTask.extension?.carouselState;
+          if (!carouselState2) return reject();
+          if (!carouselPrivateState.ul.isConnected) {
+            rafTask.isDone = true;
+            return reject();
+          }
+          rafTask.paused;
+          rafTask.paused = true;
+          const getCurrentPosition = () => {
+            let index = -1;
+            let absolute = -1;
+            const border = Math.abs(carouselPrivateState.currentOffset);
+            const items = carouselPrivateState.ul.children;
+            for (let i = 0, size = 0; i < items.length; i++) {
+              size += items[i].getBoundingClientRect().width;
+              if (size >= border) {
+                index = i;
+                break;
+              }
+            }
+            if (index === -1) return null;
+            const baseIndex = ((carouselPrivateState.index - carouselPrivateState.step) % children.length + children.length) % children.length;
+            absolute = ((baseIndex - (carouselPrivateState.step < 0 ? children.length - 1 - index : -index)) % children.length + children.length) % children.length;
+            return {
+              absoluteIndex: absolute,
+              relativeIndex: index
+            };
+          };
+          const currentPosition = getCurrentPosition();
+          if (!currentPosition) return reject();
+          const stepTo = currentPosition.relativeIndex + (delta - currentPosition.absoluteIndex);
+          const targetOffset = -carouselPrivateState.ul.children[stepTo].offsetLeft;
+          carouselPrivateState.startOffset = carouselPrivateState.currentOffset;
+          carouselPrivateState.index = currentPosition.absoluteIndex;
+          carouselPrivateState.targetOffset = targetOffset;
+          const cloneTask = rafTask.clone();
+          const action2 = (state, rafTask2) => {
+            const val = carouselPrivateState.startOffset + (carouselPrivateState.targetOffset - carouselPrivateState.startOffset) * rafTask2.progress;
             carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
+            carouselPrivateState.currentOffset = val;
             return state;
-          },
-          finish: (state, rafTask2) => {
-            cloneTask.paused = paused;
-            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask2.id).concat(cloneTask);
+          };
+          const finish2 = (state, rafTask2) => {
+            let newState = state;
+            alert("finish");
+            if (carouselState2.reportPageIndex) {
+              newState = setValue(
+                newState,
+                carouselState2.reportPageIndex,
+                delta - currentPosition.absoluteIndex
+                // 仮
+              );
+            } else {
+              newState = setLocalState(
+                newState,
+                id2,
+                { index: delta - currentPosition.absoluteIndex }
+                // 仮
+              );
+            }
+            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== `${task.id}_step`).concat(cloneTask);
             return [
-              setValue(state, keyNames, tasks),
+              setValue(newState, keyNames, tasks),
               (dispatch2) => {
                 const fn = cloneTask.finish;
                 if (fn) {
-                  requestAnimationFrame(() => {
-                    dispatch2((state2) => fn(state2, cloneTask));
-                    if (callback) callback(cloneTask);
-                  });
-                } else {
-                  if (callback) callback(cloneTask);
+                  requestAnimationFrame(() => dispatch2((state2) => [fn, cloneTask]));
                 }
+                resolve(cloneTask);
               }
             ];
-          }
+          };
+          const newTask = new RAFTask({
+            id: `${rafTask.id}_step`,
+            duration: 2e3,
+            action: action2,
+            finish: finish2
+          });
+          requestAnimationFrame(() => {
+            dispatch((state) => {
+              const tasks = getValue(state, keyNames, []).filter((task) => task.id !== id2).concat(newTask);
+              return setValue(state, keyNames, tasks);
+            });
+          });
         });
-        requestAnimationFrame(() => {
-          dispatch((state) => {
-            const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id).concat(newTask);
-            return setValue(state, keyNames, tasks);
+      },
+      // end CarouselController.step
+      // ---------- ---------- ----------
+      // rollBack
+      // ---------- ---------- ----------
+      rollBack: (rafTask) => {
+        return new Promise((resolve, reject) => {
+          if (rafTask.progress === 0) return reject();
+          const paused = rafTask.paused;
+          rafTask.paused = true;
+          const carouselState2 = rafTask.extension?.carouselState;
+          if (!carouselState2) return reject();
+          if (!carouselPrivateState.ul.isConnected) {
+            rafTask.isDone = true;
+            return reject();
+          }
+          const cloneTask = rafTask.clone();
+          const newTask = new RAFTask({
+            id: `${rafTask.id}_rollBack`,
+            duration: SKIP_SPEED,
+            delay: 0,
+            // action
+            action: (state, rafTask2) => {
+              const val = carouselPrivateState.currentOffset + (carouselPrivateState.startOffset - carouselPrivateState.currentOffset) * rafTask2.progress;
+              carouselPrivateState.currentOffset = val;
+              carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
+              return state;
+            },
+            // finish
+            finish: (state, rafTask2) => {
+              cloneTask.paused = paused;
+              const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask2.id).concat(cloneTask);
+              return [
+                setValue(state, keyNames, tasks),
+                (dispatch2) => {
+                  resolve(cloneTask);
+                }
+              ];
+            }
+          });
+          requestAnimationFrame(() => {
+            dispatch((state) => {
+              const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id).concat(newTask);
+              return setValue(state, keyNames, tasks);
+            });
+          });
+        });
+      },
+      // end CarouselController.rollBack
+      // ---------- ---------- ----------
+      // rollForward
+      // ---------- ---------- ----------
+      rollForward: (rafTask) => {
+        return new Promise((resolve, reject) => {
+          const paused = rafTask.paused;
+          rafTask.paused = true;
+          const carouselState2 = rafTask.extension?.carouselState;
+          if (!carouselState2) return reject();
+          if (!carouselPrivateState.ul.isConnected) {
+            rafTask.isDone = true;
+            return reject();
+          }
+          const cloneTask = rafTask.clone();
+          const newTask = new RAFTask({
+            id: `${rafTask.id}_rollForward`,
+            duration: SKIP_SPEED,
+            delay: 0,
+            // action
+            action: (state, rafTask2) => {
+              const val = carouselPrivateState.currentOffset + (carouselPrivateState.targetOffset - carouselPrivateState.currentOffset) * rafTask2.progress;
+              carouselPrivateState.currentOffset = val;
+              carouselPrivateState.ul.style.transform = `translateX(${val}px)`;
+              return state;
+            },
+            // finish
+            finish: (state, rafTask2) => {
+              cloneTask.paused = paused;
+              const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask2.id).concat(cloneTask);
+              return [
+                setValue(state, keyNames, tasks),
+                (dispatch2) => {
+                  const fn = cloneTask.finish;
+                  if (fn) {
+                    requestAnimationFrame(() => dispatch2((state2) => [fn, cloneTask]));
+                  }
+                  resolve(cloneTask);
+                }
+              ];
+            }
+          });
+          requestAnimationFrame(() => {
+            dispatch((state) => {
+              const tasks = getValue(state, keyNames, []).filter((task) => task.id !== rafTask.id).concat(newTask);
+              return setValue(state, keyNames, tasks);
+            });
           });
         });
       }
+      // end rollForward
     };
     const action = (state, rafTask) => {
       const carouselState2 = rafTask.extension?.carouselState;
@@ -1436,60 +1585,22 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       if (rafTask.paused) return state;
       if (carouselPrivateState.step === 0) return state;
       if (carouselPrivateState.cloneNodes.length === 0) {
-        const step = carouselPrivateState.step;
         carouselPrivateState.cloneNodes.forEach((node) => node.remove());
         carouselPrivateState.cloneNodes = [];
-        const reverseLookup = (index) => {
-          const leftIndex = carouselPrivateState.index;
-          return ((index - leftIndex) % children.length + children.length) % children.length;
-        };
-        const getMoveSize = () => {
-          let result = 0;
-          for (let i = 0; i < Math.abs(step); i++) {
-            const index = step < 0 ? children.length - 1 - i % children.length : i % children.length;
-            result += widths[reverseLookup(index)];
-          }
-          return result;
-        };
-        const getCloneCount = () => {
-          let size = 0;
-          const safeMargin = 1;
-          const moveSize = getMoveSize() + safeMargin;
-          let i = 0;
-          while (size < moveSize - safeMargin) {
-            const index = step < 0 ? children.length - 1 - i % children.length : i % children.length;
-            size += widths[reverseLookup(index)];
-            i = i + 1;
-          }
-          return i;
-        };
-        for (let i = 0, count = getCloneCount(); i < count; i++) {
-          const index = step < 0 ? children.length - 1 - i % children.length + i : i % children.length;
-          const child = ul2.children[index];
-          if (child) {
-            const clone = child.cloneNode(true);
-            if (step < 0) {
-              ul2.insertBefore(clone, ul2.firstChild);
-            } else {
-              ul2.appendChild(clone);
-            }
-            clone.classList.add("carousel_clone");
-            carouselPrivateState.cloneNodes.push(clone);
-          }
-        }
+        addClones(getCloneCount());
         const nodeA = ul2.children[0];
-        const nodeB = ul2.children[Math.abs(step)];
+        const nodeB = ul2.children[Math.abs(carouselPrivateState.step)];
         const rectA = nodeA.getBoundingClientRect();
         const rectB = nodeB.getBoundingClientRect();
-        carouselPrivateState.startOffset = step < 0 ? rectA.left - rectB.left : 0;
-        carouselPrivateState.targetOffset = step < 0 ? 0 : rectA.left - rectB.left;
+        carouselPrivateState.startOffset = carouselPrivateState.step < 0 ? rectA.left - rectB.left : 0;
+        carouselPrivateState.targetOffset = carouselPrivateState.step < 0 ? 0 : rectA.left - rectB.left;
       }
       carouselPrivateState.currentOffset = carouselPrivateState.startOffset + (carouselPrivateState.targetOffset - carouselPrivateState.startOffset) * easing(rafTask.progress);
       ul2.style.transform = `translateX(${carouselPrivateState.currentOffset}px)`;
       return [state, (dispatch2) => {
         const fn = carouselState2.action;
         if (fn) {
-          requestAnimationFrame(() => dispatch2((state2) => fn(state2, rafTask)));
+          requestAnimationFrame(() => dispatch2((state2) => [fn, rafTask]));
         }
       }];
     };
@@ -1555,7 +1666,7 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       return [newState, (dispatch2) => {
         const fn = carouselState2.finish;
         if (fn) {
-          requestAnimationFrame(() => dispatch2((state2) => fn(state2, rafTask)));
+          requestAnimationFrame(() => dispatch2((state2) => [fn, rafTask]));
         }
       }];
     };
@@ -1734,11 +1845,17 @@ const action_carouselButtonClick = (state) => {
   const keyNames = ["subscriptions", "tasks"];
   const param = {
     id: "carousel",
-    duration: 2e3,
-    step: -2,
+    duration: 5e3,
+    step: 2,
     easing: progress_easing.easeInOutCubic
   };
-  return [state, effect_InitCarousel(keyNames, param)];
+  return [state, (dispatch) => {
+    requestAnimationFrame(
+      () => requestAnimationFrame(
+        () => dispatch((state2) => [state2, effect_InitCarousel(keyNames, param)])
+      )
+    );
+  }];
 };
 addEventListener("load", () => {
   const easingList = (() => {
