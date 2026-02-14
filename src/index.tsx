@@ -352,19 +352,13 @@ const action_carouselButtonClick = (state: State) => {
 
 	const param: CarouselState<State> = {
 		id      : "carousel",
-		duration: 5000,
-		step    : 2,
+		duration: 1000,
+		delay   : 2000,
+		step    : 1,
 		easing: progress_easing.easeInOutCubic
 	}
 
-	// DOM の準備が完了していないケースが多いため、エフェクトの起動を2フレーム遅延させる
-	return [state, (dispatch: Dispatch<State>): void => {
-		requestAnimationFrame(() =>
-			requestAnimationFrame(() =>
-				dispatch((state: State) => [state, effect_InitCarousel(keyNames, param)])
-			)
-		)
-	}]
+	return [state, effect_InitCarousel(keyNames, param)]
 }
 
 // ---------- ---------- ---------- ---------- ----------

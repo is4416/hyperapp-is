@@ -54,6 +54,12 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 - [effect_translateRollforward](#effect_translaterollforward)
 - [effect_translateSlide](#effect_translateslide)
 
+**animationView / carouselts**
+- [CarouselState](#carouselstate)
+- [CarouselController](#carouselcontroller)
+- [Carousel](#carousel)
+- [effect_InitCarousel](#effect_initcarousel)
+
 **dom / utils.ts**
 - [ScrollMargin](#scrollmargin)
 - [getScrollMargin](#getscrollmargin)
@@ -139,12 +145,26 @@ rAF を利用した CSS設定
 
 ### animation / translate.ts
 
+`RAFTask` をベースとした、カルーセル用のエフェクト
+
 - `TranslateState`              : Translate 管理用オブジェクト
 - `createRAFTranslate`          : Translate アニメーション RAFTask を作成する
 - `effect_translateStart`       : subscription_RAFManager をベースにした Translate アニメーションエフェクト
 - `effect_translateRollback`    : Translate中のアニメーションを元に戻すエフェクト
 - `effect_translateRollforward` : Translate中のアニメーションを早送りするエフェクト
 - `effect_translateSlide`       : Translateを任意のインデックスまで移動する
+
+---
+
+### animationView / carousel.ts
+
+`RAFTask` をベースとした、カルーセルコンポーネントセット (現在作成中)  
+*将来的には `animation/translate.ts` は廃止予定*
+
+- `CarouselState`       : Carousel 管理用オブジェクト
+- `CarouselController`  : Carousel を外部から操作するためのオブジェクト
+- `Carousel`            : Carousel コンポーネント (VNode)
+- `effect_InitCarousel` : Carousel アニメーションを開始するためのエフェクト
 
 ---
 
@@ -209,6 +229,9 @@ src
      │       effect_translateRollback
      │       effect_translateRollforward
      │       effect_translateSlide
+     │
+     ├ animationView
+     │  └ carousel.ts
      │
      └ dom
          ├ utils.ts
@@ -918,6 +941,105 @@ export const progress_easing = {
 	}
 }
 ```
+
+## hyperapp-ui/animationView
+
+### CarouselState
+Carousel コンポーネント情報  
+RAFTask.extension に保存されます
+
+```ts
+export interface CarouselState <S> {
+	id  : string
+	step: number
+
+	// option
+	groupID  ?: string
+	duration ?: number
+	delay    ?: number
+	priority ?: number
+	extension?: { [key: string]: any }
+
+	// event
+	action?: RAFEvent<S>
+	finish?: RAFEvent<S>
+
+	// animation
+	easing?: (t: number) => number
+
+	// report
+	reportPageIndex?: string[]
+}
+```
+基本的には `RAFTask` に準拠します  
+カルーセルを動作せるため `effect_InitCarousel` に渡すための値です  
+
+必須項目
+- id: `Carousel` コンポーネントの id を指定してください
+- step: 移動するアイテムの数で、負の数は逆回転。0 は停止となります
+
+拡張項目
+- easing: アニメーションの動作を指定する関数  
+指定しない場合は `(t: number) => t` (linear) となります
+
+- reportPagreIndex: 現在一番左端に表示されているアイテムのインデックスを受けるパス  
+コントロールバーを自作したい時などに利用できます
+
+---
+
+### CarouselController
+外部から Carousel コンポーネントを操作するためのクラス  
+RAFTask.extension に保存されます
+
+```ts
+export interface CarouselController <S> {
+	step: (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
+}
+```
+
+- step: `delta` で指定した方向にページを移動します  
+スキップ時のスピードは、変更前の `duration` に `skipSpeedRate` を乗じたものになります  
+終了時に処理を割り込ませたい場合は、`Promsie` により処理します
+
+### Carousel
+カルーセルコンポーネントです  
+`CarouselState` を引数に `effect_InitCarousel` を実行することで動作開始します  
+`subscription_RAFManager` を使用するので、予め `subscriptions` に追加してください
+
+```ts
+export const Carousel = function <S> (
+	props: {
+		state         : S
+		id            : string
+		keyNames      : string[]
+		controlButton?: boolean
+		controlBar   ?: boolean
+		skipSpeedRate?: number
+		[key: string] : any
+	},
+	children: any
+): VNode<S>
+```
+
+- state        : ステート
+- id           : ユニークID (DOM の id)
+- keyNames     : RAFTask 配列までのパス
+- controlButton: 操作ボタンを表示するか (未実装)
+- controlBar   : 操作バーを表示するか
+- skipSpeedRate: スキップ時の動作速度
+
+### effect_InitCarousel
+カルーセルを初期化し起動するエフェクト
+
+```ts
+export const effect_InitCarousel = function <S> (
+	keyNames     : string[],
+	carouselState: CarouselState<S>
+): (dispatch: Dispatch<S>) => void
+```
+
+- keyNames     : RAFTask 配列までのパス
+- carouselState: カルーセルの動作設定
 
 ## hyperapp-ui/dom
 

@@ -174,7 +174,7 @@ input[type="text"] {
 	border: 2px gray solid;
 }
 .carousel {
-	/* overflow: hidden; */
+	overflow: hidden;
 
 	/* carousel */
 	> ul {
@@ -187,8 +187,10 @@ input[type="text"] {
 			flex-shrink: 0;
 			display    : flex;
 			overflow   : hidden;
-			margin     : 0.5rem;
+			margin     : 1rem;
+			padding    : 0.5rem;
 			height     : 10rem;
+			border: 1px gray dotted;
 
 			> img {
 				margin       : 0.5rem;
@@ -210,17 +212,26 @@ input[type="text"] {
 			max-width : 200px;
 
 			> li {
-				flex-grow: 1;
-				margin: 0.5rem;
-				padding: 0.5rem;
-				border: 1px black solid;
+				flex-grow    : 1;
+				margin       : 0.5rem;
+				padding      : 0.5rem;
+				border       : 1px black solid;
 				border-radius: 0.5rem;
-				text-align: center;
+				text-align   : center;
+				cursor       : pointer;
+
+				&:hover {
+					background-color: #C0C0C0;
+				}
+
+				&:active {
+					background-color: #A0A0A0;
+				}
 
 				&.select {
 					background-color: white;
-					color: red;
-					text-shadow: 0 0 2px red;
+					color           : red;
+					text-shadow     : 0 0 2px red;
 				}
 			}
 		}

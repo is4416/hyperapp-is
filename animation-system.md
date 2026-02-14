@@ -195,6 +195,7 @@ CSS設定オブジェクト
 **ステートに登録** するためのラッパーです
 
 ## translate.ts
+現在 `animationView / carousel.ts` を開発中であり、将来的には `translate.ts` は廃止予定です
 
 ### TranslateState
 Translate 管理用オブジェクト  
