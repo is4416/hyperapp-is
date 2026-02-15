@@ -405,7 +405,7 @@ const el = (tag) => (props, ...children) => h$1(
   props ?? {},
   children.flat().map((child) => typeof child === "object" ? child : text(child))
 );
-const button = el("button");
+const button$1 = el("button");
 const concatAction = function(action, newState, e) {
   if (!action) return newState;
   const effect = (dispatch) => {
@@ -444,7 +444,7 @@ const SelectButton = function(props, children) {
     const newState = setValue(state2, keyNames, newList);
     return concatAction(props.onclick, newState, e);
   };
-  return button({
+  return button$1({
     type: "button",
     ...deleteKeys(props, "state", "keyNames", "reverse"),
     class: classList.join(" "),
@@ -466,7 +466,7 @@ const OptionButton = function(props, children) {
     const newState = setValue(state2, keyNames, newValue);
     return concatAction(props.onclick, newState, e);
   };
-  return button({
+  return button$1({
     type: "button",
     ...deleteKeys(props, "state", "keyNames", "reverse"),
     class: classList.join(" "),
@@ -1262,6 +1262,7 @@ const subscription_nodesCleanup = function(nodes) {
 const div = el("div");
 const ul = el("ul");
 const li = el("li");
+const button = el("button");
 const Carousel = function(props, children) {
   const { state, id: id2, keyNames, controlButton, controlBar, skipSpeedRate } = props;
   const task = getValue(state, keyNames, []).find((task2) => task2.id === id2);
@@ -1279,6 +1280,26 @@ const Carousel = function(props, children) {
     const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
     if (!task2) return state2;
     task2.paused = false;
+    return state2;
+  };
+  const action_prevPage = (state2) => {
+    const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
+    if (!task2) return state2;
+    controller.step(
+      task2,
+      -1,
+      skipSpeedRate ?? 0.3
+    );
+    return state2;
+  };
+  const action_nextPage = (state2) => {
+    const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
+    if (!task2) return state2;
+    controller.step(
+      task2,
+      1,
+      skipSpeedRate ?? 0.3
+    );
     return state2;
   };
   const action_ControlBarClick = (state2, absoluteIndex) => {
@@ -1302,15 +1323,22 @@ const Carousel = function(props, children) {
       },
       items.map((item) => li({}, item))
     ),
-    controlBar && div(
+    // controlButton, controlBar
+    (controlButton || controlBar) && div(
       {},
-      ul(
+      controlButton ? button({ onclick: action_prevPage }, "<") : null,
+      controlBar ? ul(
         {},
-        items.map((_, i) => li({
-          class: i === index && "select",
-          onclick: [action_ControlBarClick, i]
-        }, "○"))
-      )
+        items.map((_, i) => li(
+          {
+            class: i === index && "select",
+            onclick: [action_ControlBarClick, i]
+          },
+          // param が取れない場合、選択なしにする
+          param ? i === index ? "◉" : "・" : "・"
+        ))
+      ) : ul({}),
+      controlButton ? button({ onclick: action_nextPage }, ">") : null
     )
   );
 };
@@ -1437,7 +1465,7 @@ const effect_InitCarousel = function(keyNames, carouselState) {
                 action,
                 finish: (state2, rafTask2) => {
                   rafTask2.paused = paused;
-                  const res = finish(state2);
+                  const res = finish(state2, rafTask2);
                   const newState = Array.isArray(res) ? res[0] : res;
                   rafTask2.paused = paused;
                   resolve(rafTask2);
@@ -1457,7 +1485,10 @@ const effect_InitCarousel = function(keyNames, carouselState) {
           if (rafTask.paused) return state2;
           privateParam.currentOffset = privateParam.startOffset + (privateParam.targetOffset - privateParam.startOffset) * easing(rafTask.progress);
           privateParam.ul.style.transform = `translateX(${privateParam.currentOffset}px)`;
-          return state2;
+          return [state2, (dispatch2) => {
+            const fn = param.action;
+            if (fn) requestAnimationFrame(() => dispatch2((state3) => [fn, rafTask]));
+          }];
         };
         const finish = (state2, rafTask) => {
           if (!privateParam.ul.isConnected) return state2;
@@ -1493,11 +1524,15 @@ const effect_InitCarousel = function(keyNames, carouselState) {
           privateParam.targetOffset = privateParam.step < 0 ? 0 : -cloneWidth;
           privateParam.currentOffset = privateParam.startOffset;
           privateParam.ul.style.transform = `translateX(${privateParam.currentOffset}px)`;
-          return setValue(
+          newState = setValue(
             newState,
             keyNames,
             getValue(newState, keyNames, []).filter((task) => task.id !== param.id).concat(createTask())
           );
+          return [newState, (dispatch2) => {
+            const fn = param.finish;
+            if (fn) requestAnimationFrame(() => dispatch2((state3) => [fn, rafTask]));
+          }];
         };
         const createTask = () => {
           return new RAFTask({
@@ -1693,7 +1728,19 @@ const action_carouselButtonClick = (state) => {
     duration: 1e3,
     delay: 2e3,
     step: 1,
-    easing: progress_easing.easeInOutCubic
+    // action 割り込みテスト
+    action: (state2, rafTask) => {
+      console.log("action 割り込み: " + rafTask.progress);
+      return state2;
+    },
+    // finish 割り込みテスト
+    finish: (state2, rafTask) => {
+      const reportPageIndex = state2.carousel.reportPageIndex;
+      console.log("finish 割り込み: reportPageIndex = " + reportPageIndex);
+      return state2;
+    },
+    easing: progress_easing.easeInOutCubic,
+    reportPageIndex: ["carousel", "reportPageIndex"]
   };
   return [state, effect_InitCarousel(keyNames, param)];
 };
@@ -1730,6 +1777,9 @@ addEventListener("load", () => {
     },
     translate: {
       index: 0
+    },
+    carousel: {
+      reportPageIndex: 0
     }
   };
   app({
@@ -1804,7 +1854,8 @@ addEventListener("load", () => {
         id: "carousel",
         class: "carousel",
         keyNames: ["subscriptions", "tasks"],
-        controlBar: true
+        controlBar: true,
+        controlButton: true
       },
       /* @__PURE__ */ h("img", { id: "item1", src: "sample-image/image1.webp" }),
       /* @__PURE__ */ h("img", { id: "item2", src: "sample-image/image2.webp" }),

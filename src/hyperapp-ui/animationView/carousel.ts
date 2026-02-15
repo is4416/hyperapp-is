@@ -89,9 +89,10 @@ export interface CarouselController <S> {
 // ---------- ---------- ---------- ---------- ----------
 
 // element
-const div = el("div")
-const ul  = el("ul")
-const li  = el("li")
+const div    = el("div")
+const ul     = el("ul")
+const li     = el("li")
+const button = el("button")
 
 /**
  * Carousel Component
@@ -123,7 +124,7 @@ export const Carousel = function <S> (
 	// get task
 	const task = getValue(state, keyNames, [] as RAFTask<S>[])
 		.find(task => task.id === id)
-	
+
 	// get carouselState and carouselController
 	const param     : CarouselState<S>      = task?.extension?.carouselState
 	const controller: CarouselController<S> = task?.extension.carouselController
@@ -165,6 +166,40 @@ export const Carousel = function <S> (
 	}
 
 	// ---------- ---------- ----------
+	// action_prevPage
+	// ---------- ---------- ----------
+	const action_prevPage = (state: S) => {
+		const task = getValue(state, keyNames, [] as RAFTask<S>[])
+			.find(task => task.id === id)
+		if (!task) return state
+
+		controller.step(
+			task,
+			- 1,
+			skipSpeedRate ?? 0.3
+		)
+
+		return state
+	}
+
+	// ---------- ---------- ----------
+	// action_nextPage
+	// ---------- ---------- ----------
+	const action_nextPage = (state: S) => {
+		const task = getValue(state, keyNames, [] as RAFTask<S>[])
+			.find(task => task.id === id)
+		if (!task) return state
+
+		controller.step(
+			task,
+			1,
+			skipSpeedRate ?? 0.3
+		)
+
+		return state
+	}
+
+	// ---------- ---------- ----------
 	// action_controlBarClick
 	// ---------- ---------- ----------
 	const action_ControlBarClick = (state: S, absoluteIndex: number) => {
@@ -193,13 +228,29 @@ export const Carousel = function <S> (
 		},
 			items.map(item => li({}, item))
 		),
-		controlBar && div({},
-			ul({},
-				items.map((_, i) => li({
-					class  : i === index && "select",
-					onclick: [action_ControlBarClick, i]
-				}, "○"))
-			)
+
+		// controlButton, controlBar
+		(controlButton || controlBar) && div({},
+			controlButton
+				? button({ onclick: action_prevPage }, "<")
+				: null,
+
+			controlBar
+				? ul({}, items.map((_, i) => li({
+						class  : i === index && "select",
+						onclick: [action_ControlBarClick, i]
+					},
+						// param が取れない場合、選択なしにする
+						param
+							? i === index ? "◉" : "・"
+							: "・"
+					))
+				)
+				: ul({}),
+
+			controlButton
+				? button({ onclick: action_nextPage }, ">")
+				: null
 		)
 	)
 }
@@ -487,13 +538,19 @@ export const effect_InitCarousel = function <S> (
 					if (!privateParam.ul.isConnected) return state
 					if (rafTask.paused) return state
 
+					// privateParam.currentOffset の調整
 					privateParam.currentOffset = privateParam.startOffset
 						+ (privateParam.targetOffset - privateParam.startOffset)
 						* easing(rafTask.progress)
 
+					// style 適用
 					privateParam.ul.style.transform = `translateX(${ privateParam.currentOffset }px)`
 
-					return state
+					return [state, (dispatch: Dispatch<S>) => {
+						// action 割り込み
+						const fn = param.action
+						if (fn) requestAnimationFrame(() => dispatch((state: S) => [fn, rafTask]))
+					}]
 				}
 
 				// ---------- ---------- ----------
@@ -548,6 +605,7 @@ export const effect_InitCarousel = function <S> (
 						if (i !== 0) cloneWidth += ulGap
 					}
 
+					// privateParam の調整
 					privateParam.startOffset  = privateParam.step < 0
 						? - cloneWidth
 						: 0
@@ -559,14 +617,19 @@ export const effect_InitCarousel = function <S> (
 					// set dom
 					privateParam.ul.style.transform = `translateX(${ privateParam.currentOffset }px)`
 
-					// next
-					return setValue(
+					newState = setValue(
 						newState,
 						keyNames,
 						getValue(newState, keyNames, [] as RAFTask<S>[])
 							.filter(task => task.id !== param.id)
 							.concat(createTask())
 					)
+
+					return [newState, (dispatch: Dispatch<S>) => {
+						// finish 割り込み
+						const fn = param.finish
+						if (fn) requestAnimationFrame(() => dispatch((state: S) => [fn, rafTask]))
+					}]
 				}
 
 				// ---------- ---------- ----------

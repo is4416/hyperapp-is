@@ -64,6 +64,10 @@ interface State {
 
 	translate: {
 		index: number
+	},
+
+	carousel: {
+		reportPageIndex: number
 	}
 }
 
@@ -355,7 +359,22 @@ const action_carouselButtonClick = (state: State) => {
 		duration: 1000,
 		delay   : 2000,
 		step    : 1,
-		easing: progress_easing.easeInOutCubic
+
+		// action 割り込みテスト
+		action: (state: State, rafTask: RAFTask<State>) => {
+			console.log("action 割り込み: " + rafTask.progress)
+			return state
+		},
+
+		// finish 割り込みテスト
+		finish: (state: State, rafTask: RAFTask<State>) => {
+			const reportPageIndex = state.carousel.reportPageIndex
+			console.log("finish 割り込み: reportPageIndex = " + reportPageIndex)
+			return state
+		},
+
+		easing: progress_easing.easeInOutCubic,
+		reportPageIndex: ["carousel", "reportPageIndex"]
 	}
 
 	return [state, effect_InitCarousel(keyNames, param)]
@@ -408,6 +427,10 @@ addEventListener("load", () => {
 
 		translate: {
 			index: 0
+		},
+
+		carousel: {
+			reportPageIndex: 0
 		}
 	}
 
@@ -558,11 +581,12 @@ addEventListener("load", () => {
 				<Route state={state} keyNames={["tabName"]} match="page7">
 					<h2>Carousel Component</h2>
 					<Carousel
-						state      = {state}
-						id         = "carousel"
-						class      = "carousel"
-						keyNames   = {["subscriptions", "tasks"]}
-						controlBar = {true}
+						state         = {state}
+						id            = "carousel"
+						class         = "carousel"
+						keyNames      = {["subscriptions", "tasks"]}
+						controlBar    = {true}
+						controlButton = {true}
 					>
 						<img id="item1" src="sample-image/image1.webp" />
 						<img id="item2" src="sample-image/image2.webp" />
