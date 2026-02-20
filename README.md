@@ -510,14 +510,25 @@ type InternalEffect<S> = Effect<S>
 Dispatch で呼ばれるアクションでは、エフェクトを直接返すことはできません  
 しかし、非同期処理でエフェクトを使用したいこともあります
 
-このときアクションを `(state: S) => S | [S, Effect<S>]` とせず `(state: S) => S | [S, InternalEffect<S>]`とすることで、  
-エフェクトが戻り値とならないことを明示します ( Dispatch 内でエフェクトが戻せない罠対策です )
+このときアクションを `(state: S) => S | [S, Effect<S>]` とせず `(state: S) => S | [S, InternalEffect<S>]`とすることで、エフェクトが戻り値とならないことを明示します ( Dispatch 内でエフェクトが戻せない罠対策です )  
+具体的には `requestAnimationFrame` などを使用して時間差で Dispatch してください
 
 **ポイント**
 
 - 戻り値として使用されず、Dispatch 内でのみ実行される
 - `Effect<S>` と同一
 - 内部専用であることを、型で明示
+
+**Dispatch例**
+
+```ts
+	return [state, (dispatch: Dispatch) => {
+		requestAnimationFrame(() =>
+			dispatch(state: S) => [state, effect]
+		)
+	}]
+```
+*requestAnimationFrame などで、Dispatch 外部に移動した後、Dispatch します (どうしても1フレーム遅延します)*
 
 ---
 

@@ -495,8 +495,9 @@ export const effect_InitCarousel = function <S> (
 								? 0
 								: - cloneWidth
 
-							// 位置の調整 (actionにまかせると、一瞬ちらつきがひどくなる)
-							privateParam.ul.style.transform = `translateX(${ privateParam.currentOffset }px)`
+							// insetBefore 後は、transform 値を確定してやる必要があるので、即座に transform を実行
+							// appendChild 後に、transform を実行すると、再レンタリングが発生しちらつくので、処理しない
+							if (delta > 0) privateParam.ul.style.transform = `translateX(${ privateParam.currentOffset }px)`
 
 							// newTask
 							const newTask: RAFTask<S> = new RAFTask({

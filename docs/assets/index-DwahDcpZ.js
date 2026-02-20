@@ -1458,7 +1458,7 @@ const effect_InitCarousel = function(keyNames, carouselState) {
               privateParam.startOffset = delta < 0 ? currentState.offset - cloneWidth : currentState.offset;
               privateParam.currentOffset = delta < 0 ? currentState.offset + cloneWidth : currentState.offset;
               privateParam.targetOffset = delta < 0 ? 0 : -cloneWidth;
-              privateParam.ul.style.transform = `translateX(${privateParam.currentOffset}px)`;
+              if (delta > 0) privateParam.ul.style.transform = `translateX(${privateParam.currentOffset}px)`;
               const newTask = new RAFTask({
                 id: `${param.id}_step`,
                 duration: rafTask.duration * (skipSpeedRate ?? 0.1),
@@ -1727,7 +1727,7 @@ const action_carouselButtonClick = (state) => {
     id: "carousel",
     duration: 1e3,
     delay: 2e3,
-    step: 1,
+    step: -1,
     // action 割り込みテスト
     action: (state2, rafTask) => {
       console.log("action 割り込み: " + rafTask.progress);

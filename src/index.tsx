@@ -358,7 +358,7 @@ const action_carouselButtonClick = (state: State) => {
 		id      : "carousel",
 		duration: 1000,
 		delay   : 2000,
-		step    : 1,
+		step    : -1,
 
 		// action 割り込みテスト
 		action: (state: State, rafTask: RAFTask<State>) => {
