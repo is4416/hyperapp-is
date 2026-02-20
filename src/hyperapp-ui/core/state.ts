@@ -88,7 +88,7 @@ export const setValue = function <S> (
  * @param   {string} id - ユニークID
  * @returns {string}
  */
-const createLocalKey = (id: string): string => `local_key_${ id }`
+export const createLocalKey = (id: string): string => `local_key_${ id }`
 
 // ---------- ---------- ---------- ---------- ----------
 // getLocalState

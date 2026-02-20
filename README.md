@@ -16,6 +16,7 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 - [setValue](#setvalue)
 - [getLocalState](#getlocalstate)
 - [setLocalState](#setlocalstate)
+- [createLocalKey](#createlocalkey)
 
 **core / component.ts**
 - [el](#el)
@@ -88,6 +89,7 @@ Hyperapp はステートの形に制約がないため、コンポーネント�
 
 - `getValue` / `setValue`           : パスを指定して値を取得・設定
 - `getLocalState` / `setLocalState` : コンポーネント内部の一時状態を ID キーで管理
+- `createLocalKey`                  : ID からユニーク文字列を作成する
 
 ---
 
@@ -198,7 +200,7 @@ src
      │
      ├ core
      │  ├ state.ts
-     │  │   getValue, setValue, getLocalState, setLocalState
+     │  │   getValue, setValue, getLocalState, setLocalState, createLocalKey
      │  │
      │  └ component.ts
      │       el, concatAction, getClassList, deleteKeys
@@ -316,6 +318,15 @@ export const setLocalState = function <S> (
 - state: ステート
 - id   : ユニークID
 - value: 設定するローカルステート
+
+---
+
+### createLocalKey
+ID からユニーク文字列を作成する
+
+```ts
+export const createLocalKey = (id: string): string => `local_key_${ id }`
+```
 
 ---
 

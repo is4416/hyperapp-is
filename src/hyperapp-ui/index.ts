@@ -1,7 +1,7 @@
 // hyperapp-ui
 
 // core
-export { getValue, setValue, getLocalState, setLocalState } from "./core/state"
+export { getValue, setValue, getLocalState, setLocalState, createLocalKey } from "./core/state"
 export { el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton} from "./core/component"
 
 // animation

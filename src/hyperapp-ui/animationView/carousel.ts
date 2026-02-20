@@ -3,8 +3,8 @@
 // ---------- ---------- ---------- ---------- ----------
 
 import { VNode, Dispatch } from "hyperapp"
-import { getValue, setValue, getLocalState, setLocalState } from "../core/state"
-import { el, concatAction, getClassList, deleteKeys } from "../core/component"
+import { getValue, setValue, createLocalKey } from "../core/state"
+import { el, deleteKeys } from "../core/component"
 import { InternalEffect, RAFEvent, RAFTask, subscription_RAFManager } from "../animation/raf"
 
 // ---------- ---------- ---------- ---------- ----------
@@ -75,10 +75,6 @@ export interface CarouselState <S> {
  * 
  * - ページ移動を行う (移動中の場合は割り込む)
  * @property {(rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise<RAFTask<S>>} step
- * - spte < 0 の時、DOM配列の先頭にクローンノードを挿入するため、どうしても一瞬ちらつきます
- * - 移動速度が早ければ視認できませんが、あまり速度を落とすとチラツキが気になります
- * - 構造的に解決できないので、気になるのであれば常に delta > 0 で運用すると良いかもしれません
- * - rollBack, rollForward もフォローできますが、チラツキ防止のために別で実装するかもしれません
  */
 export interface CarouselController <S> {
 	step: (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
@@ -132,7 +128,7 @@ export const Carousel = function <S> (
 	// get index
 	const index = param?.reportPageIndex
 		? getValue(state, param.reportPageIndex, 0)
-		: getValue(state, [`local_key_${ id }`, "reportPageIndex"] , 0)
+		: getValue(state, [createLocalKey(id), "reportPageIndex"] , 0)
 
 	// children
 	const items = Array.isArray(children) ? children : [children]
@@ -352,7 +348,7 @@ export const effect_InitCarousel = function <S> (
 			const ulGap = isNaN(gap) ? 0 : gap
 
 			// reportIndex path
-			const reportPageIndex = param.reportPageIndex ?? [`local_key_${ param.id }`, "reportPageIndex"]
+			const reportPageIndex = param.reportPageIndex ?? [createLocalKey(param.id), "reportPageIndex"]
 
 			// dispatch
 			dispatch((state: S) => {
