@@ -75,9 +75,13 @@ export interface CarouselState <S> {
  * 
  * - ページ移動を行う (移動中の場合は割り込む)
  * @property {(rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise<RAFTask<S>>} step
+ * 
+ * @property {(rafTask: RAFTask<S>, index: number, skipSpeedRate?: number) => Pronise<RAFTask<S>>} moveTo
+ * - 指定インデックス番号に移動する (移動中の場合は割り込む)
  */
 export interface CarouselController <S> {
-	step: (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
+	step  : (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
+	moveTo: (RAFTask: RAFTask<S>, index: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -203,9 +207,12 @@ export const Carousel = function <S> (
 			.find(task => task.id === id)
 		if (!task) return state
 
-		controller.step(
+		const param: CarouselState <S> = task.extension?.carouselState
+		if (!param) return state
+
+		controller.moveTo(
 			task,
-			absoluteIndex - index,
+			absoluteIndex,
 			skipSpeedRate ?? 0.3
 		)
 
@@ -367,6 +374,49 @@ export const effect_InitCarousel = function <S> (
 				}
 
 				// ---------- ---------- ----------
+				// function getCurrentState
+				// ---------- ---------- ----------
+				/**
+				 * 相対、絶対インデックスの取得
+				 * 先頭オフセット値の取得
+				 * 入れ替えが必要な DOM の数を取得
+				 */
+				const getCurrentState = (): {
+					relativeIndex: number
+					absoluteIndex: number
+					offset       : number
+					toggleCount  : number
+				} => {
+					let relativeIndex = - 1
+					let absoluteIndex = - 1
+					let offset = 0
+
+					for (let i = 0, width = offset; i < privateParam.ul.children.length; i++) {
+						const li = privateParam.ul.children[i] as HTMLLIElement
+						const index = Number(li.getAttribute("absoluteIndex"))
+
+						if (Math.abs(privateParam.currentOffset) >= width) {
+							relativeIndex = i
+							absoluteIndex = index
+							offset = privateParam.currentOffset + width
+						}
+
+						// next
+						width += widths[absoluteIndex]
+						if (i !== 0) width += ulGap
+					}
+
+					return {
+						relativeIndex : relativeIndex,
+						absoluteIndex : absoluteIndex,
+						offset        : offset,
+						toggleCount   : privateParam.step < 0
+							? Math.abs(privateParam.step) - relativeIndex
+							: relativeIndex
+					}
+				} // end getCurrentState
+
+				// ---------- ---------- ----------
 				// controller
 				// ---------- ---------- ----------
 				const controller: CarouselController <S> = {
@@ -381,54 +431,11 @@ export const effect_InitCarousel = function <S> (
 					): Promise <RAFTask<S>> => {
 
 						// 一時停止
-						const paused = rafTask.paused
+						const paused   = rafTask.paused
 						rafTask.paused = true
 
 						// result
 						return new Promise((resolve, reject) => {
-
-							// ---------- ---------- ----------
-							// function getCurrentState
-							// ---------- ---------- ----------
-							/**
-							 * 相対、絶対インデックスの取得
-							 * 先頭オフセット値の取得
-							 * 入れ替えが必要な DOM の数を取得
-							 */
-							const getCurrentState = (): {
-								relativeIndex: number
-								absoluteIndex: number
-								offset       : number
-								toggleCount  : number
-							} => {
-								let relativeIndex = - 1
-								let absoluteIndex = - 1
-								let offset = 0
-
-								for (let i = 0, width = offset; i < privateParam.ul.children.length; i++) {
-									const li = privateParam.ul.children[i] as HTMLLIElement
-									const index = Number(li.getAttribute("absoluteIndex"))
-
-									if (Math.abs(privateParam.currentOffset) >= width) {
-										relativeIndex = i
-										absoluteIndex = index
-										offset = privateParam.currentOffset + width
-									}
-
-									// next
-									width += widths[absoluteIndex]
-									if (i !== 0) width += ulGap
-								}
-
-								return {
-									relativeIndex : relativeIndex,
-									absoluteIndex : absoluteIndex,
-									offset        : offset,
-									toggleCount   : privateParam.step < 0
-										? Math.abs(privateParam.step) - relativeIndex
-										: relativeIndex
-								}
-							} // end getCurrentState
 
 							// currentState
 							const currentState = getCurrentState()
@@ -483,17 +490,14 @@ export const effect_InitCarousel = function <S> (
 								? currentState.offset - cloneWidth
 								: currentState.offset
 
-							privateParam.currentOffset = delta < 0
-								? currentState.offset + cloneWidth
-								: currentState.offset
+							privateParam.currentOffset = privateParam.startOffset
 
 							privateParam.targetOffset = delta < 0
 								? 0
 								: - cloneWidth
 
-							// insetBefore 後は、transform 値を確定してやる必要があるので、即座に transform を実行
-							// appendChild 後に、transform を実行すると、再レンタリングが発生しちらつくので、処理しない
-							if (delta > 0) privateParam.ul.style.transform = `translateX(${ privateParam.currentOffset }px)`
+							// スタイル適用
+							privateParam.ul.style.transform = `translateX(${ privateParam.currentOffset }px)`
 
 							// newTask
 							const newTask: RAFTask<S> = new RAFTask({
@@ -526,6 +530,18 @@ export const effect_InitCarousel = function <S> (
 							}))
 						})
 					}, // end controller.step
+
+					// ---------- ---------- ----------
+					// controller.moveTo
+					// ---------- ---------- ----------
+					moveTo: (rafTask: RAFTask<S>, index: number, skipSpeedRate?: number): Promise <RAFTask<S>> => {
+						return controller.step(
+							rafTask,
+							index - getCurrentState().absoluteIndex,
+							skipSpeedRate
+						)
+					}
+
 				} // end controller
 
 				// ---------- ---------- ----------

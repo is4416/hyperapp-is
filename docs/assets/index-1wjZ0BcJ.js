@@ -1268,7 +1268,7 @@ const Carousel = function(props, children) {
   const task = getValue(state, keyNames, []).find((task2) => task2.id === id2);
   const param = task?.extension?.carouselState;
   const controller = task?.extension.carouselController;
-  const index = param?.reportPageIndex ? getValue(state, param.reportPageIndex, 0) : getValue(state, [`local_key_${id2}`, "reportPageIndex"], 0);
+  const index = param?.reportPageIndex ? getValue(state, param.reportPageIndex, 0) : getValue(state, [createLocalKey(id2), "reportPageIndex"], 0);
   const items = Array.isArray(children) ? children : [children];
   const action_mouseenter = (state2) => {
     const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
@@ -1305,9 +1305,11 @@ const Carousel = function(props, children) {
   const action_ControlBarClick = (state2, absoluteIndex) => {
     const task2 = getValue(state2, keyNames, []).find((task3) => task3.id === id2);
     if (!task2) return state2;
-    controller.step(
+    const param2 = task2.extension?.carouselState;
+    if (!param2) return state2;
+    controller.moveTo(
       task2,
-      absoluteIndex - index,
+      absoluteIndex,
       skipSpeedRate ?? 0.3
     );
     return state2;
@@ -1384,7 +1386,7 @@ const effect_InitCarousel = function(keyNames, carouselState) {
       const ulStyle = getComputedStyle(ul2);
       const gap = parseFloat(ulStyle.columnGap || ulStyle.gap || "0");
       const ulGap = isNaN(gap) ? 0 : gap;
-      const reportPageIndex = param.reportPageIndex ?? [`local_key_${param.id}`, "reportPageIndex"];
+      const reportPageIndex = param.reportPageIndex ?? [createLocalKey(param.id), "reportPageIndex"];
       dispatch((state) => {
         const privateParam = {
           ul: ul2,
@@ -1395,6 +1397,28 @@ const effect_InitCarousel = function(keyNames, carouselState) {
           currentOffset: 0,
           cloneNodes: []
         };
+        const getCurrentState = () => {
+          let relativeIndex = -1;
+          let absoluteIndex = -1;
+          let offset = 0;
+          for (let i = 0, width = offset; i < privateParam.ul.children.length; i++) {
+            const li2 = privateParam.ul.children[i];
+            const index = Number(li2.getAttribute("absoluteIndex"));
+            if (Math.abs(privateParam.currentOffset) >= width) {
+              relativeIndex = i;
+              absoluteIndex = index;
+              offset = privateParam.currentOffset + width;
+            }
+            width += widths[absoluteIndex];
+            if (i !== 0) width += ulGap;
+          }
+          return {
+            relativeIndex,
+            absoluteIndex,
+            offset,
+            toggleCount: privateParam.step < 0 ? Math.abs(privateParam.step) - relativeIndex : relativeIndex
+          };
+        };
         const controller = {
           // ---------- ---------- ----------
           // controller.step
@@ -1403,28 +1427,6 @@ const effect_InitCarousel = function(keyNames, carouselState) {
             const paused = rafTask.paused;
             rafTask.paused = true;
             return new Promise((resolve, reject) => {
-              const getCurrentState = () => {
-                let relativeIndex = -1;
-                let absoluteIndex = -1;
-                let offset = 0;
-                for (let i = 0, width = offset; i < privateParam.ul.children.length; i++) {
-                  const li2 = privateParam.ul.children[i];
-                  const index = Number(li2.getAttribute("absoluteIndex"));
-                  if (Math.abs(privateParam.currentOffset) >= width) {
-                    relativeIndex = i;
-                    absoluteIndex = index;
-                    offset = privateParam.currentOffset + width;
-                  }
-                  width += widths[absoluteIndex];
-                  if (i !== 0) width += ulGap;
-                }
-                return {
-                  relativeIndex,
-                  absoluteIndex,
-                  offset,
-                  toggleCount: privateParam.step < 0 ? Math.abs(privateParam.step) - relativeIndex : relativeIndex
-                };
-              };
               const currentState = getCurrentState();
               privateParam.cloneNodes.forEach((node) => node.remove());
               privateParam.cloneNodes = [];
@@ -1456,9 +1458,9 @@ const effect_InitCarousel = function(keyNames, carouselState) {
               privateParam.step = delta;
               privateParam.index = ((currentState.absoluteIndex + delta) % children.length + children.length) % children.length;
               privateParam.startOffset = delta < 0 ? currentState.offset - cloneWidth : currentState.offset;
-              privateParam.currentOffset = delta < 0 ? currentState.offset + cloneWidth : currentState.offset;
+              privateParam.currentOffset = privateParam.startOffset;
               privateParam.targetOffset = delta < 0 ? 0 : -cloneWidth;
-              if (delta > 0) privateParam.ul.style.transform = `translateX(${privateParam.currentOffset}px)`;
+              privateParam.ul.style.transform = `translateX(${privateParam.currentOffset}px)`;
               const newTask = new RAFTask({
                 id: `${param.id}_step`,
                 duration: rafTask.duration * (skipSpeedRate ?? 0.1),
@@ -1477,8 +1479,18 @@ const effect_InitCarousel = function(keyNames, carouselState) {
                 return setValue(state2, keyNames, tasks);
               }));
             });
-          }
+          },
           // end controller.step
+          // ---------- ---------- ----------
+          // controller.moveTo
+          // ---------- ---------- ----------
+          moveTo: (rafTask, index, skipSpeedRate) => {
+            return controller.step(
+              rafTask,
+              index - getCurrentState().absoluteIndex,
+              skipSpeedRate
+            );
+          }
         };
         const action = (state2, rafTask) => {
           if (!privateParam.ul.isConnected) return state2;
@@ -1725,9 +1737,9 @@ const action_carouselButtonClick = (state) => {
   const keyNames = ["subscriptions", "tasks"];
   const param = {
     id: "carousel",
-    duration: 1e3,
-    delay: 2e3,
-    step: -1,
+    duration: 2e3,
+    delay: 1e3,
+    step: 1,
     // action 割り込みテスト
     action: (state2, rafTask) => {
       console.log("action 割り込み: " + rafTask.progress);
@@ -1855,7 +1867,8 @@ addEventListener("load", () => {
         class: "carousel",
         keyNames: ["subscriptions", "tasks"],
         controlBar: true,
-        controlButton: true
+        controlButton: true,
+        skipSpeedRate: 0.2
       },
       /* @__PURE__ */ h("img", { id: "item1", src: "sample-image/image1.webp" }),
       /* @__PURE__ */ h("img", { id: "item2", src: "sample-image/image2.webp" }),

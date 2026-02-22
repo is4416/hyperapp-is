@@ -356,9 +356,9 @@ const action_carouselButtonClick = (state: State) => {
 
 	const param: CarouselState<State> = {
 		id      : "carousel",
-		duration: 1000,
-		delay   : 2000,
-		step    : -1,
+		duration: 2000,
+		delay   : 1000,
+		step    : 1,
 
 		// action 割り込みテスト
 		action: (state: State, rafTask: RAFTask<State>) => {
@@ -587,6 +587,7 @@ addEventListener("load", () => {
 						keyNames      = {["subscriptions", "tasks"]}
 						controlBar    = {true}
 						controlButton = {true}
+						skipSpeedRate = {0.2}
 					>
 						<img id="item1" src="sample-image/image1.webp" />
 						<img id="item2" src="sample-image/image2.webp" />

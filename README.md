@@ -1015,11 +1015,16 @@ RAFTask.extension に保存されます
 
 ```ts
 export interface CarouselController <S> {
-	step: (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
+	step  : (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
+	moveTo: (rafTask: RAFTask<S>, index: number, skipSpeedRage?: number) => Promise <RAFTask<S>>
 }
 ```
 
-- step: `delta` で指定した方向にページを移動します  
+- step: `delta` で指定した方向にページを移動します (相対値)  
+スキップ時のスピードは、変更前の `duration` に `skipSpeedRate` を乗じたものになります  
+終了時に処理を割り込ませたい場合は、`Promsie` により処理します
+
+- moveTo: `index` で指定したページに移動します (絶対値)  
 スキップ時のスピードは、変更前の `duration` に `skipSpeedRate` を乗じたものになります  
 終了時に処理を割り込ませたい場合は、`Promsie` により処理します
 
