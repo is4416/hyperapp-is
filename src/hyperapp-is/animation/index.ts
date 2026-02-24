@@ -1,0 +1,5 @@
+export type { InternalEffect, RAFEvent } from "./raf"
+export type { CSSProperty } from "./properties"
+export { RAFTask, subscription_RAFManager } from "./raf"
+export { progress_easing } from "./easing"
+export { createUnits, createRAFProperties, effect_RAFProperties } from "./properties"
