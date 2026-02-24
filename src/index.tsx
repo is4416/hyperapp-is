@@ -24,7 +24,7 @@ import {
 	marquee,
 
 	CarouselState, CarouselController, Carousel, effect_InitCarousel
-} from "./hyperapp-ui"
+} from "./hyperapp-is"
 
 // ---------- ---------- ---------- ---------- ----------
 // State

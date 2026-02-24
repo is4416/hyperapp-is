@@ -1,9 +1,9 @@
-# hyperapp-ui
+# hyperapp-is
 
-HyperappでのUI構築を支援する、再利用可能なコンポーネントと状態操作ユーティリティです。  
-Reusable UI components and state management utilities for Hyperapp.
+Hyperapp で再利用可能なコンポーネントを作成するためのライブラリです  
+hyperapp-is の is は、is4416 の略です
 
-[example](https://is4416.github.io/hyperapp-ui/)  
+[example](https://is4416.github.io/hyperapp-is/)  
 ※ 本ライブラリの実装サンプル
 
 本ライブラリは **イミュータブルなステート更新** と **シンプルな副作用管理** を前提として設計されています。  
@@ -195,7 +195,7 @@ DOM のライフサイクルを管理するための関数
 
 ```
 src
- └ hyperapp-ui
+ └ hyperapp-is
      ├ index.ts
      │
      ├ core
@@ -250,7 +250,7 @@ src
               subscription_nodesLifecycleByIds
 ```
 
-## hyperapp-ui/core
+## hyperapp-is/core
 
 ### getValue
 パスを辿ってステートから値を取得  
@@ -468,7 +468,7 @@ export const OptionButton = function <S> (
 - props.reverse?: 反転選択するか
 - children      : 子要素 (VNode / string / 配列など)
 
-## hyperapp-ui/animation
+## hyperapp-is/animation
 
 ### effect_throwMessageStart
 文字を一文字ずつ流し込むエフェクト
@@ -964,7 +964,7 @@ export const progress_easing = {
 }
 ```
 
-## hyperapp-ui/animationView
+## hyperapp-is/animationView
 
 ### CarouselState
 Carousel コンポーネント情報  
@@ -1068,7 +1068,7 @@ export const effect_InitCarousel = function <S> (
 - keyNames     : RAFTask 配列までのパス
 - carouselState: カルーセルの動作設定
 
-## hyperapp-ui/dom
+## hyperapp-is/dom
 
 ### ScrollMargin
 スクロールの余白を管理するオブジェクト

@@ -129,7 +129,7 @@ interface CSSProperty {
 関数を自由に決めることができるため、`easing` 処理なども実装できます
 
 `easing` 用のプリセットも、別ファイルで用意しています。  
-[progress_easing.ts](src/hyperapp-ui/animation/easing.ts)
+[progress_easing.ts](src/hyperapp-is/animation/easing.ts)
 
 ## hyperapp でのコンポーネント初期化について
 
