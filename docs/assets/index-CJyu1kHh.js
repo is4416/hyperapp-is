@@ -535,6 +535,51 @@ const effect_throwMessageResume = function(id2) {
     });
   };
 };
+const marquee = function(props) {
+  const { element, duration, delay, easing = (t) => t } = props;
+  const calcWidth = () => {
+    const children = Array.from(element.children);
+    return !children || children.length < 2 ? 0 : children[1].offsetLeft - children[0].offsetLeft;
+  };
+  let rID = 0;
+  let timerID = 0;
+  let startTime = 0;
+  let width = 0;
+  const action = (now) => {
+    if (startTime === 0) startTime = now;
+    const progress = Math.min((now - startTime) / Math.max(1, duration));
+    element.style.transform = `translateX(${-easing(progress) * width}px)`;
+    if (progress < 1) {
+      rID = requestAnimationFrame(action);
+      return;
+    }
+    element.style.transform = `translateX(0px)`;
+    const firstChild = element.children[0];
+    if (!firstChild) return;
+    element.appendChild(firstChild);
+    timerID = window.setTimeout(() => {
+      startTime = 0;
+      rID = requestAnimationFrame(action);
+    }, delay);
+  };
+  return {
+    start: () => {
+      if (rID !== 0) return;
+      width = calcWidth();
+      if (width === 0) return;
+      element.style.willChange = "transform";
+      rID = requestAnimationFrame(action);
+    },
+    stop: () => {
+      cancelAnimationFrame(rID);
+      clearTimeout(timerID);
+      element.style.willChange = "";
+      element.style.transform = "";
+      rID = 0;
+      timerID = 0;
+    }
+  };
+};
 const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {
   // field
@@ -1156,51 +1201,6 @@ const getScrollMargin = function(e) {
     bottom: el2.scrollHeight - (el2.clientHeight + el2.scrollTop)
   };
 };
-const marquee = function(props) {
-  const { element, duration, interval, easing = (t) => t } = props;
-  const calcWidth = () => {
-    const children = Array.from(element.children);
-    return !children || children.length < 2 ? 0 : children[1].offsetLeft - children[0].offsetLeft;
-  };
-  let rID = 0;
-  let timerID = 0;
-  let startTime = 0;
-  let width = 0;
-  const action = (now) => {
-    if (startTime === 0) startTime = now;
-    const progress = Math.min((now - startTime) / Math.max(1, duration));
-    element.style.transform = `translateX(${-easing(progress) * width}px)`;
-    if (progress < 1) {
-      rID = requestAnimationFrame(action);
-      return;
-    }
-    element.style.transform = `translateX(0px)`;
-    const firstChild = element.children[0];
-    if (!firstChild) return;
-    element.appendChild(firstChild);
-    timerID = window.setTimeout(() => {
-      startTime = 0;
-      rID = requestAnimationFrame(action);
-    }, interval);
-  };
-  return {
-    start: () => {
-      if (rID !== 0) return;
-      width = calcWidth();
-      if (width === 0) return;
-      element.style.willChange = "transform";
-      rID = requestAnimationFrame(action);
-    },
-    stop: () => {
-      cancelAnimationFrame(rID);
-      clearTimeout(timerID);
-      element.style.willChange = "";
-      element.style.transform = "";
-      rID = 0;
-      timerID = 0;
-    }
-  };
-};
 const effect_setTimedValue = function(keyNames, id2, timeout, value, reset = null) {
   const NO_TIMER = 0;
   return (dispatch) => {
@@ -1673,7 +1673,6 @@ const action_translateButtonClick = (state) => {
       controls = marquee({
         element: ul2,
         duration: 2e3,
-        interval: 1e3,
         easing: progress_easing.easeOutCubic
       });
       setTimeout(() => controls?.start(), 1e3);
