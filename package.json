@@ -1,6 +1,6 @@
 {
   "name": "hyperapp-is",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "UI foundation library for Hyperapp by is4416",
   "license": "MIT",
   "type": "module",
@@ -9,13 +9,12 @@
   "exports": {
     ".": {
       "import": "./dist/hyperapp-is/index.js",
-      "types" : "./dist/hyperapp-is/index.d.ts"
+      "types": "./dist/hyperapp-is/index.d.ts"
     }
   },
   "files": [
     "dist"
   ],
-
   "scripts": {
     "build": "npm run build:lib",
     "build:lib": "tsc -p tsconfig.lib.json",
