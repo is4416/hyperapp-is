@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "main": "dist/hyperapp-is/index.js",
-  "types": "dist//hyperapp-is/index.d.ts",
+  "types": "dist/hyperapp-is/index.d.ts",
   "files": [
     "dist"
   ],
