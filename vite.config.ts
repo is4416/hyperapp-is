@@ -1,7 +1,7 @@
 import { defineConfig } from "vite"
 
 export default defineConfig ({
-	base: "/hyperapp-ui/",
+	base: "/hyperapp-is/",
 	esbuild: {
 		jsxFactory: "h"
 	},
