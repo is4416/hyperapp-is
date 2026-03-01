@@ -1,2 +1,2 @@
 export type { ScrollMargin, MatrixState } from "./utils"
-export { getScrollMargin, getMatrixState, marquee } from "./utils"
+export { getScrollMargin, getMatrixState } from "./utils"

@@ -5,7 +5,7 @@ export { getValue, setValue, getLocalState, setLocalState, createLocalKey } from
 export { el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton} from "./core/component"
 
 // animation
-export { effect_throwMessageStart, effect_throwMessagePause, effect_throwMessageResume } from "./animation/step"
+export { effect_throwMessageStart, effect_throwMessagePause, effect_throwMessageResume, marquee } from "./animation/step"
 
 export type { InternalEffect, RAFEvent } from "./animation/raf"
 export { RAFTask, subscription_RAFManager } from "./animation/raf"
@@ -21,7 +21,7 @@ export { createRAFTranslate, effect_translateStart, effect_translateRollback, ef
 // dom
 export type { ScrollMargin, MatrixState } from "./dom/utils"
 
-export { getScrollMargin, getMatrixState, marquee } from "./dom/utils"
+export { getScrollMargin, getMatrixState } from "./dom/utils"
 export { effect_setTimedValue, effect_nodesInitialize, subscription_nodesCleanup, subscription_nodesLifecycleByIds } from "./dom/lifecycle"
 
 // animationView

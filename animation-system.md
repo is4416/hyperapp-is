@@ -194,51 +194,10 @@ CSS設定オブジェクト
 このエフェクトは `createRAFProperties` により作成した `RAFTask` を  
 **ステートに登録** するためのラッパーです
 
-## translate.ts
-現在 `animationView / carousel.ts` を開発中であり、将来的には `translate.ts` は廃止予定です
-
-### TranslateState
-Translate 管理用オブジェクト  
-`RAFTask.extension.translateState` に登録します
-
-### createRAFTranslate
-`subscription_RAFManager` をベースにした Translate アニメーション RAFTask を作成する  
-このオブジェクトは **情報管理と描画** を担当します  
-
-### effect_translateStart
-`subscription_RAFManager` をベースにした Translate アニメーションエフェクト  
-このエフェクトは `createRAFTranslate` により作成した `RAFTask` を  
-**ステートに登録** するためのラッパーです
-
-### effect_translateRollback
-アニメーション中の Translate を、元の位置に戻すエフェクト  
-`effect_translateStar` に依存しており `effect_translateStar` 実行中の id に対して  
-エフェクトを適用する前提となっています
-
-### effect_translateRollforward
-アニメーション中の Translate を、早送りする  
-`effect_translateStar` に依存しており `effect_translateStar` 実行中の id に対して  
-エフェクトを適用する前提となっています
-
-### effect_translateRollforward
-Translate を任意のインデックスまで移動する  
-`effect_translateStar` に依存しており `effect_translateStar` 実行中の id に対して  
-エフェクトを適用する前提となっています
-
-## その他
-
-- `step.ts` は、rAF を使用したアニメーションライブラリではありません
-- `dom/utils` に存在する `marquee` は、カルーセルのような動作を提供しますが、単純な DOM 操作です  
-  制御もステート駆動ではなく、実行時に取得するコントローラーにより行います
-- `dom/lifecycle.ts` に存在する `subscription_nodesCleanup` は、  
-  DOM を監視してメモリリークを防止する目的で作成したサブスクリプションです  
-  基本的には **DOM ではなくステートを追跡して制御する設計** が望ましいと考えています  
-  そのため、`subscription_nodesCleanup` の出番はあまり多くないでしょう
-
 ## 最後に
 
-この animation-system は、`RAFTask` `subscription_RAFManager`  
-のみで、基本的にはどのようなアニメーションでも実装できるよう作成しています
+この animation-system は、`RAFTask` `subscription_RAFManager` で、  
+UIアニメーションを実装できるよう作成しています
 
 その他に作成したエフェクト類は、これをベースに汎用性があるよう作成しているものです  
 そのため、同じDOMの検索が複数回発生しているなど **速度的に最速ではありません**

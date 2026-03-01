@@ -21,4 +21,4 @@ export { Carousel, effect_InitCarousel } from "./animationView"
 
 // dom
 export type { ScrollMargin, MatrixState } from "./dom"
-export { getScrollMargin, getMatrixState, marquee } from "./dom"
+export { getScrollMargin, getMatrixState } from "./dom"

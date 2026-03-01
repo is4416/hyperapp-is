@@ -1,5 +1,118 @@
 # hyperapp-is
 
+Lightweight. Declarative. Composable.
+
+Reusable component foundation library for Hyperapp v2.
+
+State-structure independent design + RAF-based animation system.
+
+---
+
+## Features
+
+- State-path based reusable component design
+- Local state helpers  
+	`getLocalState`, `setLocalState`, `createLocalKey`
+- Action composition utility  
+	`concatAction`
+- Class / props utilities  
+	`getClassList`, `deleteKeys`
+- requestAnimationFrame task system  
+	`RAFTask`, `subscription_RAFManager`
+- Built-in animated Carousel component
+
+---
+
+## Installation
+
+``` bash
+npm install hyperapp-is
+```
+
+Peer dependencies:
+
+- hyperapp v2
+- hyperapp-jsx-pragma (when using JSX)
+
+---
+
+## Basic Usage (Carousel Example)
+
+``` ts
+import { app } from "hyperapp"
+import h from "hyperapp-jsx-pragma"
+import {
+	RAFTask, subscription_RAFManager,
+	Carousel, effect_InitCarousel
+} from "hyperapp-is"
+
+// State
+interface State {
+	tasks: RAFTask<State>[]
+}
+
+const initState: State = {
+	tasks: []
+}
+
+// Entry Point
+app({
+	node: document.getElementById("app") as HTMLElement,
+
+	init: [initState, effect_InitCarousel(["tasks"], {
+		id      : "carousel",
+		duration: 2000,
+		delay   : 1000,
+		step    : 1
+	})],
+
+	subscriptions: (state) => [
+		subscription_RAFManager(state, ["tasks"])
+	],
+
+	view: (state) => (<Carousel
+		state    = { state }
+		id       = "carousel"
+		keyNames = { ["tasks"] }
+	>
+		<div>Slide 1</div>
+		<div>Slide 2</div>
+		<div>Slide 3</div>
+	</Carousel>)
+})
+```
+
+---
+
+## Concept
+
+hyperapp-is allows components to:
+
+- Remain independent from root state structure
+- Store internal state without polluting user state
+- Compose actions safely
+- Manage animations declaratively via RAFTask
+
+Designed for building reusable UI components on top of Hyperapp.
+
+---
+
+## Documentation
+
+Full documentation and detailed design notes are available on GitHub:
+
+https://github.com/is4416/hyperapp-is
+
+---
+
+## License
+
+MIT
+
+---
+
+# hyperapp-is
+
 Hyperapp で再利用可能なコンポーネントを作成するためのライブラリです  
 hyperapp-is の is は、is4416 の略です
 
@@ -10,6 +123,8 @@ hyperapp-is の is は、is4416 の略です
 JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています。
 
 ## Functions / 関数リスト
+
+npm で非公開の関数 (実験用)は、解説に記載します
 
 **core / state.ts**
 - [getValue](#getvalue)
@@ -31,6 +146,7 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 - [effect_throwMessageStart](#effect_throwmessagestart)
 - [effect_throwMessagePause](#effect_throwmessagepause--effect_throwmessageresume)
 - [effect_throwMessageResume](#effect_throwmessagepause--effect_throwmessageresume)
+- [marquee](#marquee)
 
 **animation / raf.ts**
 - [InternalEffect](#internaleffect)
@@ -66,130 +182,12 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 - [getScrollMargin](#getscrollmargin)
 - [MatrixState](#matrixstate)
 - [getMatrixState](#getmatrixstate)
-- [marquee](#marquee)
 
 **dom / lifecycle.ts**
 - [effect_setTimedValue](#effect_settimedvalue)
 - [effect_nodesInitialize](#effect_nodesinitialize)
 - [subscription_nodesCleanup](#subscription_nodescleanup)
 - [subscription_nodesLifecycleByIds](#subscription_nodeslifecyclebyids)
-
-## Design / 設計方針
-
-### ライブラリの目的
-
-Hyperapp はステートの形に制約がないため、コンポーネントを作る際にはどのステートを参照・更新するかを事前に決めておく必要があります。  
-本ライブラリでは、コンポーネントに「目的の値がどこにあるか」を通知する設計を採用することにより、hyperapp の自由度を保ちつつ、再利用可能な構造を提供します。
-
----
-
-### core / state.ts
-
-基本的なステート操作関数
-
-- `getValue` / `setValue`           : パスを指定して値を取得・設定
-- `getLocalState` / `setLocalState` : コンポーネント内部の一時状態を ID キーで管理
-- `createLocalKey`                  : ID からユニーク文字列を作成する
-
----
-
-### core / component.ts
-
-基本コンポーネント設計関数
-
-- `el`           : hyperapp h 関数のラッパー
-- `concatAction` : アクションを統合して結果を返す
-- `getClassList` : props から classList を取得
-- `deleteKeys`   : props から不要なキーを削除
-- `Route`        : ステート内の文字と match した時、VNode を返す
-- `SelectButton` / `OptionButton` : クリックで、クラス名 `select` をトグルするボタン
-
----
-
-### animation / step.ts
-
-タイマーを利用したアニメーションのステップ処理
-
-- `effect_throwMessageStart` / `effect_throwMessagePause` / `effect_throwMessageResume` :  
-	ステートに文字を1文字ずつ流し込むエフェクト
-
----
-
-### animation / raf.ts
-
-requestAnimationFrame を利用した処理
-
-- `InternalEffect`          : Dispatch の内部処理から呼び出されるエフェクトで、戻り値とならない  
-  設計意図を明示するための型エイリアス (型としては `Effect` と同一)
-- `RAFEvent`                : RAFTask のアクションイベント (型エイリアス)
-- `RAFTask`                 : rAF タスクを管理するクラス
-- `subscription_RAFManager` : RAFTask をフレームごとに実行させるサブスクリプション  
-  タスクの並び替え・進捗管理・終了判定を一括で行う
-
----
-
-### animation / properties.ts
-
-rAF を利用した CSS設定
-
-- `CSSProperty`          : CSS 設定用オブジェクト
-- `createUnits`          : CSSProperty[] から doms と styles のセットに変換
-- `createRAFProperties`  : CSS アニメーション RAFTask を作成する
-- `effect_RAFProperties` : rAF をベースにした、CSSアニメーションエフェクト
-
----
-
-### animation / easing.ts
-
-- `progress_easing` : easing プリセット
-
----
-
-### animation / translate.ts
-
-`RAFTask` をベースとした、カルーセル用のエフェクト
-
-- `TranslateState`              : Translate 管理用オブジェクト
-- `createRAFTranslate`          : Translate アニメーション RAFTask を作成する
-- `effect_translateStart`       : subscription_RAFManager をベースにした Translate アニメーションエフェクト
-- `effect_translateRollback`    : Translate中のアニメーションを元に戻すエフェクト
-- `effect_translateRollforward` : Translate中のアニメーションを早送りするエフェクト
-- `effect_translateSlide`       : Translateを任意のインデックスまで移動する
-
----
-
-### animationView / carousel.ts
-
-`RAFTask` をベースとした、カルーセルコンポーネントセット (現在作成中)  
-*将来的には `animation/translate.ts` は廃止予定*
-
-- `CarouselState`       : Carousel 管理用オブジェクト
-- `CarouselController`  : Carousel を外部から操作するためのオブジェクト
-- `Carousel`            : Carousel コンポーネント (VNode)
-- `effect_InitCarousel` : Carousel アニメーションを開始するためのエフェクト
-
----
-
-### dom / utils
-
-DOM を直接扱うユーティリティ
-
-- `ScrollMargin`    : スクロールの余白を管理するオブジェクト
-- `getScrollMargin` : スクロールの余白を取得
-- `MatrixState`     : transform 情報
-- `getMatrixState`  : DOM から transfrom 情報を取得する
-- `marquee`         : Translate 風に DOM が流れるアニメーションを実行する
-
----
-
-### dom / lifecycle.ts
-
-DOM のライフサイクルを管理するための関数
-
-- `effect_setTimedValue`      : 存在時間制限付きの値をステートにセットするエフェクト
-- `effect_nodesInitialize`    : DOM 生成後にノードを初期化するためのエフェクト
-- `subscription_nodesCleanup` : DOM が存在しない場合にクリーンアップ処理を行うためのサブスクリプション
-- `subscription_nodesLifecycleByIds` : 登録された id を元に DOM を監視し、初期化・終了処理を行うためのサブスクリプション
 
 ## source file / ソースファイル
 
@@ -208,7 +206,7 @@ src
 	 │
 	 ├ animation
 	 │  ├ step.ts
-	 │  │   effect_throwMessageStart, effect_throwMessagePause, effect_throwMessageResume
+	 │  │   effect_throwMessageStart, effect_throwMessagePause, effect_throwMessageResume, marquee
 	 │  │
 	 │  ├ raf.ts
 	 │  │   InternalEffect
@@ -241,7 +239,6 @@ src
 		 │   getScrollMargin
 		 │   MatrixState
 		 │   getMatrixState
-		 │   marquee
 		 │
 		 └ lifecycle.ts
 			  effect_setTimedValue
@@ -473,6 +470,9 @@ export const OptionButton = function <S> (
 ### effect_throwMessageStart
 文字を一文字ずつ流し込むエフェクト
 
+*実験用コードのため、npm 非公開です*
+
+
 ```ts
 export const effect_throwMessageStart = function <S> (
 	keyNames: string[],
@@ -492,6 +492,8 @@ export const effect_throwMessageStart = function <S> (
 ### effect_throwMessagePause / effect_throwMessageResume
 throwMessage を一時停止・再開
 
+*実験用コードのため、npm 非公開です*
+
 ```ts
 export const effect_throwMessagePause = function <S> (
 	id: string
@@ -504,6 +506,35 @@ export const effect_throwMessageResume = function <S> (
 ```
 
 - id: ユニークID
+
+---
+
+### marquee
+Translate 風に DOM が流れるアニメーションを実行します
+
+*実験用コードのため、npm 非公開です*
+
+```ts
+export const marquee = function <S> (
+	props: {
+		ul      : HTMLUListElement
+		duration: number
+		interval: number
+		easing ?: (t: number) => number
+	}
+): { start: () => void, stop : () => void }
+```
+*ステートから独立して `requestAnimationFrame` により直接 DOM を変更します*
+
+**パラメータ**
+- props.ul      : アニメーション対象の <ul> エレメント
+- props.duration: 実行時間 (ms)
+- props.interval: 待機時間 (ms)
+- props.easing  : easing 関数
+
+**戻値**
+- start(): アニメーションを開始
+- stop() : アニメーションを停止
 
 ---
 
@@ -743,6 +774,8 @@ props は、基本的に RAFTask の値
 ### TranslateState
 Translate 管理用オブジェクト
 
+*実験用コードのため、npm 非公開です*
+
 ```ts
 export interface TranslateState {
 	width : number
@@ -761,6 +794,8 @@ export interface TranslateState {
 
 ### createRAFTranslate
 subscription_RAFManager をベースにした Translate アニメーション RAFTask を作成する
+
+*実験用コードのため、npm 非公開です*
 
 ```ts
 export const createRAFTranslate = function <S> (
@@ -787,6 +822,8 @@ export const createRAFTranslate = function <S> (
 
 ### effect_translateStart
 `subscription_RAFManager` をベースにした Translate アニメーションエフェクトです
+
+*実験用コードのため、npm 非公開です*
 
 ```ts
 export const effect_translateStart = function <S> (
@@ -826,6 +863,8 @@ marquee はステートを通さず直接 DOM に対して副作用を発生さ�
 ### effect_translateRollback
 アニメーション中のTranslateを、元の位置に戻す
 
+*実験用コードのため、npm 非公開です*
+
 ```ts
 export const effect_translateRollback = function <S> (
 	props: {
@@ -851,6 +890,8 @@ export const effect_translateRollback = function <S> (
 ### effect_translateRollforward
 アニメーション中のTranslateを、早送りする
 
+*実験用コードのため、npm 非公開です*
+
 ```ts
 export const effect_translateRollforward = function <S> (
 	props: {
@@ -875,6 +916,8 @@ export const effect_translateRollforward = function <S> (
 
 ### effect_translateSlide
 Translateを任意のインデックスまで移動する
+
+*実験用コードのため、npm 非公開です*
 
 ```ts
 export const effect_translateSlide = function <S> (
@@ -1141,35 +1184,10 @@ export const getMatrixState = (
 
 ---
 
-### marquee
-Translate 風に DOM が流れるアニメーションを実行します
-
-```ts
-export const marquee = function <S> (
-	props: {
-		ul      : HTMLUListElement
-		duration: number
-		interval: number
-		easing ?: (t: number) => number
-	}
-): { start: () => void, stop : () => void }
-```
-*ステートから独立して `requestAnimationFrame` により直接 DOM を変更します*
-
-**パラメータ**
-- props.ul      : アニメーション対象の <ul> エレメント
-- props.duration: 実行時間 (ms)
-- props.interval: 待機時間 (ms)
-- props.easing  : easing 関数
-
-**戻値**
-- start(): アニメーションを開始
-- stop() : アニメーションを停止
-
----
-
 ### effect_setTimedValue
 ステートに存在時間制限付きの値を設定
+
+*実験用コードのため、npm 非公開です*
 
 ```ts
 export const effect_setTimedValue = function <S, T> (
@@ -1192,6 +1210,8 @@ export const effect_setTimedValue = function <S, T> (
 ### effect_nodesInitialize
 VNode マウント後の初期化処理を実行
 
+*実験用コードのため、npm 非公開です*
+
 ```ts
 export const effect_nodesInitialize = function <S> (
 	nodes: {
@@ -1209,6 +1229,8 @@ export const effect_nodesInitialize = function <S> (
 
 ### subscription_nodesCleanup
 DOM 消失時にクリーンアップ処理を実行
+
+*実験用コードのため、npm 非公開です*
 
 ```ts
 export const subscription_nodesCleanup = function <S>(
@@ -1228,6 +1250,8 @@ export const subscription_nodesCleanup = function <S>(
 ### subscription_nodesLifecycleByIds
 ステート上の ID 配列変化に応じて initialize / finalize を自動管理
 
+*実験用コードのため、npm 非公開です*
+
 ```ts
 export const subscription_nodesLifecycleByIds = function <S> (
 	keyNames: string[],
@@ -1244,11 +1268,3 @@ export const subscription_nodesLifecycleByIds = function <S> (
 - nodes.id        : ユニークID
 - nodes.initialize: 初期化イベント
 - nodes.finalize  : 終了時イベント
-
-## Notes
-- This library assumes immutable state updates.
-- Designed for Hyperapp with effect-based side effects.
-- JSX usage assumes `hyperapp-jsx-pragma`.
-
-## License
-MIT
