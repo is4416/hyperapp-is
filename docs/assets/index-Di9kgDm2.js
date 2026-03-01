@@ -1673,6 +1673,7 @@ const action_translateButtonClick = (state) => {
       controls = marquee({
         element: ul2,
         duration: 2e3,
+        delay: 1e3,
         easing: progress_easing.easeOutCubic
       });
       setTimeout(() => controls?.start(), 1e3);
