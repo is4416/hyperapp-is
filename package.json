@@ -6,9 +6,16 @@
   "type": "module",
   "main": "dist/hyperapp-is/index.js",
   "types": "dist/hyperapp-is/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/hyperapp-is/index.js",
+      "types" : "./dist/hyperapp-is/index.d.ts"
+    }
+  },
   "files": [
     "dist"
   ],
+
   "scripts": {
     "build": "npm run build:lib",
     "build:lib": "tsc -p tsconfig.lib.json",
