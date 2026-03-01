@@ -234,7 +234,7 @@ const action_translateButtonClick = (state: State) => {
 			controls = marquee({
 				element : ul,
 				duration: 2000,
-				interval: 1000,
+				delay   : 1000,
 				easing  : progress_easing.easeOutCubic
 			})
 
