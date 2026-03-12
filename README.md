@@ -127,6 +127,7 @@ JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています�
 npm で非公開の関数 (実験用)は、解説に記載します
 
 **core / state.ts**
+- [Keys](#keys)
 - [getValue](#getvalue)
 - [setValue](#setvalue)
 - [getLocalState](#getlocalstate)
@@ -134,6 +135,8 @@ npm で非公開の関数 (実験用)は、解説に記載します
 - [createLocalKey](#createlocalkey)
 
 **core / component.ts**
+- [Keys_String](#keys_string-keys_arraystring)
+- [Keys_ArrayString](#keys_string-keys_arraystring)
 - [el](#el)
 - [concatAction](#concataction)
 - [getClassList](#getclasslist)
@@ -141,6 +144,15 @@ npm で非公開の関数 (実験用)は、解説に記載します
 - [Route](#route)
 - [SelectButton](#selectbutton)
 - [OptionButton](#optionbutton)
+
+**core / navigator.ts**
+- [Keys_NavigatorItem](#keys_navigatoritem)
+- [NavigatorItem](#navigatoritem)
+- [JsonEntry](#jsonentry)
+- [NavigatorColumn]()
+- [convertJsonToNavigatorItem](#convertjsontonavigatoritem)
+- [getParentItems](#getparentitems)
+- [NavigatorFinder](#navigatorfinder)
 
 **animation / step.ts**
 - [effect_throwMessageStart](#effect_throwmessagestart)
@@ -198,11 +210,17 @@ src
 	 │
 	 ├ core
 	 │  ├ state.ts
+	 │  │   Keys
 	 │  │   getValue, setValue, getLocalState, setLocalState, createLocalKey
 	 │  │
-	 │  └ component.ts
-	 │       el, concatAction, getClassList, deleteKeys
-	 │       Route, SelectButton, OptionButton
+	 │  ├ component.ts
+	 │  │   Keys_String, Keys_ArrayString
+	 │  │   el, concatAction, getClassList, deleteKeys
+	 │  │   Route, SelectButton, OptionButton
+	 │  │
+	 │  └ navigator.ts
+	 │       Keys_NavigatorItem, NavigatorItem, JsonEntry
+	 │       convertJsonToNavigatorItem, getParentItems, NavigatorFinder
 	 │
 	 ├ animation
 	 │  ├ step.ts
@@ -248,6 +266,15 @@ src
 ```
 
 ## hyperapp-is/core
+
+### Keys
+ステートの任意の値までのパスを表す、文字配列の型エイリアス
+
+```ts
+export type Keys = readonly string[]
+```
+
+---
 
 ### getValue
 パスを辿ってステートから値を取得  
@@ -324,6 +351,11 @@ ID からユニーク文字列を作成する
 ```ts
 export const createLocalKey = (id: string): string => `local_key_${ id }`
 ```
+
+---
+
+### Keys_String, Keys_ArrayString
+ステートの任意の値までのパスを表す、文字配列の型エイリアス
 
 ---
 
@@ -465,6 +497,142 @@ export const OptionButton = function <S> (
 - props.reverse?: 反転選択するか
 - children      : 子要素 (VNode / string / 配列など)
 
+---
+
+### Keys_NavigatorItem
+ステートの任意の値までのパスを表す、文字配列の型エイリアス
+
+---
+
+### NavigatorItem
+ツリー構造となるナビゲーションオブジェクト
+
+```ts
+export interface NavigatorItem {
+	parent     : NavigatorItem | null
+	name       : string
+	properties?: Record<string, any>
+	children  ?: NavigatorItem[]
+	path       : string
+	extension ?: Record<string, any>
+}
+```
+
+- parent    : 親アイテム
+- name      : 名前
+- properties: プロパティ
+- children  : 子アイテム
+- path      : パス
+- extension : 拡張オブジェクト
+
+---
+
+### JsonEntry
+getEntriesの返す値
+
+```ts
+export interface JsonEntry <D> {
+	name      : string
+	data      : D
+	isProperty: boolean
+	isNode    : boolean
+}
+```
+
+- name      : 名前
+- data      : データ
+- isProperty: プロパティか
+- isNode    : ディレクトリか
+
+---
+
+### NavigatorColumn
+NavigatorFinder に渡すヘッダーと値
+
+```ts
+export interface NavigatorColumn {
+	name: string
+	val : (item: NavigatorItem) => any
+}
+```
+
+- name: 名前
+- val : 値を返す関数
+
+---
+
+### convertJsonToNavigatorItem
+Json から NavigatorItem に変換  
+getEntries の採用により、JSON の形を問わない
+
+```ts
+export const convertJsonToNavigatorItem = function <D> (
+	props: {
+		parent     : NavigatorItem | null
+		name       : string
+		data       : D
+		getEntries : (data: D, depth: number) => JsonEntry<D>[]
+		isNode     : boolean
+		depth     ?: number
+		extension ?: (item: NavigatorItem, data: D, depth: number) => Record<string, any> | undefined
+	}
+): NavigatorItem
+```
+
+- parent    : 親アイテム
+- name      : 名前
+- data      : データ
+- getEntries: JsonEntry配列を返す関数
+- isNode    : ディレクトリか
+- depth     : 階層の深さ
+- extension : 拡張オブジェクトを作成する関数
+
+---
+
+### getParentItems
+NavigatorItem から 親アイテムのリストを取得する  
+自分自信はリストに含まない
+
+```ts
+export const getParentItems = (
+	item: NavigatorItem | undefined
+): NavigatorItem[]
+```
+
+---
+
+### NavigatorFinder
+ナビゲーターファインダーコンポーネント
+
+```ts
+export const NavigatorFinder = function <S> (
+	props: {
+		state         : S
+		currentKeys   : Keys_NavigatorItem
+		headers      ?: NavigatorColumn[]
+		maxItemsCount?: number
+		itemClick    ?: (state: S, item: NavigatorItem) => S | [S, Effect<S>]
+		afterRender  ?: (props: {
+			state     : S
+			current  ?: NavigatorItem
+			extension?: Record<string, any>
+		}, vnode: VNode<S>) => VNode<S>
+		extension   ?: Record<string, any>
+		[key: string]: any
+	}
+): VNode<S>
+```
+
+- state        : ステート
+- currentKeys  : カレント NavigatorItem までのパス
+- headers      : NavigatorColumn の配列
+- maxItemsCount: 最大表示するアイテム数
+- itemClick    : アイテムをクリックした時のアクション
+- afterRender  : レンダーフック
+- extension    : レンダーフックに渡す拡張情報
+
+---
+
 ## hyperapp-is/animation
 
 ### effect_throwMessageStart
@@ -599,7 +767,7 @@ export class RAFTask <S> {
 		action    : RAFEvent<S>
 		finish   ?: RAFEvent<S>
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 	})
 
 	// getter
@@ -614,7 +782,7 @@ export class RAFTask <S> {
 	// getter / setter
 	groupID  : string | undefined
 	priority : number
-	extension: { [key: string]: any }
+	extension: Record<string, any>
 	isDone   : boolean
 	paused   : boolean
 
@@ -729,7 +897,7 @@ export const createRAFProperties = function <S> (
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		properties: CSSProperty[]
 	}
@@ -756,7 +924,7 @@ export const effect_RAFProperties = function <S>(
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		properties: CSSProperty[]
 		keyNames  : string[]
@@ -808,7 +976,7 @@ export const createRAFTranslate = function <S> (
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		translateState: TranslateState
 	}
@@ -836,7 +1004,7 @@ export const effect_translateStart = function <S> (
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		easing ?: (t: number) => number
 
@@ -1023,7 +1191,7 @@ export interface CarouselState <S> {
 	duration ?: number
 	delay    ?: number
 	priority ?: number
-	extension?: { [key: string]: any }
+	extension?: Record<string, any>
 
 	// event
 	action?: RAFEvent<S>

@@ -1,4 +1,4 @@
-// hyperapp-ui / dom / lifecycle.ts
+// hyperapp-is / dom / lifecycle.ts
 
 import { Effect, Subscription, Dispatch } from "hyperapp"
 import { getValue, setValue, getLocalState, setLocalState } from "../core/state"

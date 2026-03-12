@@ -1,4 +1,4 @@
-// hyperapp-ui / animation / step.ts
+// hyperapp-is / animation / step.ts
 
 import { Effect, Dispatch } from "hyperapp"
 import { setValue, getLocalState, setLocalState } from "../core/state"

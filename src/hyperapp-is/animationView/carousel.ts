@@ -1,6 +1,4 @@
-// ---------- ---------- ---------- ---------- ----------
-// import
-// ---------- ---------- ---------- ---------- ----------
+// hyperapp-is / animationView / carousel.ts
 
 import { VNode, Dispatch } from "hyperapp"
 import { getValue, setValue, createLocalKey } from "../core/state"
@@ -29,7 +27,7 @@ import { InternalEffect, RAFEvent, RAFTask, subscription_RAFManager } from "../a
  * @property {number} [duration] - 1回あたりの実行時間 (ms)
  * @property {number} [delay]    - 待機時間 (ms)
  * @property {number} [priority] - 処理優先巡視 (未実装)
- * @property {{ [key: string]: any}} [extension] - 拡張用プロパティ
+ * @property {Record<string, any>} [extension] - 拡張用プロパティ
  * 
  * event
  * @property {RAFEvent<S>} [action] - 毎フレーム発生するイベント
@@ -50,7 +48,7 @@ export interface CarouselState <S> {
 	duration ?: number
 	delay    ?: number
 	priority ?: number
-	extension?: { [key: string]: any }
+	extension?: Record<string, any>
 
 	// event
 	action?: RAFEvent<S>

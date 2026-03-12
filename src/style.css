@@ -238,3 +238,66 @@ input[type="text"] {
 		}
 	}
 }
+
+#navigator_finder {
+	display: flex;
+	flex-direction: column;
+	margin: 1rem;
+	border: 1px gray solid;
+
+	> .toolBar {
+		display: flex;
+		background-color: white;
+	}
+
+	> ol {
+		display: flex;
+		list-style: none;
+		margin: 0;
+		padding: 0.5rem 0.5rem 0.5rem 0;
+
+		> li {
+			margin-left: 0.5rem;
+			padding: 0.5rem;
+			border: 1px gray solid;
+			background-color: white;
+			cursor: pointer;
+		}
+	}
+
+	> table {
+		background-color: white;
+		border: 1px black solid;
+		border-collapse: collapse;
+
+		> thead {
+			> tr {
+				background-color: gray;
+				> th {
+					padding: 0.5rem;
+					font-weight: normal;
+					text-align: left;
+					border: 1px red solid;
+					color: white;
+				}
+			}
+		}
+
+		> tbody {
+			> tr {
+				cursor: pointer;
+				> td {
+					padding: 0.5rem;
+					border: 1px red solid;
+				}
+			}
+		}
+	}
+
+	> .statusBar {
+		padding: 0.5rem;
+		border: 1px red solid;
+		background-color: gray;
+		color: white;
+	}
+}

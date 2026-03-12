@@ -1,8 +1,14 @@
-// hyperapp-ui
+// hyperapp-is / index.full.ts
 
 // core
+export type { Keys } from "./core/state"
 export { getValue, setValue, getLocalState, setLocalState, createLocalKey } from "./core/state"
+
+export type { Keys_String, Keys_ArrayString } from "./core/component"
 export { el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton} from "./core/component"
+
+export type { Keys_NavigatorItem, NavigatorItem, JsonEntry, NavigatorColumn } from "./core/navigator"
+export { convertJsonToNavigatorItem, getParentItems, NavigatorFinder } from "./core/navigator"
 
 // animation
 export { effect_throwMessageStart, effect_throwMessagePause, effect_throwMessageResume, marquee } from "./animation/step"

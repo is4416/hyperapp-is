@@ -1,4 +1,4 @@
-// hyperapp-ui / animation / raf.ts
+// hyperapp-is / animation / raf.ts
 
 import { Dispatch, Effect, Subscription } from "hyperapp"
 import { getValue, setValue } from "../core/state"
@@ -39,7 +39,7 @@ export class RAFTask <S> {
 	#action    : RAFEvent<S>
 	#finish   ?: RAFEvent<S>
 	#priority  : number
-	#extension : { [key: string]: any }
+	#extension : Record<string, any>
 
 	#startTime  ?: number
 	#currentTime?: number
@@ -59,7 +59,7 @@ export class RAFTask <S> {
 		action    : RAFEvent<S>
 		finish   ?: RAFEvent<S>
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 	}) {
 		this.#id        = props.id
 		this.#groupID   = props.groupID
@@ -81,7 +81,7 @@ export class RAFTask <S> {
 	get action()     : RAFEvent<S> { return this.#action }
 	get finish()     : RAFEvent<S> | undefined { return this.#finish }
 	get priority()   : number { return this.#priority }
-	get extension()  : { [key: string]: any } { return this.#extension }
+	get extension()  : Record<string, any> { return this.#extension }
 	get progress()   : number {
 		if (this.#startTime === undefined || this.#currentTime === undefined) return 0
 		return Math.min(
@@ -104,7 +104,7 @@ export class RAFTask <S> {
 	// setter
 	set groupID(val: string | undefined) { this.#groupID = val }
 	set priority(val: number) { this.#priority = val }
-	set extension(val: { [key: string]: any }) { this.#extension = val}
+	set extension(val: Record<string, any>) { this.#extension = val}
 	set isDone(val: boolean) { this.#isDone = val }
 	set paused(val: boolean) { this.#paused = val }
 

@@ -1,3 +1,5 @@
+// hyperapp-is / animation / index.ts
+
 export type { InternalEffect, RAFEvent } from "./raf"
 export type { CSSProperty } from "./properties"
 export { RAFTask, subscription_RAFManager } from "./raf"

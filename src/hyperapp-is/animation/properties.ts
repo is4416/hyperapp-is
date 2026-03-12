@@ -1,4 +1,4 @@
-// hyperapp-ui / animation / properties.ts
+// hyperapp-is / animation / properties.ts
 
 import { Dispatch } from "hyperapp"
 import { getValue, setValue } from "../core/state"
@@ -65,7 +65,7 @@ export const createRAFProperties = function <S> (
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		properties: CSSProperty[]
 	}
@@ -144,7 +144,7 @@ export const effect_RAFProperties = function <S> (
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		properties: CSSProperty[]
 		keyNames  : string[]

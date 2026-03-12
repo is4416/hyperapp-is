@@ -1,6 +1,4 @@
-// ---------- ---------- ---------- ---------- ----------
-// import 
-// ---------- ---------- ---------- ---------- ----------
+// index.tsx
 
 import { app, VNode, Dispatch, Effect } from "hyperapp"
 import h from "hyperapp-jsx-pragma"
@@ -23,7 +21,9 @@ import {
 	ScrollMargin, getScrollMargin,
 	marquee,
 
-	CarouselState, CarouselController, Carousel, effect_InitCarousel
+	CarouselState, Carousel, effect_InitCarousel,
+
+	NavigatorItem, convertJsonToNavigatorItem, JsonEntry, NavigatorFinder
 } from "./hyperapp-is/index.full"
 
 // ---------- ---------- ---------- ---------- ----------
@@ -68,6 +68,10 @@ interface State {
 
 	carousel: {
 		reportPageIndex: number
+	},
+
+	navigator: {
+		current: NavigatorItem | undefined
 	}
 }
 
@@ -431,13 +435,55 @@ addEventListener("load", () => {
 
 		carousel: {
 			reportPageIndex: 0
+		},
+
+		navigator: {
+			current: undefined
 		}
 	}
 
 	// app
 	app({
 		node: document.getElementById("app") as HTMLElement,
-		init: param,
+		init: [param, (dispatch: Dispatch<State>) => {
+			fetch("isYoshihiro.json").then(data => {
+				if (!data.ok) throw new Error("load error: isYoshihiro.json")
+				return data.json()
+
+			}).then(json => {
+
+				// Json > NavigatorItem に変換
+				const getEntries = (data: Record<string, any>, depth: number): JsonEntry<Record<string, any>>[] => {
+					return Object.keys(data).map(key => {
+						return {
+							name      : key,
+							data      : data[key],
+							isProperty: depth > 2,
+							isNode    : depth < 2
+						}
+					})
+				}
+
+				const current = convertJsonToNavigatorItem({
+					parent: null,
+					name  : "isYoshihiro",
+					data  : json,
+					getEntries,
+					isNode: true
+				})
+
+				dispatch((state: State) => ({
+					...state,
+					navigator: {
+						...state.navigator,
+						current: current
+					}
+				}))
+
+			}).catch(error => {
+				console.log(error)
+			})
+		}],
 
 		view: (state: State) => (<main>
 
@@ -465,6 +511,11 @@ addEventListener("load", () => {
 					id       = "page7"
 					onclick  = { action_carouselButtonClick }
 				>Carousel Component</OptionButton>
+				<OptionButton
+					state    = {state}
+					keyNames = {["tabName"]}
+					id       = "page8"
+				>Navigator</OptionButton>
 			</div>
 
 			{/* *** Tabs Body *** */}
@@ -593,6 +644,20 @@ addEventListener("load", () => {
 						<img id="item2" src="sample-image/image2.webp" />
 						<img id="item3" src="sample-image/image3.webp" />
 					</Carousel>
+				</Route>
+
+				{/* *** page8: Navigator *** */}
+				<Route state={state} keyNames={["tabName"]} match="page8">
+					<h2>Navigator</h2>
+					<NavigatorFinder
+						state       = { state }
+						currentKeys = { ["navigator", "current"] }
+						id          = "navigator_finder"
+						itemClick   = {(state: State, item: NavigatorItem) => {
+							alert(item.name + " download")
+							return state
+						}}
+					/>
 				</Route>
 			</div>
 		</main>),

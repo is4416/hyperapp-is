@@ -1,4 +1,4 @@
-// hyperapp-ui / dom / utils.ts
+// hyperapp-is / dom / utils.ts
 
 // ---------- ---------- ---------- ---------- ----------
 // interface ScrollMargin

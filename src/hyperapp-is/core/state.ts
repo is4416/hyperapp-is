@@ -1,4 +1,10 @@
-// hyperapp-ut / core / state.ts
+// hyperapp-is / core / state.ts
+
+// ---------- ---------- ---------- ---------- ----------
+// type Keys
+// ---------- ---------- ---------- ---------- ----------
+
+export type Keys = readonly string[]
 
 // ---------- ---------- ---------- ---------- ----------
 // getValue
@@ -8,14 +14,14 @@
  *
  * @template S
  * @template D
- * @param   {S}        state    - ステート
- * @param   {string[]} keyNames - 値までのパス
- * @param   {D}        def      - デフォルト値
- * @returns {D}                 - 型保証は呼び出し側の責任
+ * @param   {S}    state    - ステート
+ * @param   {Keys} keyNames - 値までのパス
+ * @param   {D}    def      - デフォルト値
+ * @returns {D}             - 型保証は呼び出し側の責任
  */
 export const getValue = function <S, D> (
 	state   : S,
-	keyNames: string[],
+	keyNames: Keys,
 	def     : D
 ): D {
 	let result = state as any
@@ -43,14 +49,14 @@ export const getValue = function <S, D> (
  * パスを辿って、ステートに値を設定して返す
  * 
  * @template S
- * @param   {S}        state    - ステート
- * @param   {string[]} keyNames - 値までのパス
- * @param   {any}      value    - 設定する値
+ * @param   {S}    state    - ステート
+ * @param   {Keys} keyNames - 値までのパス
+ * @param   {any}  value    - 設定する値
  * @returns {S}
  */
 export const setValue = function <S> (
 	state   : S,
-	keyNames: string[],
+	keyNames: Keys,
 	value   : any
 ): S {
 	let result = { ...state } as any
@@ -105,8 +111,8 @@ export const createLocalKey = (id: string): string => `local_key_${ id }`
 export const getLocalState = function <S> (
 	state: S,
 	id   : string,
-	def  : { [key: string]: any }
-): { [key: string]: any } {
+	def  : Record<string, any>
+): Record<string, any> {
 	const localKey = createLocalKey(id)
 	const obj = Object.prototype.hasOwnProperty.call(state, localKey)
 		? (state as any)[localKey]
@@ -133,7 +139,7 @@ export const getLocalState = function <S> (
 export const setLocalState = function <S> (
 	state: S,
 	id   : string,
-	value: { [key: string]: any }
+	value: Record<string, any>
 ): S {
 	const localKey = createLocalKey(id)
 	const obj = Object.prototype.hasOwnProperty.call(state, localKey)

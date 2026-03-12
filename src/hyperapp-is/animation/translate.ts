@@ -1,7 +1,9 @@
-import { Dispatch } from "hyperapp";
+// hyperapp-is / animation / translate.ts
+
+import { Dispatch } from "hyperapp"
 import { getValue, setValue } from "../core/state"
-import { InternalEffect, RAFEvent, RAFTask } from "./raf";
-import { CSSProperty, createRAFProperties } from "./properties";
+import { InternalEffect, RAFEvent, RAFTask } from "./raf"
+import { CSSProperty, createRAFProperties } from "./properties"
 
 // ---------- ---------- ---------- ---------- ----------
 // interface TranslateState
@@ -41,7 +43,7 @@ export const createRAFTranslate = function <S> (
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		translateState: TranslateState
 	}
@@ -105,7 +107,7 @@ export const effect_translateStart = function <S> (
 		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
 
 		priority ?: number
-		extension?: { [key: string]: any }
+		extension?: Record<string, any>
 
 		easing ?: (t: number) => number
 

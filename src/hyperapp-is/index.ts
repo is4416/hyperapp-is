@@ -1,7 +1,15 @@
+// hyperapp-is / index.ts
+
 // core
+export type {
+	Keys, Keys_String, Keys_ArrayString, Keys_NavigatorItem,
+	NavigatorItem, JsonEntry, NavigatorColumn
+} from "./core"
+
 export {
 	getValue, setValue, getLocalState, setLocalState, createLocalKey,
-	el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton
+	el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton,
+	convertJsonToNavigatorItem, getParentItems, NavigatorFinder
 } from "./core"
 
 // animation

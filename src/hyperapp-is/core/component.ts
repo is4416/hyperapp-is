@@ -1,7 +1,14 @@
-// hyperapp-ui / core / component.ts
+// hyperapp-is / core / component.ts
 
 import { h, text, VNode, Dispatch, Effect } from "hyperapp"
-import { getValue, setValue } from "./state"
+import { Keys, getValue, setValue } from "./state"
+
+// ---------- ---------- ---------- ---------- ----------
+// type Keys_String, Keys_ArrayString
+// ---------- ---------- ---------- ---------- ----------
+
+export type Keys_String      = Keys
+export type Keys_ArrayString = Keys
 
 // ========== ========== ========== ========== ==========
 // 補助関数
@@ -18,7 +25,7 @@ import { getValue, setValue } from "./state"
  * @param   {string} tag - タグ名
  * @returns {(props:{ [key: string] any }, ...children:any[]) => VNode<S>}
  */
-export const el =(tag: string) => <S> (
+export const el = (tag: string) => <S> (
 	props?: { [key: string]: any },
 	...children: any[]
 ): VNode<S> => h(
@@ -118,7 +125,7 @@ export const deleteKeys = <
  * @template S
  * @param   {Record<string, any>} props          - props
  * @param   {S}                   props.state    - ステート
- * @param   {string[]}            props.keyNames - ステート内の文字までのパス
+ * @param   {Keys_String}         props.keyNames - ステート内の文字までのパス
  * @param   {string}              props.match    - 一致判定する文字
  * @param   {any}                 children       - 出力する内容 (VNode / 配列 / 文字など)
  * @returns {VNode<S> | null}
@@ -126,7 +133,7 @@ export const deleteKeys = <
 export const Route = function <S> (
 	props: {
 		state   : S
-		keyNames: string[]
+		keyNames: Keys_String
 		match   : string
 	},
 	children: any
@@ -149,7 +156,7 @@ const REVERSE_PREFIX = "r_"
  * @template S
  * @param   {Record<string, any>} props          - props
  * @param   {S}                   props.state    - ステート
- * @param   {string[]}            props.keyNames - ステート内の文字配列までのパス
+ * @param   {Keys_ArrayString}    props.keyNames - ステート内の文字配列までのパス
  * @param   {string}              props.id       - ユニークID
  * @param   {boolean}            [props.reverse] - 反転選択するか
  * @param   {any}                 children       - 子要素 (VNode / string / 配列など)
@@ -158,7 +165,7 @@ const REVERSE_PREFIX = "r_"
 export const SelectButton = function <S> (
 	props: {
 		state        : S
-		keyNames     : string[]
+		keyNames     : Keys_ArrayString
 		id           : string
 		reverse?     : boolean
 		[key: string]: any
@@ -208,7 +215,7 @@ export const SelectButton = function <S> (
  * @template S
  * @param   {Record<string, any>} props          - props
  * @param   {S}                   props.state    - ステート
- * @param   {string[]}            props.keyNames - ステート内の文字までのパス
+ * @param   {Keys_String}         props.keyNames - ステート内の文字までのパス
  * @param   {string}              props.id       - ユニークID
  * @param   {boolean}            [props.reverse] - 反転選択するか
  * @param   {any}                 children       - 子要素 (VNode / string / 配列など)
@@ -218,7 +225,7 @@ export const SelectButton = function <S> (
 export const OptionButton = function <S> (
 	props: {
 		state        : S
-		keyNames     : string[]
+		keyNames     : Keys_String
 		id           : string
 		reverse?     : boolean
 		[key: string]: any

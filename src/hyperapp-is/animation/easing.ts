@@ -1,4 +1,4 @@
-// hyperapp-ui / animation / easing.ts
+// hyperapp-is / animation / easing.ts
 
 // ---------- ---------- ---------- ---------- ----------
 // progress_easing
