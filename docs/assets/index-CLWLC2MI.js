@@ -473,6 +473,135 @@ const OptionButton = function(props, children) {
     onclick: action
   }, children);
 };
+const div$1 = el("div");
+const table = el("table");
+const thead = el("thead");
+const tbody = el("tbody");
+const tr = el("tr");
+const th = el("th");
+const td = el("td");
+const ol = el("ol");
+const li$1 = el("li");
+const convertJsonToNavigatorItem = function(props) {
+  const { parent, name, data, getEntries, isNode, depth = 0, extension } = props;
+  const result = {
+    parent,
+    name,
+    path: parent ? parent.path + "/" + name : "/" + name
+  };
+  if (extension) {
+    const ext = extension(result, data, depth);
+    if (ext) result.extension = ext;
+  }
+  const properties = {};
+  let hasProperty = false;
+  const children = [];
+  getEntries(data, depth).forEach((entry) => {
+    if (entry.isProperty) {
+      properties[entry.name] = entry.data;
+      hasProperty = true;
+    } else {
+      children.push(convertJsonToNavigatorItem({
+        parent: result,
+        name: entry.name,
+        data: entry.data,
+        getEntries,
+        isNode: entry.isNode,
+        depth: depth + 1,
+        extension
+      }));
+    }
+  });
+  if (hasProperty) result.properties = properties;
+  if (isNode) result.children = children;
+  return result;
+};
+const getParentItems = (item) => {
+  if (!item) return [];
+  const result = [];
+  let cd = item.parent;
+  while (cd) {
+    result.push(cd);
+    cd = cd.parent;
+  }
+  return result.reverse();
+};
+const NavigatorFinder = function(props) {
+  const {
+    state,
+    currentKeys,
+    headers = [{
+      name: "name",
+      val: (item) => item.name
+    }],
+    maxItemsCount = 0,
+    itemClick,
+    afterRender,
+    extension
+  } = props;
+  const current = getValue(state, currentKeys, void 0);
+  const parentItems = getParentItems(current);
+  if (current) parentItems.push(current);
+  const getItems = (item) => {
+    if (!item || item.children === void 0) return [];
+    const count2 = maxItemsCount === 0 ? item.children.length : Math.min(maxItemsCount, item.children.length);
+    return item.children.slice(0, count2);
+  };
+  const items = getItems(current);
+  const count = current ? current.children?.length : 0;
+  const action_parentClick = (state2, item) => {
+    return setValue(state2, currentKeys, item);
+  };
+  const action_itemClick = (state2, item) => {
+    return setValue(state2, currentKeys, item);
+  };
+  const vnode = div$1(
+    {
+      ...deleteKeys(props, "state", "currentKeys", "headers", "itemClick", "afterRender", "extension")
+    },
+    // toolBar
+    div$1({
+      class: "toolBar"
+    }, "toolBar"),
+    // parentItems
+    ol(
+      {},
+      parentItems.map((parent) => li$1({
+        key: parent.path,
+        onclick: [action_parentClick, parent]
+      }, parent.name))
+    ),
+    // items
+    table(
+      {},
+      thead(
+        {},
+        tr(
+          {},
+          headers.map((col) => th({}, col.name))
+        )
+      ),
+      tbody(
+        {},
+        items.map((item) => tr(
+          {
+            key: item.path,
+            onclick: item.children === void 0 ? itemClick ? [itemClick, item] : void 0 : [action_itemClick, item]
+          },
+          headers.map((col) => td(
+            {},
+            col.val(item)
+          ))
+        ))
+      )
+    ),
+    // statusBar
+    div$1({
+      class: "statusBar"
+    }, `items ${items.length} / ${count}`)
+  );
+  return afterRender ? afterRender({ state, current, extension }, vnode) : vnode;
+};
 const action_throwMessageTick = function(keyNames, id2, text2, interval) {
   const NO_TIMER = 0;
   return (state) => {
@@ -1792,11 +1921,46 @@ addEventListener("load", () => {
     },
     carousel: {
       reportPageIndex: 0
+    },
+    navigator: {
+      current: void 0
     }
   };
   app({
     node: document.getElementById("app"),
-    init: param,
+    init: [param, (dispatch) => {
+      fetch("isYoshihiro.json").then((data) => {
+        if (!data.ok) throw new Error("load error: isYoshihiro.json");
+        return data.json();
+      }).then((json) => {
+        const getEntries = (data, depth) => {
+          return Object.keys(data).map((key) => {
+            return {
+              name: key,
+              data: data[key],
+              isProperty: depth > 2,
+              isNode: depth < 2
+            };
+          });
+        };
+        const current = convertJsonToNavigatorItem({
+          parent: null,
+          name: "isYoshihiro",
+          data: json,
+          getEntries,
+          isNode: true
+        });
+        dispatch((state) => ({
+          ...state,
+          navigator: {
+            ...state.navigator,
+            current
+          }
+        }));
+      }).catch((error) => {
+        console.log(error);
+      });
+    }],
     view: (state) => /* @__PURE__ */ h("main", null, /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(OptionButton, { state, keyNames: ["tabName"], id: "page1" }, "SelectButton"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["tabName"], id: "page2" }, "OptionButton"), /* @__PURE__ */ h(
       OptionButton,
       {
@@ -1824,6 +1988,14 @@ addEventListener("load", () => {
         onclick: action_carouselButtonClick
       },
       "Carousel Component"
+    ), /* @__PURE__ */ h(
+      OptionButton,
+      {
+        state,
+        keyNames: ["tabName"],
+        id: "page8"
+      },
+      "Navigator"
     )), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page1" }, /* @__PURE__ */ h("h2", null, "SelectButton example"), /* @__PURE__ */ h("h3", null, "select / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn1" }, "select / none"), /* @__PURE__ */ h("h3", null, "select / reverse / none"), /* @__PURE__ */ h(SelectButton, { state, keyNames: ["selectButton", "selected"], id: "btn2", reverse: true }, "select / reverse / none")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page2" }, /* @__PURE__ */ h("h2", null, "OptionButton example"), /* @__PURE__ */ h("h3", null, "select"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn1" }, "group1_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn2" }, "group1_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group1"], id: "g1_btn3" }, "group1_btn3"), /* @__PURE__ */ h("h3", null, "select / reverse"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn1", reverse: true }, "group2_btn1"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn2", reverse: true }, "group2_btn2"), /* @__PURE__ */ h(OptionButton, { state, keyNames: ["optionButton", "group2"], id: "g2_btn3", reverse: true }, "group2_btn3")), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page3" }, /* @__PURE__ */ h("h2", null, "Effect example"), /* @__PURE__ */ h("h3", null, "effect_initializeNodes"), /* @__PURE__ */ h("input", { type: "text", id: "initTest" }), /* @__PURE__ */ h("h3", null, "effect_setTimedValue"), /* @__PURE__ */ h("input", { type: "text", id: "timedText", value: state.effect.timedText }), state.effect.node, /* @__PURE__ */ h("h3", null, "effect_throwMessage"), /* @__PURE__ */ h("input", { type: "text", id: "msg", value: state.effect.throwMsg }), /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(
       "button",
       {
@@ -1873,6 +2045,17 @@ addEventListener("load", () => {
       /* @__PURE__ */ h("img", { id: "item1", src: "sample-image/image1.webp" }),
       /* @__PURE__ */ h("img", { id: "item2", src: "sample-image/image2.webp" }),
       /* @__PURE__ */ h("img", { id: "item3", src: "sample-image/image3.webp" })
+    )), /* @__PURE__ */ h(Route, { state, keyNames: ["tabName"], match: "page8" }, /* @__PURE__ */ h("h2", null, "Navigator"), /* @__PURE__ */ h(
+      NavigatorFinder,
+      {
+        state,
+        currentKeys: ["navigator", "current"],
+        id: "navigator_finder",
+        itemClick: (state2, item) => {
+          alert(item.name + " download");
+          return state2;
+        }
+      }
     )))),
     subscriptions: (state) => [
       ...subscription_nodesCleanup([{
