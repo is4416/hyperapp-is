@@ -532,16 +532,14 @@ getEntriesの返す値
 
 ```ts
 export interface JsonEntry <D> {
-	name      : string
-	data      : D
-	isProperty: boolean
-	isNode    : boolean
+	name  : string
+	data  : D
+	isNode: boolean
 }
 ```
 
 - name      : 名前
 - data      : データ
-- isProperty: プロパティか
 - isNode    : ディレクトリか
 
 ---
@@ -609,7 +607,7 @@ export const NavigatorFinder = function <S> (
 	props: {
 		state         : S
 		currentKeys   : Keys_NavigatorItem
-		columns      ?: NavigatorColumn[]
+		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
 		maxItemsCount?: number
 		itemClick    ?: (state: S, item: NavigatorItem) => S | [S, Effect<S>]
 		afterRender  ?: (props: {
@@ -625,7 +623,7 @@ export const NavigatorFinder = function <S> (
 
 - state        : ステート
 - currentKeys  : カレント NavigatorItem までのパス
-- columns      : NavigatorColumn の配列
+- columns      : NavigatorColumn の配列を返す関数
 - maxItemsCount: 最大表示するアイテム数
 - itemClick    : アイテムをクリックした時のアクション
 - afterRender  : レンダーフック
