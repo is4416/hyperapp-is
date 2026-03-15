@@ -1,7 +1,10 @@
 // hyperapp-is / animation / raf.ts
 
 import { Dispatch, Effect, Subscription } from "hyperapp"
-import { getValue, setValue } from "../core/state"
+import {
+	Keys_ArrayRAFTask,
+	getValue, setValue
+} from "../core/state"
 
 // ---------- ---------- ---------- ---------- ----------
 // type InternalEffect
@@ -176,13 +179,13 @@ export class RAFTask <S> {
  * RAFTask 配列をフレームごとに実行するサブスクリプション
  * 
  * @template S
- * @param   {S}        state    - ステート
- * @param   {string[]} keyNames - RAFTask 配列までのパス
+ * @param   {S}                 state    - ステート
+ * @param   {Keys_ArrayRAFTask} keyNames - RAFTask 配列までのパス
  * @returns {Subscription<S>}
  */
 export const subscription_RAFManager = function <S>(
 	state   : S,
-	keyNames: string[]
+	keyNames: Keys_ArrayRAFTask
 ): Subscription<S> {
 	let rID = 0 // rAF timerID
 

@@ -1,7 +1,10 @@
 // hyperapp-is / animationView / carousel.ts
 
 import { VNode, Dispatch } from "hyperapp"
-import { getValue, setValue, createLocalKey } from "../core/state"
+import {
+	Keys_Number, Keys_ArrayRAFTask,
+	getValue, setValue, createLocalKey
+} from "../core/state"
 import { el, deleteKeys } from "../core/component"
 import { InternalEffect, RAFEvent, RAFTask, subscription_RAFManager } from "../animation/raf"
 
@@ -37,7 +40,7 @@ import { InternalEffect, RAFEvent, RAFTask, subscription_RAFManager } from "../a
  * @property {(t: number) => number} easing - easing 関数
  * 
  * report
- * @property {string[]} [reportPageIndex] - 現在表示中インデックスの出力パス
+ * @property {Keys_Number} [reportPageIndex] - 現在表示中インデックスの出力パス
  */
 export interface CarouselState <S> {
 	id  : string
@@ -58,7 +61,7 @@ export interface CarouselState <S> {
 	easing?: (t: number) => number
 
 	// report
-	reportPageIndex?: string[]
+	reportPageIndex?: Keys_Number
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -96,20 +99,20 @@ const button = el("button")
  * Carousel Component
  * 
  * @template S
- * @param {Object}   props                - props
- * @param {S}        props.state          - ステート
- * @param {string}   props.id             - ユニークID (DOM id)
- * @param {string[]} props.keyNames       - RAFTask 配列までのパス
- * @param {boolean} [props.controlButton] - ページ切り替えボタンを表示する (未実装)
- * @param {boolean} [props.controlBar]    - 現在位置を示すステータスバーを表示する
- * @param {number}  [skipSpeedRate]       - skip 時に duration に乗じる値
- * @param {any}      children             - 表示するページ (HTMLLIElement の子になる)
+ * @param {Object}            props                - props
+ * @param {S}                 props.state          - ステート
+ * @param {string}            props.id             - ユニークID (DOM id)
+ * @param {Keys_ArrayRAFTask} props.keyNames       - RAFTask 配列までのパス
+ * @param {boolean}          [props.controlButton] - ページ切り替えボタンを表示する (未実装)
+ * @param {boolean}          [props.controlBar]    - 現在位置を示すステータスバーを表示する
+ * @param {number}           [skipSpeedRate]       - skip 時に duration に乗じる値
+ * @param {any}               children             - 表示するページ (HTMLLIElement の子になる)
  */
 export const Carousel = function <S> (
 	props: {
 		state         : S
 		id            : string
-		keyNames      : string[]
+		keyNames      : Keys_ArrayRAFTask
 		controlButton?: boolean
 		controlBar   ?: boolean
 		skipSpeedRate?: number
@@ -231,7 +234,7 @@ export const Carousel = function <S> (
 		),
 
 		// controlButton, controlBar
-		(controlButton || controlBar) && div({},
+		(controlButton || controlBar) ? div({},
 			controlButton
 				? button({ onclick: action_prevPage }, "<")
 				: null,
@@ -247,12 +250,12 @@ export const Carousel = function <S> (
 							: "・"
 					))
 				)
-				: ul({}),
+				: null,
 
 			controlButton
 				? button({ onclick: action_nextPage }, ">")
 				: null
-		)
+		) : null
 	)
 }
 
@@ -285,12 +288,12 @@ interface CarouselPrivateState {
 /**
  * カルーセルを初期化し起動するエフェクト
  * 
- * @param {string[]}      keyNames      - RAFTask 配列までのパス
- * @param {CarouselState} carouselState - カルーセル情報
+ * @param {Keys_ArrayRAFTask} keyNames      - RAFTask 配列までのパス
+ * @param {CarouselState}     carouselState - カルーセル情報
  * @returns {(dispatch: Dispatch<S>) => void}
  */
 export const effect_InitCarousel = function <S> (
-	keyNames     : string[],
+	keyNames     : Keys_ArrayRAFTask,
 	carouselState: CarouselState<S>
 ): (dispatch: Dispatch<S>) => void {
 	return (dispatch: Dispatch<S>) => {

@@ -3,8 +3,17 @@
 // ---------- ---------- ---------- ---------- ----------
 // type Keys
 // ---------- ---------- ---------- ---------- ----------
-
+/**
+ * ステートへのパス
+ * 参照する値の型がわかりやすいよう、複数パターンをここで集約
+ */
 export type Keys = readonly string[]
+export type Keys_String        = Keys
+export type Keys_ArrayString   = Keys
+export type Keys_Number        = Keys
+export type Keys_ArrayNumber   = Keys
+export type Keys_ArrayRAFTask  = Keys
+export type Keys_NavigatorItem = Keys
 
 // ---------- ---------- ---------- ---------- ----------
 // getValue

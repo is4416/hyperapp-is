@@ -1,14 +1,10 @@
 // hyperapp-is / core / component.ts
 
 import { h, text, VNode, Dispatch, Effect } from "hyperapp"
-import { Keys, getValue, setValue } from "./state"
-
-// ---------- ---------- ---------- ---------- ----------
-// type Keys_String, Keys_ArrayString
-// ---------- ---------- ---------- ---------- ----------
-
-export type Keys_String      = Keys
-export type Keys_ArrayString = Keys
+import {
+	Keys_String, Keys_ArrayString,
+	getValue, setValue
+} from "./state"
 
 // ========== ========== ========== ========== ==========
 // 補助関数

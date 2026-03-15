@@ -149,7 +149,7 @@ npm で非公開の関数 (実験用)は、解説に記載します
 - [Keys_NavigatorItem](#keys_navigatoritem)
 - [NavigatorItem](#navigatoritem)
 - [JsonEntry](#jsonentry)
-- [NavigatorColumn]()
+- [NavigatorColumn](#navigatorcolumn)
 - [convertJsonToNavigatorItem](#convertjsontonavigatoritem)
 - [getParentItems](#getparentitems)
 - [NavigatorFinder](#navigatorfinder)
@@ -219,7 +219,7 @@ src
 	 │  │   Route, SelectButton, OptionButton
 	 │  │
 	 │  └ navigator.ts
-	 │       Keys_NavigatorItem, NavigatorItem, JsonEntry
+	 │       Keys_NavigatorItem, NavigatorItem, JsonEntry, NavigatorColumn
 	 │       convertJsonToNavigatorItem, getParentItems, NavigatorFinder
 	 │
 	 ├ animation
@@ -609,7 +609,7 @@ export const NavigatorFinder = function <S> (
 	props: {
 		state         : S
 		currentKeys   : Keys_NavigatorItem
-		headers      ?: NavigatorColumn[]
+		columns      ?: NavigatorColumn[]
 		maxItemsCount?: number
 		itemClick    ?: (state: S, item: NavigatorItem) => S | [S, Effect<S>]
 		afterRender  ?: (props: {
@@ -625,7 +625,7 @@ export const NavigatorFinder = function <S> (
 
 - state        : ステート
 - currentKeys  : カレント NavigatorItem までのパス
-- headers      : NavigatorColumn の配列
+- columns      : NavigatorColumn の配列
 - maxItemsCount: 最大表示するアイテム数
 - itemClick    : アイテムをクリックした時のアクション
 - afterRender  : レンダーフック

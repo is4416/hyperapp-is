@@ -1,7 +1,10 @@
 // hyperapp-is / core / navigator.ts
 
 import { VNode, Effect } from "hyperapp"
-import { Keys, getValue, setValue } from "./state"
+import {
+	Keys_NavigatorItem,
+	getValue, setValue
+} from "./state"
 import { el, deleteKeys } from "./component"
 
 /* element */
@@ -18,12 +21,6 @@ const li     = el("li")
 const button = el("button")
 const input  = el("input")
 const span   = el("span")
-
-// ---------- ---------- ---------- ---------- ----------
-// type Keys_NavigatorItem
-// ---------- ---------- ---------- ---------- ----------
-
-export type Keys_NavigatorItem = Keys
 
 // ---------- ---------- ---------- ---------- ----------
 // interface NavigatorItem
@@ -55,14 +52,12 @@ export interface NavigatorItem {
  * 
  * name       - 名前
  * data       - データ
- * isProperty - プロパティか
  * isNode     - ディレクトリか
  */
 export interface JsonEntry <D> {
-	name      : string
-	data      : D
-	isProperty: boolean
-	isNode    : boolean
+	name  : string
+	data  : D
+	isNode: boolean
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -116,8 +111,10 @@ export const convertJsonToNavigatorItem = function <D> (
 	const children  : NavigatorItem[] = []
 
 	getEntries(data, depth).forEach(entry => {
+		const isProperty = typeof entry.data !== "object" || Array.isArray(entry.data)
+
 		// プロパティ
-		if (entry.isProperty) {
+		if (isProperty) {
 			properties[entry.name] = entry.data
 			hasProperty = true
 
@@ -171,7 +168,7 @@ export const NavigatorFinder = function <S> (
 	props: {
 		state         : S
 		currentKeys   : Keys_NavigatorItem
-		headers      ?: NavigatorColumn[]
+		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
 		maxItemsCount?: number
 		itemClick    ?: (state: S, item: NavigatorItem) => S | [S, Effect<S>]
 		afterRender  ?: (props: {
@@ -186,16 +183,59 @@ export const NavigatorFinder = function <S> (
 	const {
 		state,
 		currentKeys,
-		headers = [{
-			name: "name",
-			val : (item: NavigatorItem) => item.name
-		}],
 		maxItemsCount = 0,
 		itemClick,
 		afterRender,
 		extension
 	} = props
-	const current: NavigatorItem | undefined = getValue(state, currentKeys, undefined)
+	const current = getValue(state, currentKeys, undefined) as NavigatorItem | undefined
+
+	// createColumns
+	const createColumns = props.columns ?? ((directory: NavigatorItem | undefined) => {
+		const result: NavigatorColumn[] = []
+
+		if (!directory) return result
+
+		result.push({
+			name: "name",
+			val : (item: NavigatorItem) => item.name
+		})
+
+		// get properties
+		const children = directory.children
+
+		if (children) {
+
+			// get names
+			const names: string[] = []
+
+			// get properties
+			// 子アイテムのプロパティをすべて確認して抽出しています
+			children.forEach(child => {
+				if (!child.children) return
+				if (child.properties) {
+					Object.keys(child.properties).forEach(key => names.push(key))
+				}
+			})
+
+			// add NavigatorColumn
+			Array.from(new Set(names)).forEach(name => {
+				result.push({
+					name,
+					val: (item: NavigatorItem) => {
+						const p = item.properties
+						return p
+							? p[name] ?? ""
+							: ""
+					}
+				})
+			})
+		}
+
+		return result
+	}) // end createColumns
+
+	const columns = createColumns(current)
 
 	// parentItems
 	const parentItems = getParentItems(current)
@@ -223,17 +263,26 @@ export const NavigatorFinder = function <S> (
 	
 	// action_itemClick
 	const action_itemClick = (state: S, item: NavigatorItem) => {
+
+		// 子アイテムがすべてプロパティのときは移動しない
+		const children = item.children
+		if (!children) return state
+
+		if (
+			!children.some(child => typeof child === "object" && !Array.isArray(child))
+		) return state
+
 		return setValue(state, currentKeys, item)
 	}
 
 	// VNode
 	const vnode: VNode<S> = div({
-		...deleteKeys(props, "state", "currentKeys", "headers", "itemClick", "afterRender", "extension")
+		...deleteKeys(props, "state", "currentKeys", "columns", "itemClick", "afterRender", "extension")
 	},
 		// toolBar
 		div({
 			class: "toolBar"
-		}, "toolBar"),
+		}, "toolBar (未実装)"),
 
 		// parentItems
 		ol({},
@@ -247,7 +296,7 @@ export const NavigatorFinder = function <S> (
 		table({},
 			thead({},
 				tr({},
-					headers.map(col => th({}, col.name))
+					columns.map(col => th({}, col.name))
 				)
 			),
 
@@ -258,7 +307,9 @@ export const NavigatorFinder = function <S> (
 						? itemClick ? [itemClick, item] : undefined
 						: [action_itemClick, item]
 				},
-					headers.map(col => td({},
+					columns.map(col => td({
+						title: col.val(item)
+					},
 						col.val(item)
 					))
 				))
