@@ -212,7 +212,6 @@ export const NavigatorFinder = function <S> (
 			// get properties
 			// 子アイテムのプロパティをすべて確認して抽出しています
 			children.forEach(child => {
-				if (!child.children) return
 				if (child.properties) {
 					Object.keys(child.properties).forEach(key => names.push(key))
 				}

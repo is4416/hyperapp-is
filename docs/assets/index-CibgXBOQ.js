@@ -507,7 +507,6 @@ const NavigatorFinder = function(props) {
     if (children) {
       const names = [];
       children.forEach((child) => {
-        if (!child.children) return;
         if (child.properties) {
           Object.keys(child.properties).forEach((key) => names.push(key));
         }
