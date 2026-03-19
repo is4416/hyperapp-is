@@ -1,59 +1,34 @@
 // hyperapp-is / core / navigator.ts
 
+// ---------- ---------- ---------- ---------- ----------
+// import
+// ---------- ---------- ---------- ---------- ----------
+
 import { VNode, Effect } from "hyperapp"
 import {
 	Keys_NavigatorItem,
-	getValue, setValue
+	getValue, setValue, getLocalState, setLocalState,
+	createLocalKey
 } from "./state"
-import { el, deleteKeys } from "./component"
-
-/* element */
-const div    = el("div")
-const table  = el("table")
-const thead  = el("thead")
-const tbody  = el("tbody")
-const tr     = el("tr")
-const th     = el("th")
-const td     = el("td")
-const ul     = el("ul")
-const ol     = el("ol")
-const li     = el("li")
-const button = el("button")
-const input  = el("input")
-const span   = el("span")
+import { el, deleteKeys, SelectButton } from "./component"
 
 // ---------- ---------- ---------- ---------- ----------
 // interface NavigatorItem
 // ---------- ---------- ---------- ---------- ----------
-/**
- * ツリー構造となるナビゲーションオブジェクト
- * 
- * parent     - 親アイテム
- * name       - 名前
- * properties - プロパティオブジェクト
- * children   - 子アイテムリスト (undefinedのときはファイル)
- * path       - パス
- * extension  - 拡張情報
- */
+
 export interface NavigatorItem {
 	parent     : NavigatorItem | null
 	name       : string
+	path       : string
 	properties?: Record<string, any>
 	children  ?: NavigatorItem[]
-	path       : string
 	extension ?: Record<string, any>
 }
 
 // ---------- ---------- ---------- ---------- ----------
 // interface JsonEntry
 // ---------- ---------- ---------- ---------- ----------
-/**
- * getEntriesで返すオブジェクト
- * 
- * name       - 名前
- * data       - データ
- * isNode     - ディレクトリか
- */
+
 export interface JsonEntry <D> {
 	name  : string
 	data  : D
@@ -63,9 +38,7 @@ export interface JsonEntry <D> {
 // ---------- ---------- ---------- ---------- ----------
 // interface NavigatorColumn
 // ---------- ---------- ---------- ---------- ----------
-/**
- * ヘッダー名と値
- */
+
 export interface NavigatorColumn {
 	name: string
 	val : (item: NavigatorItem) => any
@@ -74,11 +47,6 @@ export interface NavigatorColumn {
 // ---------- ---------- ---------- ---------- ----------
 // convertJsonToNavigatorItem
 // ---------- ---------- ---------- ---------- ----------
-/**
- * Json から NavigatorItem に変換
- * getEntries の採用により、JSON の形を問わない
- * extension により、任意情報を保存できる
- */
 
 export const convertJsonToNavigatorItem = function <D> (
 	props: {
@@ -99,7 +67,6 @@ export const convertJsonToNavigatorItem = function <D> (
 		path: parent ? parent.path + "/" + name : "/" + name
 	}
 
-	// 拡張情報
 	if (extension) {
 		const ext = extension(result, data, depth)
 		if (ext) result.extension = ext
@@ -113,12 +80,10 @@ export const convertJsonToNavigatorItem = function <D> (
 	getEntries(data, depth).forEach(entry => {
 		const isProperty = typeof entry.data !== "object" || Array.isArray(entry.data)
 
-		// プロパティ
 		if (isProperty) {
 			properties[entry.name] = entry.data
 			hasProperty = true
 
-		// 子アイテム
 		} else {
 			children.push(convertJsonToNavigatorItem({
 				parent: result,
@@ -133,7 +98,7 @@ export const convertJsonToNavigatorItem = function <D> (
 	})
 
 	if (hasProperty) result.properties = properties
-	if (isNode) result.children = children // ファイルのときは undefined
+	if (isNode) result.children = children
 
 	return result
 }
@@ -141,9 +106,7 @@ export const convertJsonToNavigatorItem = function <D> (
 // ---------- ---------- ---------- ---------- ----------
 // getParentItems
 // ---------- ---------- ---------- ---------- ----------
-/**
- * NavigatorItem の親をリストで取得する
- */
+
 export const getParentItems = (item: NavigatorItem | undefined): NavigatorItem[] => {
 	if (!item) return []
 
@@ -159,14 +122,47 @@ export const getParentItems = (item: NavigatorItem | undefined): NavigatorItem[]
 }
 
 // ---------- ---------- ---------- ---------- ----------
+// vnodes
+// ---------- ---------- ---------- ---------- ----------
+
+const div    = el("div")
+const table  = el("table")
+const thead  = el("thead")
+const tbody  = el("tbody")
+const tr     = el("tr")
+const th     = el("th")
+const td     = el("td")
+const ul     = el("ul")
+const ol     = el("ol")
+const li     = el("li")
+const button = el("button")
+const input  = el("input")
+const span   = el("span")
+
+// ---------- ---------- ---------- ---------- ----------
 // NavigatorFinder Component
 // ---------- ---------- ---------- ---------- ----------
+
 /**
- * ナビゲーションファインダーコンポーネント
+ * @template S
+ * @param props - props
+ * 
+ * @param {S} props.state
+ * @param {string} props.id
+ * @param {Keys_NavigatorItem} props.currentKeys
+ * @param {(directory: NavigatorItem | undefined) => NavigatorColumn[]} [props.columns]
+ * @param {number} [props.maxItemsCount]
+ * @param {(state: S, item: NavigatorItem) => S | [S, Effect<S>]} [props.itemClick]
+ * @param {(props: {state: S, current?: NavigatorItem, extension?: Record<string, any>}, vnode: VNode<S>) => VNode<S>} [props.afterRender]
+ * @param {Record<string, any>} [props.extension]
+ * 
+ * @returns {VNode<S>}
  */
+
 export const NavigatorFinder = function <S> (
 	props: {
 		state         : S
+		id            : string
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
 		maxItemsCount?: number
@@ -180,8 +176,11 @@ export const NavigatorFinder = function <S> (
 		[key: string]: any
 	}
 ): VNode<S> {
+
+	// variable
 	const {
 		state,
+		id,
 		currentKeys,
 		maxItemsCount = 0,
 		itemClick,
@@ -190,7 +189,19 @@ export const NavigatorFinder = function <S> (
 	} = props
 	const current = getValue(state, currentKeys, undefined) as NavigatorItem | undefined
 
+	// localState
+	const { searchText, selected } = getLocalState(state, id, {
+		searchText: "",
+		selected  : []
+	})
+
+	// selected filter
+	const isFilter = selected.includes(`${ createLocalKey(id) }_filter`)
+
+	// ---------- ---------- ----------
 	// createColumns
+	// ---------- ---------- ----------
+
 	const createColumns = props.columns ?? ((directory: NavigatorItem | undefined) => {
 		const result: NavigatorColumn[] = []
 
@@ -240,27 +251,75 @@ export const NavigatorFinder = function <S> (
 	const parentItems = getParentItems(current)
 	if (current) parentItems.push(current)
 
+	// ---------- ---------- ----------
+	// hitTest
+	// ---------- ---------- ----------
+
+	const hitTest = (text: string) => {
+		const S = searchText.trim().toLowerCase()
+		if (S === "") return false
+
+		const keys: string[] = S.replace(/[ 　]+/g, " ").split(" ").filter(Boolean)
+		if (keys.length === 0) return false
+
+		if (typeof text !== "string") return false
+
+		const sText = text.toLowerCase()
+		return keys.every(key => sText.includes(key))
+	} // end hitTest
+
+	// ---------- ---------- ----------
 	// getItems
+	// ---------- ---------- ----------
+
 	const getItems = (item: NavigatorItem | undefined): NavigatorItem[] => {
 		if (!item || item.children === undefined) return []
+
+		// filter
+		const result = isFilter && searchText !== ""
+			? item.children.filter(child => {
+				return columns.some(col => hitTest(col.val(child)))
+			})
+			: item.children
+
+		// maxCount
 		const count = maxItemsCount === 0
-			? item.children.length
-			: Math.min(maxItemsCount, item.children.length)
-		return item.children.slice(0, count)
+			? result.length
+			: Math.min(maxItemsCount, result.length)
+		return result.slice(0, count)
 	} // end getItems
 
 	// items
 	const items = getItems(current)
+
+	// items count
 	const count = current
 		? (current as NavigatorItem).children?.length
 		: 0
-	
+
+	// items hitCount
+	const hitCount = isFilter
+		? items.length
+		: items.filter(item => columns.some(col => hitTest(col.val(item)))).length
+
+	// ---------- ---------- ----------
 	// action_parentClick
+	// ---------- ---------- ----------
+
 	const action_parentClick = (state: S, item: NavigatorItem) => {
-		return setValue(state, currentKeys, item)
+		return setLocalState(
+			setValue(state, currentKeys, item),
+			id,
+			{
+				selected: []
+			}
+		)
 	}
 	
+	// ---------- ---------- ----------
 	// action_itemClick
+	// ---------- ---------- ----------
+
 	const action_itemClick = (state: S, item: NavigatorItem) => {
 
 		// 子アイテムがすべてプロパティのときは移動しない
@@ -271,17 +330,67 @@ export const NavigatorFinder = function <S> (
 			!children.some(child => typeof child === "object" && !Array.isArray(child))
 		) return state
 
-		return setValue(state, currentKeys, item)
+		// filterは解除する
+		return setLocalState(
+			setValue(state, currentKeys, item),
+			id,
+			{
+				selected: []
+			}
+		)
 	}
 
+	// ---------- ---------- ----------
+	// action_inputSearchText
+	// ---------- ---------- ----------
+
+	const action_inputSearchText = (state: S, e: Event) => {
+		const input = e.currentTarget as HTMLInputElement
+		if (!input) return state
+
+		return setLocalState(state, id, {
+			searchText: input.value
+		})
+	} // end action_inputSearchText
+
+	// ---------- ---------- ----------
+	// action_copyFolderPath
+	// ---------- ---------- ----------
+
+	const action_copyFolderPath = (state: S) => {
+		if (!current) return state
+		navigator.clipboard.writeText(current.path)
+		return state
+	} // end action_copyFolderPath
+
+	// ---------- ---------- ----------
 	// VNode
+	// ---------- ---------- ----------
+
 	const vnode: VNode<S> = div({
 		...deleteKeys(props, "state", "currentKeys", "columns", "itemClick", "afterRender", "extension")
 	},
 		// toolBar
 		div({
 			class: "toolBar"
-		}, "toolBar (未実装)"),
+		},
+			input({
+				type       : "text",
+				placeholder: "search keys",
+				value      : searchText,
+				oninput    : action_inputSearchText
+			}),
+			SelectButton({
+				state   : state,
+				id      : `${ createLocalKey(id) }_filter`,
+				keyNames: [createLocalKey(id), "selected"]
+			}, "FILTER"),
+			button({
+				type   : "button",
+				title  : "現在のフォルダパスを、クリップボードにコピー",
+				onclick: action_copyFolderPath
+			}, "COPY")
+		),
 
 		// parentItems
 		ol({},
@@ -309,7 +418,11 @@ export const NavigatorFinder = function <S> (
 					columns.map(col => td({
 						title: col.val(item)
 					},
-						col.val(item)
+						span({
+							class: hitTest(col.val(item)) ? "hit" : ""
+						},
+							col.val(item)
+						)
 					))
 				))
 			)
@@ -318,9 +431,12 @@ export const NavigatorFinder = function <S> (
 		// statusBar
 		div({
 			class: "statusBar"
-		}, `items ${ items.length } / ${ count }`)
+		}, `items ${ items.length } / ${ count }` + (searchText !== "" ? ` (${ hitCount } hit)` : ""))
 	)
 
+	// ---------- ---------- ----------
 	// afterRender
+	// ---------- ---------- ----------
+
 	return afterRender ? afterRender({ state, current, extension }, vnode) : vnode
 }

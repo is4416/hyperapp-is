@@ -41,16 +41,20 @@ header {
 }
 
 #app {
-	flex-grow            : 1;
-	overflow             : hidden;
-	display              : grid;
-	grid-template-columns: 10rem 1fr 1fr;
-	gap                  : 0.5rem;
-	padding              : 0.5rem;
+	flex-grow: 1;
+	overflow : hidden;
+	display  : flex;
+	padding  : 0.5rem;
+
+	> main {
+		overflow: auto;
+	}
 }
 
 nav {
-	overflow: auto;
+	flex-shrink : 0;
+	overflow    : auto;
+	margin-right: 0.5rem;
 
 	> ul {
 		list-style           : none;
@@ -70,8 +74,9 @@ nav {
 }
 
 main {
+	flex-grow: 1;
 	overflow: hidden;
-	padding : 0.5rem;
+	padding : 2rem;
 	border  : 1px gray solid;
 
 	> div {
@@ -89,6 +94,7 @@ aside {
 
 .carousel {
 	overflow     : hidden;
+	height       : auto;
 	border       : 3px black solid;
 	border-radius: 0.5rem;
 
@@ -158,23 +164,36 @@ aside {
 	overflow      : hidden;
 	display       : flex;
 	flex-direction: column;
+	height        : auto;
 	border        : 2px black solid;
 	border-radius : 0.5rem;
 
 	/* toolBar */
 	> .toolBar {
-		padding         : 0.5rem;
+		display         : flex;
+		padding         : 5px;
 		border          : 1px gray solid;
 		background-color: lightgray;
+
+		> input[type="text"] {
+			flex-grow: 1;
+			padding  : 0.5rem;
+		}
+
+		> button {
+			margin-left: 5px;
+			padding: 0.5rem;
+		}
 	}
 
 	/* parentItems */
 	> ol {
-		overflow: auto;
-		list-style: none;
-		display: flex;
-		padding: 5px;
-		border: gray solid;
+		flex-shrink  : 0;
+		overflow    : auto;
+		list-style  : none;
+		display     : flex;
+		padding     : 5px;
+		border      : gray solid;
 		border-width: 0 1px 1px 1px;
 
 		> li {
@@ -234,6 +253,10 @@ aside {
 					padding    : 5px;
 					border     : 1px gray solid;
 					white-space: nowrap;
+
+					> span.hit {
+						background-color: red;
+					}
 				}
 			}
 			> tr:hover {

@@ -10,7 +10,8 @@ import {
 	Carousel, effect_InitCarousel, CarouselState,
 	progress_easing,
 	NavigatorFinder, NavigatorItem, convertJsonToNavigatorItem, JsonEntry,
-	NavigatorColumn
+	NavigatorColumn,
+	SelectButton
 } from "./hyperapp-is"
 import { InternalEffect } from "../dist/hyperapp-is"
 import { marked } from "marked"
@@ -21,8 +22,8 @@ import { marked } from "marked"
 
 interface State {
 	tasks   : RAFTask<State>[]
+	selected: string[]
 	page    : string
-	readme  : string
 	carousel: {
 		pageNumber: number
 	},
@@ -35,8 +36,8 @@ interface State {
 
 const param: State = {
 	tasks   : [],
+	selected: [],
 	page    : "0",
-	readme  : "readme",
 	carousel: {
 		pageNumber: 0
 	},
@@ -267,7 +268,7 @@ addEventListener("load", () => {
 			</ul></nav>
 
 			{/* *** main *** */}
-			<main><div>
+			<main>
 				{/* *** Carousel *** */}
 				<Route
 					state    = { state }
@@ -332,13 +333,7 @@ addEventListener("load", () => {
 						/* columns = { createColumns } */
 					/>
 				</Route>
-			</div></main>
-
-			{/* *** aside *** */}
-			<aside
-				class     = "markdown-body"
-				innerHTML = { marked(state.readme) }
-			></aside>
+			</main>
 		</div>),
 
 		node: document.getElementById("app") as HTMLElement,
