@@ -1,5 +1,9 @@
 // hyperapp-is / animation / properties.ts
 
+// ---------- ---------- ---------- ---------- ----------
+// interface
+// ---------- ---------- ---------- ---------- ----------
+
 import { Dispatch } from "hyperapp"
 import { getValue, setValue } from "../core/state"
 import { InternalEffect, RAFTask } from "./raf"
@@ -7,13 +11,11 @@ import { InternalEffect, RAFTask } from "./raf"
 // ---------- ---------- ---------- ---------- ----------
 // interface CSSProperty
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * アニメーション進捗 (0〜1) を受け取り CSS 値を返す関数
- *
- * @type {Object.<string, Object.<string, (progress: number) => string>>} CSSProperty
- * @property {Object.<string, (progress: number) => string>} [selector]
- * @param {number} progress
  */
+
 export interface CSSProperty {
 	[selector: string]: {
 		[name: string]: (progress: number) => string
@@ -23,12 +25,11 @@ export interface CSSProperty {
 // ---------- ---------- ---------- ---------- ----------
 // createUnits
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * CSSProperty[] から、doms と styles のセットに変換
- * 
- * @param   {CSSProperty[]} properties - プロパティ配列
- * @returns {doms: HTMLElement[], styles:{ [name: string]: (progress: number) => string}}
  */
+
 export const createUnits = function (
 	properties: CSSProperty[]
 ): {
@@ -49,12 +50,12 @@ export const createUnits = function (
 // ---------- ---------- ---------- ---------- ----------
 // createRAFProperties
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * subscription_RAFManager をベースにした CSS アニメーション RAFTask を作成する
  * props は基本的に RAFTask の値
- * 
- * @param {CSSProperty[]} props.properties - セレクタとスタイル設定のセット配列
  */
+
 export const createRAFProperties = function <S> (
 	props: {
 		id      : string
@@ -72,7 +73,10 @@ export const createRAFProperties = function <S> (
 ): RAFTask<S> {
 	const { id, groupID, duration, delay, priority, extension, properties } = props
 
+	// ---------- ---------- ----------
 	// action
+	// ---------- ---------- ----------
+
 	const action = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 		const progress = rafTask.progress ?? 0
 		const units = createUnits(properties)
@@ -85,9 +89,12 @@ export const createRAFProperties = function <S> (
 		})
 
 		return state
-	}
+	} // end action
 
+	// ---------- ---------- ----------
 	// finish
+	// ---------- ---------- ----------
+
 	const finish = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 		const units = createUnits(properties)
 
@@ -109,7 +116,7 @@ export const createRAFProperties = function <S> (
 				}
 			}
 		]
-	}
+	} // end finish
 
 	return new RAFTask<S>({
 		id, groupID, duration, delay,
@@ -130,10 +137,8 @@ const GPU_LAYER = new Set(["transform", "opacity"])
 /**
  * subscription_RAFManager をベースにした CSS アニメーションエフェクト
  * props は基本的に RAFTask の値
- * 
- * @param {CSSProperty[]} props.properties - セレクタとスタイル設定のセット配列
- * @param {string[]}      props.keyNames   - RAFTask 配列までのパス
  */
+
 export const effect_RAFProperties = function <S> (
 	props: {
 		id      : string

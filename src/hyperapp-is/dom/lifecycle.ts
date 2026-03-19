@@ -1,23 +1,26 @@
 // hyperapp-is / dom / lifecycle.ts
 
+// ---------- ---------- ---------- ---------- ----------
+// import
+// ---------- ---------- ---------- ---------- ----------
+
 import { Effect, Subscription, Dispatch } from "hyperapp"
 import { getValue, setValue, getLocalState, setLocalState } from "../core/state"
 
 // ---------- ---------- ---------- ---------- ----------
 // effect_setTimedValue
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * ステートに存在時間制限付きの値を設定するエフェクト
- *
- * @template S
- * @template T
- * @param   {string[]} keyNames - 値までのパス
- * @param   {string}   id       - ユニークID
- * @param   {number}   timeout  - 存在可能時間（ms）
- * @param   {T}        value    - 一時的に設定する値
- * @param   {T | null} reset    - タイムアウト後に設定する値
- * @returns {(dispatch: Dispatch<S>) => void}
+ * 
+ * - value
+ * 一時的に設定する値
+ * 
+ * - reset
+ * タイムアウト後に設定する値
  */
+
 export const effect_setTimedValue = function <S, T> (
 	keyNames: string[],
 	id      : string,
@@ -54,14 +57,11 @@ export const effect_setTimedValue = function <S, T> (
 // ---------- ---------- ---------- ---------- ----------
 // effect_nodesInitialize
 // ---------- ---------- ---------- ---------- ----------
+
 /**
- * DOM生成後にノードを取得して初期化処理を実行するエフェクト
- *
- * @template S
- * @param   {{id: string. event: (state: S, element: Element) => S | [S, Effect<S>]}[]} nodes
- *  - 初期化対象ノード定義配列
- * @returns {(dispatch: Dispatch<S>) => void}
+ * DOM 生成後、初期化処理を実行するエフェクト
  */
+
 export const effect_nodesInitialize = function <S> (
 	nodes: {
 		id   : string
@@ -84,20 +84,12 @@ export const effect_nodesInitialize = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // subscription_nodesCleanup
 // ---------- ---------- ---------- ---------- ----------
-/**
- * @type {Object} CleanupNode
- * @property {string}                           id       - ユニークID
- * @property {(state: S) => S | [S, Effect<S>]} finalize - クリーンアップイベント
- */
 
 /**
- * DOMが存在しない場合、クリーンアップ処理を実行するサブスクリプション
- * クリーンアップは、DOMが廃棄された直後ではなく、次のアクション時に実行されます
- * 
- * @template S
- * @param   {CleanupNode<S>[]} nodes - クリーンアップ対象ノード定義配列
- * @returns {Subscription<S>[]}
+ * DOM が存在しない場合、クリーンアップ処理を実行するサブスクリプション
+ * クリーンアップは DOM が廃棄された直後ではなく、次のアクション時に実行される
  */
+
 export const subscription_nodesCleanup = function <S>(
 	nodes: {
 		id      : string
@@ -137,22 +129,12 @@ export const subscription_nodesCleanup = function <S>(
 // ---------- ---------- ---------- ---------- ----------
 // subscription_nodesLifecycleByIds
 // ---------- ---------- ---------- ---------- ----------
-/**
- * @type {Object} LifecycleNode
- * @property {string}                                                    id         - ユニークID
- * @property {(state: S, element: Element | null) => S | [S, Effect<S>]} initialize - 初期化イベント
- * @property {(state: S, element: Element | null) => S | [S, Effect<S>]} finalize   - 終了イベント
- */
 
 /**
  * 登録されたIDを元に、初期化・終了処理を実行するサブスクリプション
- * IDに一致するDOMが存在する場合、イベント時がセットされます
- * 
- * @template S
- * @param   {string[]}        keyNames - 文字配列までのパス
- * @param   {LifecycleNode[]} nodes    - 監視対象ノード定義配列
- * @returns {Subscription<S>[]}
+ * DOM が存在する場合、イベントがセットされます
  */
+
 export const subscription_nodesLifecycleByIds = function <S> (
 	keyNames: string[],
 	nodes: {
@@ -188,8 +170,7 @@ export const subscription_nodesLifecycleByIds = function <S> (
 			})
 
 			return () => {}
-		}
-		,
+		},
 		node
 	])
 }

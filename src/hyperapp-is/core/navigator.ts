@@ -132,7 +132,6 @@ const tbody  = el("tbody")
 const tr     = el("tr")
 const th     = el("th")
 const td     = el("td")
-const ul     = el("ul")
 const ol     = el("ol")
 const li     = el("li")
 const button = el("button")
@@ -144,19 +143,25 @@ const span   = el("span")
 // ---------- ---------- ---------- ---------- ----------
 
 /**
- * @template S
- * @param props - props
+ * ファインダー
  * 
- * @param {S} props.state
- * @param {string} props.id
- * @param {Keys_NavigatorItem} props.currentKeys
- * @param {(directory: NavigatorItem | undefined) => NavigatorColumn[]} [props.columns]
- * @param {number} [props.maxItemsCount]
- * @param {(state: S, item: NavigatorItem) => S | [S, Effect<S>]} [props.itemClick]
- * @param {(props: {state: S, current?: NavigatorItem, extension?: Record<string, any>}, vnode: VNode<S>) => VNode<S>} [props.afterRender]
- * @param {Record<string, any>} [props.extension]
+ * - 必須項目
+ * state, id, currentKeys
  * 
- * @returns {VNode<S>}
+ * - columns
+ * カラムの表示設定
+ * 
+ * - maxItemsCount
+ * 最大表示させるアイテム数
+ * 
+ * - itemClick
+ * 非ノードをクリックした際のアクション
+ * 
+ * - afterRender
+ * レンダーフック
+ * 
+ * - extension
+ * レンダーフックで参照できる拡張情報
  */
 
 export const NavigatorFinder = function <S> (
@@ -176,8 +181,6 @@ export const NavigatorFinder = function <S> (
 		[key: string]: any
 	}
 ): VNode<S> {
-
-	// variable
 	const {
 		state,
 		id,
@@ -212,16 +215,11 @@ export const NavigatorFinder = function <S> (
 			val : (item: NavigatorItem) => item.name
 		})
 
-		// get properties
 		const children = directory.children
 
 		if (children) {
-
-			// get names
 			const names: string[] = []
-
-			// get properties
-			// 子アイテムのプロパティをすべて確認して抽出しています
+			// 子アイテムのプロパティをすべて抽出
 			children.forEach(child => {
 				if (child.properties) {
 					Object.keys(child.properties).forEach(key => names.push(key))
@@ -245,6 +243,7 @@ export const NavigatorFinder = function <S> (
 		return result
 	}) // end createColumns
 
+	// columns
 	const columns = createColumns(current)
 
 	// parentItems
@@ -286,6 +285,7 @@ export const NavigatorFinder = function <S> (
 		const count = maxItemsCount === 0
 			? result.length
 			: Math.min(maxItemsCount, result.length)
+
 		return result.slice(0, count)
 	} // end getItems
 
@@ -330,7 +330,7 @@ export const NavigatorFinder = function <S> (
 			!children.some(child => typeof child === "object" && !Array.isArray(child))
 		) return state
 
-		// filterは解除する
+		// filterは解除
 		return setLocalState(
 			setValue(state, currentKeys, item),
 			id,

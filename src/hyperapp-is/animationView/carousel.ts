@@ -1,5 +1,9 @@
 // hyperapp-is / animationView / carousel.ts
 
+// ---------- ---------- ---------- ---------- ----------
+// import
+// ---------- ---------- ---------- ---------- ----------
+
 import { VNode, Dispatch } from "hyperapp"
 import {
 	Keys_Number, Keys_ArrayRAFTask,
@@ -11,37 +15,16 @@ import { InternalEffect, RAFEvent, RAFTask, subscription_RAFManager } from "../a
 // ---------- ---------- ---------- ---------- ----------
 // interface CarouselState
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * Carousel コンポーネント情報
- * RAFTask.extension に保存する
+ * RAFTask.extension に格納される
  * 
  * 実行後に id を変更しても、反映されません
  * 実行後に step, duration, delay を変更した場合、次のタスクに反映されます
  * groupID, priority は未実装であり、値を設定しても動作に反映されません
- * 
- * @template S
- * @typedef {Object} CarouselState
- * 
- * @property {string}  id   - ユニークID
- * @property {number}  step - 移動するページ数。負で逆順。0で停止
- * 
- * option
- * @property {string} [groupID]  - 任意のグループナンバー (未実装)
- * @property {number} [duration] - 1回あたりの実行時間 (ms)
- * @property {number} [delay]    - 待機時間 (ms)
- * @property {number} [priority] - 処理優先巡視 (未実装)
- * @property {Record<string, any>} [extension] - 拡張用プロパティ
- * 
- * event
- * @property {RAFEvent<S>} [action] - 毎フレーム発生するイベント
- * @property {RAFEvent<S>} [finish] - ページ切替後に発生するイベント
- * 
- * animation
- * @property {(t: number) => number} easing - easing 関数
- * 
- * report
- * @property {Keys_Number} [reportPageIndex] - 現在表示中インデックスの出力パス
  */
+
 export interface CarouselState <S> {
 	id  : string
 	step: number
@@ -67,47 +50,34 @@ export interface CarouselState <S> {
 // ---------- ---------- ---------- ---------- ----------
 // interface CarouselController
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * 外部から Carousel コンポーネントを操作するためのクラス
- * RAFTask.extension に保存する
- * 
- * @template S
- * @typedef {Object} CarouselController
- * 
- * - ページ移動を行う (移動中の場合は割り込む)
- * @property {(rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise<RAFTask<S>>} step
- * 
- * @property {(rafTask: RAFTask<S>, index: number, skipSpeedRate?: number) => Pronise<RAFTask<S>>} moveTo
- * - 指定インデックス番号に移動する (移動中の場合は割り込む)
+ * RAFTask.extension に格納される
  */
+
 export interface CarouselController <S> {
 	step  : (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
 	moveTo: (RAFTask: RAFTask<S>, index: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// Carousel Component
+// vnodes
 // ---------- ---------- ---------- ---------- ----------
 
-// element
 const div    = el("div")
 const ul     = el("ul")
 const li     = el("li")
 const button = el("button")
 
+// ---------- ---------- ---------- ---------- ----------
+// Carousel Component
+// ---------- ---------- ---------- ---------- ----------
+
 /**
  * Carousel Component
- * 
- * @template S
- * @param {Object}            props                - props
- * @param {S}                 props.state          - ステート
- * @param {string}            props.id             - ユニークID (DOM id)
- * @param {Keys_ArrayRAFTask} props.keyNames       - RAFTask 配列までのパス
- * @param {boolean}          [props.controlButton] - ページ切り替えボタンを表示する (未実装)
- * @param {boolean}          [props.controlBar]    - 現在位置を示すステータスバーを表示する
- * @param {number}           [skipSpeedRate]       - skip 時に duration に乗じる値
- * @param {any}               children             - 表示するページ (HTMLLIElement の子になる)
  */
+
 export const Carousel = function <S> (
 	props: {
 		state         : S
@@ -141,6 +111,7 @@ export const Carousel = function <S> (
 	// ---------- ---------- ----------
 	// action_mouseenter
 	// ---------- ---------- ----------
+
 	const action_mouseenter = (state: S) => {
 		const task = getValue(state, keyNames, [] as RAFTask<S>[])
 			.find(task => task.id === id)
@@ -155,6 +126,7 @@ export const Carousel = function <S> (
 	// ---------- ---------- ----------
 	// action_mouseleave
 	// ---------- ---------- ----------
+
 	const action_mouseleave = (state: S) => {
 		const task = getValue(state, keyNames, [] as RAFTask<S>[])
 			.find(task => task.id === id)
@@ -169,6 +141,7 @@ export const Carousel = function <S> (
 	// ---------- ---------- ----------
 	// action_prevPage
 	// ---------- ---------- ----------
+
 	const action_prevPage = (state: S) => {
 		const task = getValue(state, keyNames, [] as RAFTask<S>[])
 			.find(task => task.id === id)
@@ -186,6 +159,7 @@ export const Carousel = function <S> (
 	// ---------- ---------- ----------
 	// action_nextPage
 	// ---------- ---------- ----------
+
 	const action_nextPage = (state: S) => {
 		const task = getValue(state, keyNames, [] as RAFTask<S>[])
 			.find(task => task.id === id)
@@ -203,6 +177,7 @@ export const Carousel = function <S> (
 	// ---------- ---------- ----------
 	// action_controlBarClick
 	// ---------- ---------- ----------
+
 	const action_ControlBarClick = (state: S, absoluteIndex: number) => {
 		const task = getValue(state, keyNames, [] as RAFTask<S>[])
 			.find(task => task.id === id)
@@ -223,6 +198,7 @@ export const Carousel = function <S> (
 	// ---------- ---------- ----------
 	// VNode
 	// ---------- ---------- ----------
+
 	return div({
 		...deleteKeys(props, "state", "keyNames")
 	},
@@ -260,21 +236,21 @@ export const Carousel = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// effect_InitCarousel
+// interface CarouselPrivateState
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * カルーセル内部管理データ
  * 
- * @typedef {Object} CarouselPrivateState
- * 
- * @property {HTMLUListElement} ul            - DOM
- * @property {number}           index         - 先頭の index 番号
- * @property {number}           step          - 移動するページ数 (負で逆順。0で停止)
- * @property {number}           startOffset   - 移動開始位置
- * @property {number}           targetOffset  - 移動終了位置
- * @property {number}           currentOffset - 現在位置
- * @property {HTMLLIElement[]}  cloneNodes    - クローンノードの配列
+ * - ul           : DOM
+ * - index        : 先頭 index
+ * - step         : 移動するページ数 (負で逆順、0で停止)
+ * - startOffset  : 移動開始位置
+ * - targetOffset : 移動終了位置
+ * - currentOffset: 現在位置
+ * - cloneNodes   : クローンノード配列
  */
+
 interface CarouselPrivateState {
 	ul           : HTMLUListElement
 	index        : number
@@ -285,13 +261,14 @@ interface CarouselPrivateState {
 	cloneNodes   : HTMLLIElement[]
 }
 
+// ---------- ---------- ---------- ---------- ----------
+// effect_InitCarousel
+// ---------- ---------- ---------- ---------- ----------
+
 /**
  * カルーセルを初期化し起動するエフェクト
- * 
- * @param {Keys_ArrayRAFTask} keyNames      - RAFTask 配列までのパス
- * @param {CarouselState}     carouselState - カルーセル情報
- * @returns {(dispatch: Dispatch<S>) => void}
  */
+
 export const effect_InitCarousel = function <S> (
 	keyNames     : Keys_ArrayRAFTask,
 	carouselState: CarouselState<S>
@@ -364,6 +341,7 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// CarouselPrivateState
 				// ---------- ---------- ----------
+
 				const privateParam: CarouselPrivateState = {
 					ul,
 					step         : 0,
@@ -377,11 +355,13 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// function getCurrentState
 				// ---------- ---------- ----------
+
 				/**
 				 * 相対、絶対インデックスの取得
 				 * 先頭オフセット値の取得
 				 * 入れ替えが必要な DOM の数を取得
 				 */
+
 				const getCurrentState = (): {
 					relativeIndex: number
 					absoluteIndex: number
@@ -420,11 +400,13 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// controller
 				// ---------- ---------- ----------
+
 				const controller: CarouselController <S> = {
 
 					// ---------- ---------- ----------
 					// controller.step
 					// ---------- ---------- ----------
+
 					step: (
 						rafTask       : RAFTask<S>,
 						delta         : number,
@@ -535,6 +517,7 @@ export const effect_InitCarousel = function <S> (
 					// ---------- ---------- ----------
 					// controller.moveTo
 					// ---------- ---------- ----------
+
 					moveTo: (rafTask: RAFTask<S>, index: number, skipSpeedRate?: number): Promise <RAFTask<S>> => {
 						return controller.step(
 							rafTask,
@@ -548,6 +531,7 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// task_action
 				// ---------- ---------- ----------
+
 				const action = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 					if (!privateParam.ul.isConnected) return state
 					if (rafTask.paused) return state
@@ -570,6 +554,7 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// task_finish
 				// ---------- ---------- ----------
+
 				const finish = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 					if (!privateParam.ul.isConnected) return state
 
@@ -649,6 +634,7 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// createTask
 				// ---------- ---------- ----------
+
 				const createTask = (): RAFTask<S> => {
 					return new RAFTask<S>({
 						id      : param.id,
@@ -669,6 +655,7 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// startTask
 				// ---------- ---------- ----------
+
 				const startTask = new RAFTask<S>({
 					id      : param.id,
 					groupID : param.groupID,
@@ -685,6 +672,7 @@ export const effect_InitCarousel = function <S> (
 				// ---------- ---------- ----------
 				// result
 				// ---------- ---------- ----------
+
 				return setValue(
 					state,
 					keyNames,

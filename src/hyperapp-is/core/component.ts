@@ -1,26 +1,24 @@
 // hyperapp-is / core / component.ts
 
+// ---------- ---------- ---------- ---------- ----------
+// import
+// ---------- ---------- ---------- ---------- ----------
+
 import { h, text, VNode, Dispatch, Effect } from "hyperapp"
 import {
 	Keys_String, Keys_ArrayString,
 	getValue, setValue
 } from "./state"
 
-// ========== ========== ========== ========== ==========
-// 補助関数
-// ========== ========== ========== ========== ==========
-
 // ---------- ---------- ---------- ---------- ----------
 // el
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * h 関数のラッパー
- * 他でjsxを使用した場合、hが競合する可能性があるので作成した
- * 
- * @template S
- * @param   {string} tag - タグ名
- * @returns {(props:{ [key: string] any }, ...children:any[]) => VNode<S>}
+ * hが競合する可能性があるので作成した
  */
+
 export const el = (tag: string) => <S> (
 	props?: { [key: string]: any },
 	...children: any[]
@@ -32,22 +30,14 @@ export const el = (tag: string) => <S> (
 		.map((child: any) => typeof child === "object" ? child : text(child))
 )
 
-/* element */
-const button = el("button")
-
 // ---------- ---------- ---------- ---------- ----------
 // concatAction
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * アクションを結合して結果を返す
- * 
- * @template S
- * @template E
- * @param   {undefined | (state: S, e: E) => S | [S, Effect<S>]} action   - 結合するアクション
- * @param   {S}                                                  newState - 結合するステート
- * @param   {E}                                                  e        - イベント (任意のイベント型)
- * @returns {S | [S, Effect<S>]}
  */
+
 export const concatAction = function <S, E> (
 	action  : undefined | ((state: S, e: E) => S | [S, Effect<S>]),
 	newState: S,
@@ -56,9 +46,6 @@ export const concatAction = function <S, E> (
 	if (!action) return newState
 
 	const effect = (dispatch: Dispatch<S>) => {
-
-		// 次の描画を待たないと、newStateと同時にdispatchが走ってしまい、DOMが存在しない可能性がある
-		// effect_initializeNodesを機能させるため、dispatch を描画後まで保留する
 		requestAnimationFrame(() => {
 			dispatch((state: S) => action(state, e))
 		})
@@ -70,12 +57,11 @@ export const concatAction = function <S, E> (
 // ---------- ---------- ---------- ---------- ----------
 // getClassList
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * props から classList を取得
- * 
- * @param   {Record<string, any>} props - props
- * @returns {string[]}
  */
+
 export const getClassList = (
 	props: { [key: string]: any }
 ): string[] => {
@@ -87,14 +73,11 @@ export const getClassList = (
 // ---------- ---------- ---------- ---------- ----------
 // deleteKeys
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * props から不要なキーを削除する
- * 
- * @template T
- * @param   {T}            props - props
- * @param   {(keyof T)[])} keys  - 削除するキー
- * @returns {Omit<T, (typeof keys)[number]>}
  */
+
 export const deleteKeys = <
 	T extends Record<string, any>
 > (
@@ -108,24 +91,14 @@ export const deleteKeys = <
 	return result
 }
 
-// ========== ========== ========== ========== ==========
-// コンポーネント
-// ========== ========== ========== ========== ==========
+// ---------- ---------- ---------- ---------- ----------
+// Route Component
+// ---------- ---------- ---------- ---------- ----------
 
-// ---------- ---------- ---------- ---------- ----------
-// Route
-// ---------- ---------- ---------- ---------- ----------
 /**
  * ステート内の文字とmatchした時、VNodeを返す
- * 
- * @template S
- * @param   {Record<string, any>} props          - props
- * @param   {S}                   props.state    - ステート
- * @param   {Keys_String}         props.keyNames - ステート内の文字までのパス
- * @param   {string}              props.match    - 一致判定する文字
- * @param   {any}                 children       - 出力する内容 (VNode / 配列 / 文字など)
- * @returns {VNode<S> | null}
  */
+
 export const Route = function <S> (
 	props: {
 		state   : S
@@ -142,22 +115,21 @@ export const Route = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// SelectButton
+// vnodes
 // ---------- ---------- ---------- ---------- ----------
+
+const button = el("button")
+
+// ---------- ---------- ---------- ---------- ----------
+// SelectButton Component
+// ---------- ---------- ---------- ---------- ----------
+
 const REVERSE_PREFIX = "r_"
 
 /**
- * クリックで、クラス名のselectをトグルするボタン
- * 
- * @template S
- * @param   {Record<string, any>} props          - props
- * @param   {S}                   props.state    - ステート
- * @param   {Keys_ArrayString}    props.keyNames - ステート内の文字配列までのパス
- * @param   {string}              props.id       - ユニークID
- * @param   {boolean}            [props.reverse] - 反転選択するか
- * @param   {any}                 children       - 子要素 (VNode / string / 配列など)
- * @returns {VNode<S>}
+ * クリックで、クラス名 select をトグルするボタン
  */
+
 export const SelectButton = function <S> (
 	props: {
 		state        : S
@@ -179,7 +151,10 @@ export const SelectButton = function <S> (
 	if (selectedNames.includes(id)) classList.push("select")
 	if (selectedNames.includes(`${ REVERSE_PREFIX }${ id }`)) classList.push("reverse")
 
+	// ---------- ---------- ----------
 	// action
+	// ---------- ---------- ----------
+
 	const action = (state: S, e: MouseEvent) => {
 		const selectedNames = getValue(state, keyNames, []) as string[]
 		const newList = selectedNames.includes(id)
@@ -193,7 +168,10 @@ export const SelectButton = function <S> (
 		return concatAction(props.onclick, newState, e)
 	}
 
+	// ---------- ---------- ----------
 	// VNode
+	// ---------- ---------- ----------
+
 	return button({
 		type: "button",
 		...deleteKeys(props, "state", "keyNames", "reverse"),
@@ -203,19 +181,11 @@ export const SelectButton = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// OptionButton
+// OptionButton Component
 // ---------- ---------- ---------- ---------- ----------
+
 /**
- * クリックで、クラス名のselectを排他的に選択するボタン
- * 
- * @template S
- * @param   {Record<string, any>} props          - props
- * @param   {S}                   props.state    - ステート
- * @param   {Keys_String}         props.keyNames - ステート内の文字までのパス
- * @param   {string}              props.id       - ユニークID
- * @param   {boolean}            [props.reverse] - 反転選択するか
- * @param   {any}                 children       - 子要素 (VNode / string / 配列など)
- * @returns {VNode<S>}
+ * クリックで、クラス名 select を排他的に選択するボタン
  */
 
 export const OptionButton = function <S> (
@@ -239,7 +209,10 @@ export const OptionButton = function <S> (
 	if (selectedName === id) classList.push("select")
 	if (selectedName === `${ REVERSE_PREFIX }${ id }`) classList.push("reverse")
 
+	// ---------- ---------- ----------
 	// action
+	// ---------- ---------- ----------
+
 	const action = (state: S, e: MouseEvent) => {
 		const selectedName = getValue(state, keyNames, "") as string
 		const newValue = selectedName === id && reverse
@@ -249,7 +222,10 @@ export const OptionButton = function <S> (
 		return concatAction(props.onclick, newState, e)
 	}
 
+	// ---------- ---------- ----------
 	// VNode
+	// ---------- ---------- ----------
+
 	return button({
 		type: "button",
 		...deleteKeys(props, "state", "keyNames", "reverse"),

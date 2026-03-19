@@ -1,5 +1,9 @@
 // hyperapp-is / animation / translate.ts
 
+// ---------- ---------- ---------- ---------- ----------
+// import
+// ---------- ---------- ---------- ---------- ----------
+
 import { Dispatch } from "hyperapp"
 import { getValue, setValue } from "../core/state"
 import { InternalEffect, RAFEvent, RAFTask } from "./raf"
@@ -8,15 +12,11 @@ import { CSSProperty, createRAFProperties } from "./properties"
 // ---------- ---------- ---------- ---------- ----------
 // interface TranslateState
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * Translate 管理用オブジェクト
- * 
- * @type {Object} TranslateState
- * @property {number} width - 移動量
- * @property {number} index - 先頭のインデックス
- * @property {number} total - 子の数
- * @property {(t: number) => number} easing - easing 関数
  */
+
 export interface TranslateState {
 	width : number
 	index : number
@@ -27,12 +27,12 @@ export interface TranslateState {
 // ---------- ---------- ---------- ---------- ----------
 // createRAFTranslate
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * subscription_RAFManager をベースにした Translate アニメーション RAFTask を作成する
  * props は、基本的に RAFTask の値
- * 
- * @param {TranslateState} props.translateState  - カルーセル情報
  */
+
 export const createRAFTranslate = function <S> (
 	props: {
 		id      : string
@@ -54,7 +54,10 @@ export const createRAFTranslate = function <S> (
 		translateState
 	}
 
+	// ---------- ---------- ----------
 	// finish
+	// ---------- ---------- ----------
+
 	const finish = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 		const dom = document.getElementById(id) as HTMLElement
 		if (!dom) return state
@@ -76,7 +79,7 @@ export const createRAFTranslate = function <S> (
 				}
 			}
 		]
-	}
+	} // end finish
 
 	// properties
 	const properties: CSSProperty[] = [{
@@ -94,9 +97,11 @@ export const createRAFTranslate = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // effect_translateStart
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * subscription_RAFManager をベースにした Translate アニメーションエフェクト
  */
+
 export const effect_translateStart = function <S> (
 	props: {
 		id      : string
@@ -117,7 +122,10 @@ export const effect_translateStart = function <S> (
 	const { id, groupID, duration, delay, priority, extension, keyNames } = props
 	const easing = props.easing ? props.easing : (t: number) => t
 
+	// ---------- ---------- ----------
 	// finish
+	// ---------- ---------- ----------
+
 	const finish = (state: S, rafTask: RAFTask<S>): S | [S, InternalEffect<S>] => {
 
 		// dom
@@ -192,9 +200,11 @@ export const effect_translateStart = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // effect_translateRollback
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * アニメーション中のカルーセルを、元の位置に戻す
  */
+
 export const effect_translateRollback = function <S> (
 	props: {
 		id      : string
@@ -276,9 +286,11 @@ export const effect_translateRollback = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // effect_translateRollforward
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * アニメーション中のカルーセルを、早送りする
  */
+
 export const effect_translateRollforward = function <S> (
 	props: {
 		id      : string
@@ -370,9 +382,11 @@ export const effect_translateRollforward = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // action_translateSlide
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * カルーセルを任意のインデックスまで移動する
  */
+
 export const effect_translateSlide = function <S> (
 	props: {
 		id      : string
@@ -582,4 +596,3 @@ export const effect_translateSlide = function <S> (
 		})
 	}
 }
-

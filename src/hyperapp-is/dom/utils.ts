@@ -3,15 +3,11 @@
 // ---------- ---------- ---------- ---------- ----------
 // interface ScrollMargin
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * スクロールの余白
- * 
- * @type {Object} ScrollMargin
- * @property {number} top    - 上までの余白
- * @property {number} left   - 左までの余白
- * @property {number} right  - 右までの余白
- * @property {number} bottom - 下までの余白
  */
+
 export interface ScrollMargin {
 	top   : number
 	left  : number
@@ -22,12 +18,11 @@ export interface ScrollMargin {
 // ---------- ---------- ---------- ---------- ----------
 // getScrollMargin
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * スクロールの余白を取得する
- * 
- * @param   {Event} e - イベント
- * @returns {ScrollMargin}
  */
+
 export const getScrollMargin = function (e: Event): ScrollMargin {
 	const el = e.currentTarget as HTMLElement
 	if (!el) return { top: 0, left: 0, right: 0, bottom: 0 }
@@ -43,9 +38,11 @@ export const getScrollMargin = function (e: Event): ScrollMargin {
 // ---------- ---------- ---------- ---------- ----------
 // interface MatorixState
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * transform 情報
  */
+
 export interface MatrixState {
 	translate: {
 		x: number
@@ -70,12 +67,11 @@ export interface MatrixState {
 // ---------- ---------- ---------- ---------- ----------
 // getMatrixState
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * DOM から transfrom 情報を取得する
- * 
- * @param {HTMLElement} dom - 情報を取得する DOM
- * @returns {MatrixState}
  */
+
 export const getMatrixState = (dom: HTMLElement): MatrixState | null => {
 	const style     = getComputedStyle(dom)
 	const transform = style.transform

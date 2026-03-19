@@ -405,7 +405,6 @@ const el = (tag) => (props, ...children) => h$1(
   props ?? {},
   children.flat().map((child) => typeof child === "object" ? child : text(child))
 );
-const button$2 = el("button");
 const concatAction = function(action, newState, e) {
   if (!action) return newState;
   const effect = (dispatch) => {
@@ -428,6 +427,7 @@ const Route = function(props, children) {
   const selectedName = getValue(state, keyNames, "");
   return selectedName === match ? children : null;
 };
+const button$2 = el("button");
 const REVERSE_PREFIX = "r_";
 const SelectButton = function(props, children) {
   const { state, keyNames, id: id2, reverse = false } = props;
@@ -703,7 +703,9 @@ const NavigatorFinder = function(props) {
 };
 const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {
+  // ---------- ---------- ----------
   // field
+  // ---------- ---------- ----------
   #id;
   #groupID;
   #duration;
@@ -718,7 +720,9 @@ class RAFTask {
   #paused;
   #deltaTime;
   #isDone;
+  // ---------- ---------- ----------
   // constructor
+  // ---------- ---------- ----------
   constructor(props) {
     this.#id = props.id;
     this.#groupID = props.groupID;
@@ -731,7 +735,9 @@ class RAFTask {
     this.#isDone = false;
     this.#paused = false;
   }
+  // ---------- ---------- ----------
   // getter
+  // ---------- ---------- ----------
   get id() {
     return this.#id;
   }
@@ -777,7 +783,9 @@ class RAFTask {
   get paused() {
     return this.#paused;
   }
+  // ---------- ---------- ----------
   // setter
+  // ---------- ---------- ----------
   set groupID(val) {
     this.#groupID = val;
   }
@@ -793,14 +801,13 @@ class RAFTask {
   set paused(val) {
     this.#paused = val;
   }
+  // ---------- ---------- ----------
   // private method: _isStart
+  // ---------- ---------- ----------
   /**
    * アクションを開始して良いか判定する
    * 現在時間等のアップデートも同時に行われる
    * subscription_RAFManager でのみ使用される
-   * 
-   * @param   {number} now - requestAnimatinFrame が返す絶対時間
-   * @returns {boolan}     - アクションを実行して良いか判定
    */
   [_isStart](now) {
     if (this.isDone) return false;
@@ -820,7 +827,9 @@ class RAFTask {
     this.#isDone = this.progress === 1;
     return !this.#isDone;
   }
+  // ---------- ---------- ----------
   // method: clone
+  // ---------- ---------- ----------
   /**
    * 時間を初期化したクローンを作成して返す
    */
@@ -1219,9 +1228,9 @@ const effect_InitCarousel = function(keyNames, carouselState) {
   };
 };
 const param = {
-  tasks: [],
-  selected: [],
   page: "0",
+  selected: [],
+  tasks: [],
   carousel: {
     pageNumber: 0
   },
@@ -1234,13 +1243,6 @@ addEventListener("load", () => {
   const page = ["page"];
   const navigator_finder = ["navigator", "finder_current"];
   const action_initCarousel = (state) => {
-    const effect_readme = async (dispatch) => {
-      const readme = await fetch("md/Carousel.md").then((data) => {
-        if (!data.ok) throw new Error("error readme");
-        return data.text();
-      });
-      dispatch((state2) => setValue(state2, ["readme"], readme));
-    };
     const param1 = {
       id: "sample_carousel1",
       step: 1
@@ -1280,20 +1282,12 @@ addEventListener("load", () => {
     };
     return [
       state,
-      effect_readme,
       effect_InitCarousel(tasks, param1),
       effect_InitCarousel(tasks, param2),
       effect_InitCarousel(tasks, param3)
     ];
   };
   const action_initNavigator = (state) => {
-    const effect_readme = async (dispatch) => {
-      const readme = await fetch("md/Navigator.md").then((data) => {
-        if (!data.ok) throw new Error("error readme");
-        return data.text();
-      });
-      dispatch((state2) => setValue(state2, ["readme"], readme));
-    };
     const effect_loadJson = async (dispatch) => {
       const json = await fetch("isYoshihiro.json").then((data) => {
         if (!data.ok) throw new Error("error loadJson");
@@ -1327,7 +1321,6 @@ addEventListener("load", () => {
     };
     return [
       state,
-      effect_readme,
       effect_loadJson
     ];
   };

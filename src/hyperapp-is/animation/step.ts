@@ -1,5 +1,9 @@
 // hyperapp-is / animation / step.ts
 
+// ---------- ---------- ---------- ---------- ----------
+// import
+// ---------- ---------- ---------- ---------- ----------
+
 import { Effect, Dispatch } from "hyperapp"
 import { setValue, getLocalState, setLocalState } from "../core/state"
 
@@ -52,16 +56,11 @@ const action_throwMessageTick = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // effect_throwMessageStart
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * ステートに文字を一文字ずつ流し込むエフェクト
- * 
- * @template S
- * @param   {string[]} keyNames - 値までのパス
- * @param   {string}   id       - ユニークID
- * @param   {string}   text     - 流し込む文字
- * @param   {number}   interval - 次の文字を流し込むまでの間隔（ms）
- * @returns {(dispatch: Dispatch<S>) => void}
  */
+
 export const effect_throwMessageStart = function <S> (
 	keyNames: string[],
 	id      : string,
@@ -84,13 +83,11 @@ export const effect_throwMessageStart = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // effect_throwMessagePause
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * throwMessageを一時停止する
- * 
- * @template S
- * @param   {string} id - ユニークID
- * @returns {(dispatch: Dispatch<S>) => void}
  */
+
 export const effect_throwMessagePause = function <S> (
 	id: string
 ): (dispatch: Dispatch<S>) => void {
@@ -102,13 +99,11 @@ export const effect_throwMessagePause = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // effect_throwMessageResume
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * 一時停止したthrowMessageを再開する
- * 
- * @template S
- * @param   {string} id - ユニークID
- * @returns {(dispatch: Dispatch<S>) => void}
  */
+
 export const effect_throwMessageResume = function <S> (
 	id: string
 ): (dispatch: Dispatch<S>) => void {
@@ -131,16 +126,13 @@ export const effect_throwMessageResume = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 // marquee
 // ---------- ---------- ---------- ---------- ----------
+
 /**
  * Carousel 風に DOM が流れるアニメーションを実行する
- * 
- * @param {Object}                 props          - props
- * @param {HTMLElement}            props.element  - DOM
- * @param {number}                 props.duration - 実行時間 (ms)
- * @param {number}                 props.delay    - 待機時間 (ms)
- * @param {(t: number) => number} [props.easing]  - easing 関数
- * @returns {{start: () => void, stop: () => void}}
+ * コンポーネントではなく、DOM を直接操作する
+ * コントローラーが返値に戻る
  */
+
 export const marquee = function <S> (
 	props: {
 		element : HTMLElement
@@ -151,21 +143,27 @@ export const marquee = function <S> (
 ): { start: () => void, stop : () => void } {
 	const { element, duration, delay, easing = (t: number) => t } = props
 
-	// function calcWidth
-	const calcWidth = () => {
-		const children = Array.from(element.children) as HTMLElement[]
-		return !children || children.length < 2
-			? 0
-			: children[1].offsetLeft - children[0].offsetLeft
-	}
-
 	// variable
 	let rID       = 0
 	let timerID   = 0
 	let startTime = 0
 	let width     = 0
 
+	// ---------- ---------- ----------
+	// calcWidth
+	// ---------- ---------- ----------
+
+	const calcWidth = () => {
+		const children = Array.from(element.children) as HTMLElement[]
+		return !children || children.length < 2
+			? 0
+			: children[1].offsetLeft - children[0].offsetLeft
+	} // end calcWidth
+
+	// ---------- ---------- ----------
 	// requestAnimationFrame callback
+	// ---------- ---------- ----------
+
 	const action = (now: number) => {
 
 		// set startTime
@@ -198,7 +196,7 @@ export const marquee = function <S> (
 			startTime = 0
 			rID       = requestAnimationFrame(action)
 		}, delay)
-	}
+	} // end action
 
 	// result
 	return {

@@ -1,5 +1,9 @@
 // index.tsx
 
+// ---------- ---------- ---------- ---------- ----------
+// import
+// ---------- ---------- ---------- ---------- ----------
+
 import { app, VNode, Dispatch, Effect } from "hyperapp"
 import h from "hyperapp-jsx-pragma"
 import {
@@ -14,16 +18,15 @@ import {
 	SelectButton
 } from "./hyperapp-is"
 import { InternalEffect } from "../dist/hyperapp-is"
-import { marked } from "marked"
 
 // ---------- ---------- ---------- ---------- ----------
 // State
 // ---------- ---------- ---------- ---------- ----------
 
 interface State {
-	tasks   : RAFTask<State>[]
-	selected: string[]
 	page    : string
+	selected: string[]
+	tasks   : RAFTask<State>[]
 	carousel: {
 		pageNumber: number
 	},
@@ -35,9 +38,9 @@ interface State {
 // ---------- ---------- ---------- ---------- ----------
 
 const param: State = {
-	tasks   : [],
-	selected: [],
 	page    : "0",
+	selected: [],
+	tasks   : [],
 	carousel: {
 		pageNumber: 0
 	},
@@ -65,15 +68,6 @@ addEventListener("load", () => {
 	// ---------- ---------- ----------
 
 	const action_initCarousel = (state: State) => {
-
-		// readme
-		const effect_readme = async (dispatch: Dispatch<State>) => {
-			const readme = await fetch("md/Carousel.md").then(data => {
-				if (!data.ok) throw new Error("error readme")
-				return data.text()
-			})
-			dispatch((state: State) => setValue(state, ["readme"], readme))
-		}
 
 		// init carousel1 state
 		const param1: CarouselState<State> = {
@@ -128,7 +122,6 @@ addEventListener("load", () => {
 		// set effect
 		return [
 			state,
-			effect_readme,
 			effect_InitCarousel(tasks, param1),
 			effect_InitCarousel(tasks, param2),
 			effect_InitCarousel(tasks, param3)
@@ -140,15 +133,6 @@ addEventListener("load", () => {
 	// ---------- ---------- ----------
 
 	const action_initNavigator = (state: State) => {
-
-		// readme
-		const effect_readme = async (dispatch: Dispatch<State>) => {
-			const readme = await fetch("md/Navigator.md").then(data => {
-				if (!data.ok) throw new Error("error readme")
-				return data.text()
-			})
-			dispatch((state: State) => setValue(state, ["readme"], readme))
-		} // end effect_readme
 
 		// loadJson
 		const effect_loadJson = async (dispatch: Dispatch<State>) => {
@@ -192,7 +176,6 @@ addEventListener("load", () => {
 
 		return [
 			state,
-			effect_readme,
 			effect_loadJson
 		]
 	}
@@ -200,9 +183,11 @@ addEventListener("load", () => {
 	// ---------- ---------- ----------
 	// createColumns
 	// ---------- ---------- ----------
+
 	/**
-	 * 階層の深さにより columns を変更するサンプル
+	 * 階層の深さにより columns を変更するサンプル (使用していません)
 	 */
+
 	const createColumns = (directory: NavigatorItem | undefined) => {
 
 		// extension に保存していた depth を取得
