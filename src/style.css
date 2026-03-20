@@ -164,23 +164,25 @@ main {
 	flex-direction: column;
 	height        : auto;
 	border        : 2px black solid;
-	border-radius : 0.5rem;
+	border-radius : 5px;
 
 	/* toolBar */
 	> .toolBar {
-		display         : flex;
-		padding         : 5px;
-		border          : 1px gray solid;
-		background-color: lightgray;
+		display     : flex;
+		padding     : 5px;
+		border      : gray solid;
+		border-width: 0 0 1px 0;
 
 		> input[type="text"] {
 			flex-grow: 1;
-			padding  : 0.5rem;
+			padding  : 5px;
+			border   : 1px gray solid;
 		}
 
 		> button {
 			margin-left: 5px;
-			padding: 0.5rem;
+			padding    : 5px;
+			cursor     : pointer;
 		}
 	}
 
@@ -192,26 +194,18 @@ main {
 		display     : flex;
 		padding     : 5px;
 		border      : gray solid;
-		border-width: 0 1px 1px 1px;
+		border-width: 0 0 1px 0;
 
 		> li {
-			white-space: nowrap;
 			margin-right: 5px;
-			padding: 5px;
-			border: 1px gray solid;
-			cursor: pointer;
+			padding     : 5px;
+			border      : 1px gray solid;
+			white-space : nowrap;
+			cursor      : pointer;
 
 			&:before {
 				content: "▶ ";
 			}
-		}
-
-		> li:last-child {
-			border: 2px black solid;
-		}
-
-		> li:hover {
-			background-color: lightgray;
 		}
 	}
 
@@ -220,55 +214,32 @@ main {
 		table-layout   : fixed;
 		width          : 100%;
 		border-collapse: collapse;
-		border         : gray solid;
-		border-width   : 0 1px 1px 1px;
+		text-align     : left;
 
-		> thead {
-			> tr {
-				> th {
-					padding     : 5px;
-					border      : gray solid;
-					border-width: 0 1px 1px 1px;
-					background-color:lightsalmon;
-					text-align  : left;
-				}
-				> th:nth-of-type(1) {
-					width: 15rem;
-				}
-				> th:nth-of-type(2) {
-					width: 4rem;
-				}
-				> th:nth-of-type(3) {
-					width: 10rem;
-				}
-			}
+		td, th {
+			padding: 5px;
+		}
+
+		th {
+			background-color: lightgray;
 		}
 
 		> tbody {
 			> tr {
+				border: gray solid;
+				border-width: 1px 0 1px 0;
 				> td {
-					overflow   : hidden;
-					padding    : 5px;
-					border     : 1px gray solid;
-					white-space: nowrap;
-
 					> span.hit {
-						background-color: red;
+						background-color: lightpink;
 					}
 				}
-			}
-			> tr:hover {
-				background-color: lightgreen;
-				cursor          : pointer;
 			}
 		}
 	}
 
 	/* statusBar */
 	.statusBar {
-		padding     : 0.5rem;
-		border      : gray solid;
-		border-width: 0 1px 1px 1px;
-		color       : green;
+		padding: 5px;
+		background-color: lightgray;
 	}
 }

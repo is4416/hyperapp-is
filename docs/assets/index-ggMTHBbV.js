@@ -541,9 +541,17 @@ const NavigatorFinder = function(props) {
     extension
   } = props;
   const current = getValue(state, currentKeys, void 0);
-  const { searchText, selected } = getLocalState(state, id2, {
+  const { searchText, selected, sortType, reverse, sortKey } = getLocalState(state, id2, {
     searchText: "",
-    selected: []
+    // 検索テキスト
+    selected: [],
+    // 選択されているボタン名
+    sortType: void 0,
+    // ソート用比較関数
+    reverse: false,
+    // ソートを逆順にするか
+    sortKey: void 0
+    // 使用されているソート名 (column.name)
   });
   const isFilter = selected.includes(`${createLocalKey(id2)}_filter`);
   const createColumns = props.columns ?? ((directory) => {
@@ -551,7 +559,10 @@ const NavigatorFinder = function(props) {
     if (!directory) return result;
     result.push({
       name: "name",
-      val: (item) => item.name
+      val: (item) => item.name,
+      compare: (a, b) => {
+        return a.name.localeCompare(b.name);
+      }
     });
     const children = directory.children;
     if (children) {
@@ -577,11 +588,11 @@ const NavigatorFinder = function(props) {
   const parentItems = getParentItems(current);
   if (current) parentItems.push(current);
   const hitTest = (text2) => {
+    if (typeof text2 !== "string") return false;
     const S = searchText.trim().toLowerCase();
     if (S === "") return false;
     const keys = S.replace(/[ 　]+/g, " ").split(" ").filter(Boolean);
     if (keys.length === 0) return false;
-    if (typeof text2 !== "string") return false;
     const sText = text2.toLowerCase();
     return keys.every((key) => sText.includes(key));
   };
@@ -594,6 +605,10 @@ const NavigatorFinder = function(props) {
     return result.slice(0, count2);
   };
   const items = getItems(current);
+  if (sortType) {
+    items.sort(sortType);
+    if (reverse) items.reverse();
+  }
   const count = current ? current.children?.length : 0;
   const hitCount = isFilter ? items.length : items.filter((item) => columns.some((col) => hitTest(col.val(item)))).length;
   const action_parentClick = (state2, item) => {
@@ -607,8 +622,7 @@ const NavigatorFinder = function(props) {
   };
   const action_itemClick = (state2, item) => {
     const children = item.children;
-    if (!children) return state2;
-    if (!children.some((child) => typeof child === "object" && !Array.isArray(child))) return state2;
+    if (!children || children.length === 0) return state2;
     return setLocalState(
       setValue(state2, currentKeys, item),
       id2,
@@ -628,6 +642,14 @@ const NavigatorFinder = function(props) {
     if (!current) return state2;
     navigator.clipboard.writeText(current.path);
     return state2;
+  };
+  const action_sort = (state2, column) => {
+    if (column.compare === void 0) return state2;
+    return setLocalState(state2, id2, {
+      sortType: column.compare,
+      reverse: sortKey === column.name ? !reverse : false,
+      sortKey: column.name
+    });
   };
   const vnode = div$1(
     {
@@ -670,7 +692,12 @@ const NavigatorFinder = function(props) {
         {},
         tr(
           {},
-          columns.map((col) => th({}, col.name))
+          columns.map((col) => th(
+            {
+              onclick: [action_sort, col]
+            },
+            col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
+          ))
         )
       ),
       tbody(
@@ -680,17 +707,20 @@ const NavigatorFinder = function(props) {
             key: item.path,
             onclick: item.children === void 0 ? itemClick ? [itemClick, item] : void 0 : [action_itemClick, item]
           },
-          columns.map((col) => td(
-            {
-              title: col.val(item)
-            },
-            span(
+          columns.map((col) => {
+            const v = col.val(item);
+            return td(
               {
-                class: hitTest(col.val(item)) ? "hit" : ""
+                title: String(v)
               },
-              col.val(item)
-            )
-          ))
+              span(
+                {
+                  class: typeof v === "string" && hitTest(v) ? "hit" : ""
+                },
+                v
+              )
+            );
+          })
         ))
       )
     ),

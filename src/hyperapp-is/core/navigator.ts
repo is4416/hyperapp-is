@@ -40,8 +40,9 @@ export interface JsonEntry <D> {
 // ---------- ---------- ---------- ---------- ----------
 
 export interface NavigatorColumn {
-	name: string
-	val : (item: NavigatorItem) => any
+	name    : string
+	val     : (item: NavigatorItem) => any
+	compare?: (a: NavigatorItem, b: NavigatorItem) => number
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -193,9 +194,12 @@ export const NavigatorFinder = function <S> (
 	const current = getValue(state, currentKeys, undefined) as NavigatorItem | undefined
 
 	// localState
-	const { searchText, selected } = getLocalState(state, id, {
-		searchText: "",
-		selected  : []
+	const { searchText, selected, sortType, reverse, sortKey } = getLocalState(state, id, {
+		searchText: "",        // 検索テキスト
+		selected  : [],        // 選択されているボタン名
+		sortType  : undefined, // ソート用比較関数
+		reverse   : false,     // ソートを逆順にするか
+		sortKey   : undefined  // 使用されているソート名 (column.name)
 	})
 
 	// selected filter
@@ -211,8 +215,11 @@ export const NavigatorFinder = function <S> (
 		if (!directory) return result
 
 		result.push({
-			name: "name",
-			val : (item: NavigatorItem) => item.name
+			name   : "name",
+			val    : (item: NavigatorItem) => item.name,
+			compare: (a: NavigatorItem, b: NavigatorItem) => {
+				return a.name.localeCompare(b.name)
+			}
 		})
 
 		const children = directory.children
@@ -254,14 +261,14 @@ export const NavigatorFinder = function <S> (
 	// hitTest
 	// ---------- ---------- ----------
 
-	const hitTest = (text: string) => {
+	const hitTest = (text: unknown) => {
+		if (typeof text !== "string") return false
+
 		const S = searchText.trim().toLowerCase()
 		if (S === "") return false
 
 		const keys: string[] = S.replace(/[ 　]+/g, " ").split(" ").filter(Boolean)
 		if (keys.length === 0) return false
-
-		if (typeof text !== "string") return false
 
 		const sText = text.toLowerCase()
 		return keys.every(key => sText.includes(key))
@@ -291,6 +298,12 @@ export const NavigatorFinder = function <S> (
 
 	// items
 	const items = getItems(current)
+
+	// sort
+	if (sortType) {
+		items.sort(sortType)
+		if (reverse) items.reverse()
+	}
 
 	// items count
 	const count = current
@@ -324,11 +337,7 @@ export const NavigatorFinder = function <S> (
 
 		// 子アイテムがすべてプロパティのときは移動しない
 		const children = item.children
-		if (!children) return state
-
-		if (
-			!children.some(child => typeof child === "object" && !Array.isArray(child))
-		) return state
+		if (!children || children.length === 0) return state
 
 		// filterは解除
 		return setLocalState(
@@ -362,6 +371,20 @@ export const NavigatorFinder = function <S> (
 		navigator.clipboard.writeText(current.path)
 		return state
 	} // end action_copyFolderPath
+
+	// ---------- ---------- ----------
+	// action_sort
+	// ---------- ---------- ----------
+
+	const action_sort = (state: S, column: NavigatorColumn) => {
+		if (column.compare === undefined) return state
+
+		return setLocalState(state, id, {
+			sortType: column.compare,
+			reverse : sortKey === column.name ? !reverse : false,
+			sortKey : column.name
+		})
+	} // end action_sort
 
 	// ---------- ---------- ----------
 	// VNode
@@ -404,7 +427,14 @@ export const NavigatorFinder = function <S> (
 		table({},
 			thead({},
 				tr({},
-					columns.map(col => th({}, col.name))
+					columns.map(col => th({
+						onclick: [action_sort, col]
+					},
+						col.name + (sortKey === col.name
+							? (reverse ? " ▼" : " ▲")
+							: ""
+						)
+					))
 				)
 			),
 
@@ -415,15 +445,18 @@ export const NavigatorFinder = function <S> (
 						? itemClick ? [itemClick, item] : undefined
 						: [action_itemClick, item]
 				},
-					columns.map(col => td({
-						title: col.val(item)
-					},
-						span({
-							class: hitTest(col.val(item)) ? "hit" : ""
+					columns.map(col => {
+						const v = col.val(item)
+						return td({
+							title: String(v)
 						},
-							col.val(item)
+							span({
+								class: typeof v === "string" && hitTest(v) ? "hit" : ""
+							},
+								v
+							)
 						)
-					))
+					})
 				))
 			)
 		),

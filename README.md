@@ -549,13 +549,17 @@ NavigatorFinder に渡すヘッダーと値
 
 ```ts
 export interface NavigatorColumn {
-	name: string
-	val : (item: NavigatorItem) => any
+	name    : string
+	val     : (item: NavigatorItem) => any
+	compare?: (a: NavigatorItem, b: NavigatorItem) => number
 }
 ```
 
 - name: 名前
 - val : 値を返す関数
+- compare: 比較関数
+
+`compare` を設置したカラムだけ、ソート対象となります
 
 ---
 
@@ -606,6 +610,7 @@ export const getParentItems = (
 export const NavigatorFinder = function <S> (
 	props: {
 		state         : S
+		id            : string
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
 		maxItemsCount?: number
@@ -622,12 +627,15 @@ export const NavigatorFinder = function <S> (
 ```
 
 - state        : ステート
+- id           : ユニークID (DOM ID)
 - currentKeys  : カレント NavigatorItem までのパス
 - columns      : NavigatorColumn の配列を返す関数
 - maxItemsCount: 最大表示するアイテム数
 - itemClick    : アイテムをクリックした時のアクション
 - afterRender  : レンダーフック
 - extension    : レンダーフックに渡す拡張情報
+
+`maxItemsCount` は、そのうち表示数コントロールを作成するかも
 
 ---
 
