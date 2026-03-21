@@ -30,9 +30,10 @@ export interface NavigatorItem {
 // ---------- ---------- ---------- ---------- ----------
 
 export interface JsonEntry <D> {
-	name  : string
-	data  : D
-	isNode: boolean
+	name      : string
+	data      : D
+	isNode    : boolean
+	extension?: Record<string, any>
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -57,10 +58,9 @@ export const convertJsonToNavigatorItem = function <D> (
 		getEntries : (data: D, depth: number) => JsonEntry<D>[]
 		isNode     : boolean
 		depth     ?: number
-		extension ?: (item: NavigatorItem, data: D, depth: number) => Record<string, any> | undefined
 	}
 ): NavigatorItem {
-	const { parent, name, data, getEntries, isNode, depth = 0, extension } = props
+	const { parent, name, data, getEntries, isNode, depth = 0 } = props
 
 	const result: NavigatorItem = {
 		parent,
@@ -68,22 +68,23 @@ export const convertJsonToNavigatorItem = function <D> (
 		path: parent ? parent.path + "/" + name : "/" + name
 	}
 
-	if (extension) {
-		const ext = extension(result, data, depth)
-		if (ext) result.extension = ext
-	}
-
-	const properties: Record<string, any> = {}
-	let hasProperty = false
+	let extension : Record<string, any> | undefined
+	let properties: Record<string, any> | undefined
 
 	const children  : NavigatorItem[] = []
 
 	getEntries(data, depth).forEach(entry => {
+
+		if (entry.extension) {
+			extension ??= {}
+			Object.assign(extension, entry.extension)
+		}
+
 		const isProperty = typeof entry.data !== "object" || Array.isArray(entry.data)
 
 		if (isProperty) {
+			properties ??= {}
 			properties[entry.name] = entry.data
-			hasProperty = true
 
 		} else {
 			children.push(convertJsonToNavigatorItem({
@@ -92,13 +93,13 @@ export const convertJsonToNavigatorItem = function <D> (
 				data  : entry.data,
 				getEntries,
 				isNode: entry.isNode,
-				depth : depth + 1,
-				extension
+				depth : depth + 1
 			}))
 		}
 	})
 
-	if (hasProperty) result.properties = properties
+	if (extension) result.extension = extension
+	if (properties) result.properties = properties
 	if (isNode) result.children = children
 
 	return result

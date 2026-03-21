@@ -532,15 +532,17 @@ getEntriesの返す値
 
 ```ts
 export interface JsonEntry <D> {
-	name  : string
-	data  : D
-	isNode: boolean
+	name      : string
+	data      : D
+	isNode    : boolean
+	extension?: Record<string, any>
 }
 ```
 
 - name      : 名前
 - data      : データ
 - isNode    : ディレクトリか
+- extension?: `NavigatorItem.extension` に追加する値
 
 ---
 
@@ -576,7 +578,6 @@ export const convertJsonToNavigatorItem = function <D> (
 		getEntries : (data: D, depth: number) => JsonEntry<D>[]
 		isNode     : boolean
 		depth     ?: number
-		extension ?: (item: NavigatorItem, data: D, depth: number) => Record<string, any> | undefined
 	}
 ): NavigatorItem
 ```
@@ -587,7 +588,6 @@ export const convertJsonToNavigatorItem = function <D> (
 - getEntries: JsonEntry配列を返す関数
 - isNode    : ディレクトリか
 - depth     : 階層の深さ
-- extension : 拡張オブジェクトを作成する関数
 
 ---
 
