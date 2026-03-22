@@ -93,7 +93,8 @@ export const convertJsonToNavigatorItem = function <D> (
 				data  : entry.data,
 				getEntries,
 				isNode: entry.isNode,
-				depth : depth + 1
+				depth : depth + 1,
+				extension
 			}))
 		}
 	})
