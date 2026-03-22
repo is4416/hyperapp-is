@@ -43,6 +43,7 @@ export interface JsonEntry <D> {
 export interface NavigatorColumn {
 	name    : string
 	val     : (item: NavigatorItem) => any
+	text   ?: (item: NavigatorItem) => string
 	compare?: (a: NavigatorItem, b: NavigatorItem) => number
 }
 
@@ -285,7 +286,9 @@ export const NavigatorFinder = function <S> (
 		// filter
 		const result = isFilter && searchText !== ""
 			? item.children.filter(child => {
-				return columns.some(col => hitTest(col.val(child)))
+				return columns.some(col => hitTest(
+					col.text ? col.text(child) : col.val(child)
+				))
 			})
 			: item.children
 
@@ -314,7 +317,9 @@ export const NavigatorFinder = function <S> (
 	// items hitCount
 	const hitCount = isFilter
 		? items.length
-		: items.filter(item => columns.some(col => hitTest(col.val(item)))).length
+		: items.filter(item => columns.some(col => hitTest(
+			col.text ? col.text(item) : col.val(item)
+		))).length
 
 	// ---------- ---------- ----------
 	// action_parentClick
@@ -448,11 +453,12 @@ export const NavigatorFinder = function <S> (
 				},
 					columns.map(col => {
 						const v = col.val(item)
+						const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
 						return td({
-							title: String(v)
+							title: t
 						},
 							span({
-								class: typeof v === "string" && hitTest(v) ? "hit" : ""
+								class: hitTest(t) ? "hit" : ""
 							},
 								v
 							)

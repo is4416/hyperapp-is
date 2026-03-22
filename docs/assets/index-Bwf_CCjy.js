@@ -474,24 +474,24 @@ const OptionButton = function(props, children) {
   }, children);
 };
 const convertJsonToNavigatorItem = function(props) {
-  const { parent, name, data, getEntries, isNode, depth = 0, extension } = props;
+  const { parent, name, data, getEntries, isNode, depth = 0 } = props;
   const result = {
     parent,
     name,
     path: parent ? parent.path + "/" + name : "/" + name
   };
-  if (extension) {
-    const ext = extension(result, data, depth);
-    if (ext) result.extension = ext;
-  }
-  const properties = {};
-  let hasProperty = false;
+  let extension;
+  let properties;
   const children = [];
   getEntries(data, depth).forEach((entry) => {
+    if (entry.extension) {
+      extension ??= {};
+      Object.assign(extension, entry.extension);
+    }
     const isProperty = typeof entry.data !== "object" || Array.isArray(entry.data);
     if (isProperty) {
+      properties ??= {};
       properties[entry.name] = entry.data;
-      hasProperty = true;
     } else {
       children.push(convertJsonToNavigatorItem({
         parent: result,
@@ -499,12 +499,12 @@ const convertJsonToNavigatorItem = function(props) {
         data: entry.data,
         getEntries,
         isNode: entry.isNode,
-        depth: depth + 1,
-        extension
+        depth: depth + 1
       }));
     }
   });
-  if (hasProperty) result.properties = properties;
+  if (extension) result.extension = extension;
+  if (properties) result.properties = properties;
   if (isNode) result.children = children;
   return result;
 };
@@ -599,7 +599,9 @@ const NavigatorFinder = function(props) {
   const getItems = (item) => {
     if (!item || item.children === void 0) return [];
     const result = isFilter && searchText !== "" ? item.children.filter((child) => {
-      return columns.some((col) => hitTest(col.val(child)));
+      return columns.some((col) => hitTest(
+        col.text ? col.text(child) : col.val(child)
+      ));
     }) : item.children;
     const count2 = maxItemsCount === 0 ? result.length : Math.min(maxItemsCount, result.length);
     return result.slice(0, count2);
@@ -610,7 +612,9 @@ const NavigatorFinder = function(props) {
     if (reverse) items.reverse();
   }
   const count = current ? current.children?.length : 0;
-  const hitCount = isFilter ? items.length : items.filter((item) => columns.some((col) => hitTest(col.val(item)))).length;
+  const hitCount = isFilter ? items.length : items.filter((item) => columns.some((col) => hitTest(
+    col.text ? col.text(item) : col.val(item)
+  ))).length;
   const action_parentClick = (state2, item) => {
     return setLocalState(
       setValue(state2, currentKeys, item),
@@ -709,13 +713,14 @@ const NavigatorFinder = function(props) {
           },
           columns.map((col) => {
             const v = col.val(item);
+            const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
             return td(
               {
-                title: String(v)
+                title: t
               },
               span(
                 {
-                  class: typeof v === "string" && hitTest(v) ? "hit" : ""
+                  class: hitTest(t) ? "hit" : ""
                 },
                 v
               )
@@ -1340,12 +1345,7 @@ addEventListener("load", () => {
         name: "isYoshihiro",
         data: json,
         getEntries,
-        isNode: true,
-        extension: (item, data, depth) => {
-          return {
-            depth
-          };
-        }
+        isNode: true
       });
       dispatch((state2) => setValue(state2, navigator_finder, rootItem));
     };
