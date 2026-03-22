@@ -30,10 +30,9 @@ export interface NavigatorItem {
 // ---------- ---------- ---------- ---------- ----------
 
 export interface JsonEntry <D> {
-	name      : string
-	data      : D
-	isNode    : boolean
-	extension?: Record<string, any>
+	name  : string
+	data  : D
+	isNode: boolean
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -59,9 +58,10 @@ export const convertJsonToNavigatorItem = function <D> (
 		getEntries : (data: D, depth: number) => JsonEntry<D>[]
 		isNode     : boolean
 		depth     ?: number
+		extension ?: (item: NavigatorItem, data: D, depth: number) => Record<string, any> | undefined
 	}
 ): NavigatorItem {
-	const { parent, name, data, getEntries, isNode, depth = 0 } = props
+	const { parent, name, data, getEntries, isNode, depth = 0, extension } = props
 
 	const result: NavigatorItem = {
 		parent,
@@ -69,8 +69,10 @@ export const convertJsonToNavigatorItem = function <D> (
 		path: parent ? parent.path + "/" + name : "/" + name
 	}
 
-	let extension : Record<string, any> = {}
-	let hasExtension = false
+	if (extension) {
+		const ext = extension(result, data, depth)
+		if (ext) result.extension = ext
+	}
 
 	let properties: Record<string, any> = {}
 	let hasProperties = false
@@ -78,15 +80,6 @@ export const convertJsonToNavigatorItem = function <D> (
 	const children  : NavigatorItem[] = []
 
 	getEntries(data, depth).forEach(entry => {
-
-		if (entry.extension) {
-			extension = {
-				...extension,
-				...entry.extension
-			}
-			hasExtension = true
-		}
-
 		const isProperty = typeof entry.data !== "object" || Array.isArray(entry.data)
 
 		if (isProperty) {
@@ -105,7 +98,6 @@ export const convertJsonToNavigatorItem = function <D> (
 		}
 	})
 
-	if (hasExtension) result.extension = extension
 	if (hasProperties) result.properties = properties
 	if (isNode) result.children = children
 
