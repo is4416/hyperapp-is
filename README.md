@@ -553,12 +553,14 @@ NavigatorFinder に渡すヘッダーと値
 export interface NavigatorColumn {
 	name    : string
 	val     : (item: NavigatorItem) => any
+	text   ?: (item: NavigatorItem) => string
 	compare?: (a: NavigatorItem, b: NavigatorItem) => number
 }
 ```
 
-- name: 名前
-- val : 値を返す関数
+- name   : 名前
+- val    : 値を返す関数 (VNode等も可)
+- text   : val が string ではない時に設定するテキスト
 - compare: 比較関数
 
 `compare` を設置したカラムだけ、ソート対象となります

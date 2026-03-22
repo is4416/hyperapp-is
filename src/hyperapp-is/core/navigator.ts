@@ -69,23 +69,29 @@ export const convertJsonToNavigatorItem = function <D> (
 		path: parent ? parent.path + "/" + name : "/" + name
 	}
 
-	let extension : Record<string, any> | undefined
-	let properties: Record<string, any> | undefined
+	let extension : Record<string, any> = {}
+	let hasExtension = false
+
+	let properties: Record<string, any> = {}
+	let hasProperties = false
 
 	const children  : NavigatorItem[] = []
 
 	getEntries(data, depth).forEach(entry => {
 
 		if (entry.extension) {
-			extension ??= {}
-			Object.assign(extension, entry.extension)
+			extension = {
+				...extension,
+				...entry.extension
+			}
+			hasExtension = true
 		}
 
 		const isProperty = typeof entry.data !== "object" || Array.isArray(entry.data)
 
 		if (isProperty) {
-			properties ??= {}
 			properties[entry.name] = entry.data
+			hasProperties = true
 
 		} else {
 			children.push(convertJsonToNavigatorItem({
@@ -99,8 +105,8 @@ export const convertJsonToNavigatorItem = function <D> (
 		}
 	})
 
-	if (extension) result.extension = extension
-	if (properties) result.properties = properties
+	if (hasExtension) result.extension = extension
+	if (hasProperties) result.properties = properties
 	if (isNode) result.children = children
 
 	return result
