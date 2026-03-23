@@ -429,42 +429,44 @@ export const NavigatorFinder = function <S> (
 		),
 
 		// items
-		table({},
-			thead({},
-				tr({},
-					columns.map(col => th({
-						onclick: [action_sort, col]
+		div({},
+			table({},
+				thead({},
+					tr({},
+						columns.map(col => th({
+							onclick: [action_sort, col]
+						},
+							col.name + (sortKey === col.name
+								? (reverse ? " ▼" : " ▲")
+								: ""
+							)
+						))
+					)
+				),
+
+				tbody({},
+					items.map(item => tr({
+						key    : item.path,
+						onclick: item.children === undefined
+							? itemClick ? [itemClick, item] : undefined
+							: [action_itemClick, item]
 					},
-						col.name + (sortKey === col.name
-							? (reverse ? " ▼" : " ▲")
-							: ""
-						)
+						columns.map(col => {
+							const v = col.val(item)
+							const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
+							return td({
+								title: t
+							},
+								span({
+									class: hitTest(t) ? "hit" : ""
+								},
+									v
+								)
+							)
+						})
 					))
 				)
 			),
-
-			tbody({},
-				items.map(item => tr({
-					key    : item.path,
-					onclick: item.children === undefined
-						? itemClick ? [itemClick, item] : undefined
-						: [action_itemClick, item]
-				},
-					columns.map(col => {
-						const v = col.val(item)
-						const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
-						return td({
-							title: t
-						},
-							span({
-								class: hitTest(t) ? "hit" : ""
-							},
-								v
-							)
-						)
-					})
-				))
-			)
 		),
 
 		// statusBar

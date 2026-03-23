@@ -474,24 +474,24 @@ const OptionButton = function(props, children) {
   }, children);
 };
 const convertJsonToNavigatorItem = function(props) {
-  const { parent, name, data, getEntries, isNode, depth = 0 } = props;
+  const { parent, name, data, getEntries, isNode, depth = 0, extension } = props;
   const result = {
     parent,
     name,
     path: parent ? parent.path + "/" + name : "/" + name
   };
-  let extension;
-  let properties;
+  if (extension) {
+    const ext = extension(result, data, depth);
+    if (ext) result.extension = ext;
+  }
+  let properties = {};
+  let hasProperties = false;
   const children = [];
   getEntries(data, depth).forEach((entry) => {
-    if (entry.extension) {
-      extension ??= {};
-      Object.assign(extension, entry.extension);
-    }
     const isProperty = typeof entry.data !== "object" || Array.isArray(entry.data);
     if (isProperty) {
-      properties ??= {};
       properties[entry.name] = entry.data;
+      hasProperties = true;
     } else {
       children.push(convertJsonToNavigatorItem({
         parent: result,
@@ -499,12 +499,12 @@ const convertJsonToNavigatorItem = function(props) {
         data: entry.data,
         getEntries,
         isNode: entry.isNode,
-        depth: depth + 1
+        depth: depth + 1,
+        extension
       }));
     }
   });
-  if (extension) result.extension = extension;
-  if (properties) result.properties = properties;
+  if (hasProperties) result.properties = properties;
   if (isNode) result.children = children;
   return result;
 };
@@ -690,43 +690,46 @@ const NavigatorFinder = function(props) {
       }, parent.name))
     ),
     // items
-    table(
+    div$1(
       {},
-      thead(
+      table(
         {},
-        tr(
+        thead(
           {},
-          columns.map((col) => th(
+          tr(
+            {},
+            columns.map((col) => th(
+              {
+                onclick: [action_sort, col]
+              },
+              col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
+            ))
+          )
+        ),
+        tbody(
+          {},
+          items.map((item) => tr(
             {
-              onclick: [action_sort, col]
+              key: item.path,
+              onclick: item.children === void 0 ? itemClick ? [itemClick, item] : void 0 : [action_itemClick, item]
             },
-            col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
+            columns.map((col) => {
+              const v = col.val(item);
+              const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
+              return td(
+                {
+                  title: t
+                },
+                span(
+                  {
+                    class: hitTest(t) ? "hit" : ""
+                  },
+                  v
+                )
+              );
+            })
           ))
         )
-      ),
-      tbody(
-        {},
-        items.map((item) => tr(
-          {
-            key: item.path,
-            onclick: item.children === void 0 ? itemClick ? [itemClick, item] : void 0 : [action_itemClick, item]
-          },
-          columns.map((col) => {
-            const v = col.val(item);
-            const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
-            return td(
-              {
-                title: t
-              },
-              span(
-                {
-                  class: hitTest(t) ? "hit" : ""
-                },
-                v
-              )
-            );
-          })
-        ))
       )
     ),
     // statusBar
@@ -1345,7 +1348,12 @@ addEventListener("load", () => {
         name: "isYoshihiro",
         data: json,
         getEntries,
-        isNode: true
+        isNode: true,
+        extension: (item, data, depth) => {
+          return {
+            depth
+          };
+        }
       });
       dispatch((state2) => setValue(state2, navigator_finder, rootItem));
     };

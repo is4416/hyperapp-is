@@ -639,6 +639,41 @@ export const NavigatorFinder = function <S> (
 
 `maxItemsCount` は、そのうち表示数コントロールを作成するかも
 
+vnode
+```html
+<div>
+	<!-- toolBar -->
+	<div class="toolBar">
+		<input />
+		<button>FILTER</button>
+		<button>COPY</button>
+	</div>
+
+	<!-- parentItems -->
+	<ol>
+	</ol>
+
+	<!-- items -->
+	<div>
+		<table>
+			<thead>
+				<tr>
+					<th>headers</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><span>col.text | col.val</span></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<div class="statusBar">
+	</div>
+</div>
+```
+
 ---
 
 ## hyperapp-is/animation
