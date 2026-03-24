@@ -78,12 +78,6 @@ main {
 	overflow: hidden;
 	padding : 2rem;
 	border  : 1px gray solid;
-
-	> div {
-		overflow: auto;
-		width   : 100%;
-		height  : 100%;
-	}
 }
 
 /* *** carousel *** */
@@ -156,90 +150,85 @@ main {
 	}
 }
 
-/* *** navigator_finder *** */
+/* *** navigator_finder_simple *** */
 
-#navigator_finder {
-	overflow      : hidden;
-	display       : flex;
-	flex-direction: column;
-	height        : auto;
-	border        : 2px black solid;
-	border-radius : 5px;
+.navigator_finder_simple {
+	border: 1px gray solid;
 
-	/* toolBar */
-	> .toolBar {
-		display     : flex;
-		padding     : 5px;
-		border      : gray solid;
-		border-width: 0 0 1px 0;
-
-		> input[type="text"] {
-			flex-grow: 1;
-			padding  : 5px;
-			border   : 1px gray solid;
-		}
-
-		> button {
-			margin-left: 5px;
-			padding    : 5px;
-			cursor     : pointer;
-		}
-	}
-
-	/* parentItems */
-	> ol {
-		flex-shrink  : 0;
-		overflow    : auto;
-		list-style  : none;
-		display     : flex;
-		padding     : 5px;
-		border      : gray solid;
-		border-width: 0 0 1px 0;
-
-		> li {
-			margin-right: 5px;
-			padding     : 5px;
-			border      : 1px gray solid;
-			white-space : nowrap;
-			cursor      : pointer;
-
-			&:before {
-				content: "▶ ";
-			}
-		}
-	}
-
-	/* table */
-	> table {
-		table-layout   : fixed;
-		width          : 100%;
-		border-collapse: collapse;
-		text-align     : left;
-
-		td, th {
-			padding: 5px;
-		}
-
-		th {
-			background-color: lightgray;
-		}
-
-		> tbody {
-			> tr {
+	> .main {
+		> section {
+			> .toolBar {
+				display: flex;
+				padding: 5px;
 				border: gray solid;
-				border-width: 1px 0 1px 0;
-				> td {
-					> span.hit {
-						background-color: lightpink;
+				border-width: 0 0 1px 0;
+
+				> input[type="text"] {
+					padding: 5px;
+				}
+
+				> button {
+					margin-left: 5px;
+					padding: 5px;
+					cursor: pointer;
+				}
+
+				> button.select {
+					border: 2px black solid;
+				}
+			}
+
+			> .parentItems {
+				display: grid;
+				grid-template-columns: 1fr 4rem;
+				padding: 5px;
+				border: gray solid;
+				border-width: 0 0 1px 0;
+
+				> ol {
+					display: flex;
+					list-style: none;
+					margin: 0;
+
+					> li {
+						margin-right: 5px;
+						padding: 5px;
+						border: 1px gray solid;
+						cursor: pointer;
 					}
+
+					> li::before {
+						content: "▷";
+						margin: 0 5px 0 0;
+					}
+				}
+			}
+
+			> .items {
+				table {
+					width: 100%;
+				}
+
+				th {
+					padding: 5px;
+					text-align: left;
+				}
+
+				td {
+					border: gray solid;
+					border-width: 1px 0 0 0;
+				}
+
+				.hit {
+					color: red;
 				}
 			}
 		}
 	}
 
-	/* statusBar */
-	.statusBar {
+	> .statusBar {
 		padding: 5px;
-		background-color: lightgray;
+		border: gray solid;
+		border-width: 1px 0 0 0;
 	}
 }

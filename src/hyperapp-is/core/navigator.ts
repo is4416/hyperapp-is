@@ -127,18 +127,20 @@ export const getParentItems = (item: NavigatorItem | undefined): NavigatorItem[]
 // vnodes
 // ---------- ---------- ---------- ---------- ----------
 
-const div    = el("div")
-const table  = el("table")
-const thead  = el("thead")
-const tbody  = el("tbody")
-const tr     = el("tr")
-const th     = el("th")
-const td     = el("td")
-const ol     = el("ol")
-const li     = el("li")
-const button = el("button")
-const input  = el("input")
-const span   = el("span")
+const div     = el("div")
+const section = el("section")
+const table   = el("table")
+const thead   = el("thead")
+const tbody   = el("tbody")
+const tr      = el("tr")
+const th      = el("th")
+const td      = el("td")
+const ol      = el("ol")
+const ul      = el("ul")
+const li      = el("li")
+const button  = el("button")
+const input   = el("input")
+const span    = el("span")
 
 // ---------- ---------- ---------- ---------- ----------
 // NavigatorFinder Component
@@ -172,12 +174,9 @@ export const NavigatorFinder = function <S> (
 		id            : string
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
-		maxItemsCount?: number
-		itemClick    ?: (state: S, item: NavigatorItem) => S | [S, Effect<S>]
 		afterRender  ?: (props: {
 			state     : S
-			current  ?: NavigatorItem
-			extension?: Record<string, any>
+			localState: Record<string, any>
 		}, vnode: VNode<S>) => VNode<S>
 		extension   ?: Record<string, any>
 		[key: string]: any
@@ -187,10 +186,7 @@ export const NavigatorFinder = function <S> (
 		state,
 		id,
 		currentKeys,
-		maxItemsCount = 0,
-		itemClick,
-		afterRender,
-		extension
+		afterRender
 	} = props
 	const current = getValue(state, currentKeys, undefined) as NavigatorItem | undefined
 
@@ -291,12 +287,7 @@ export const NavigatorFinder = function <S> (
 			})
 			: item.children
 
-		// maxCount
-		const count = maxItemsCount === 0
-			? result.length
-			: Math.min(maxItemsCount, result.length)
-
-		return result.slice(0, count)
+		return result
 	} // end getItems
 
 	// items
@@ -319,6 +310,9 @@ export const NavigatorFinder = function <S> (
 		: items.filter(item => columns.some(col => hitTest(
 			col.text ? col.text(item) : col.val(item)
 		))).length
+
+	// message
+	const message = `hit items = ${ hitCount } / ${ count }`
 
 	// ---------- ---------- ----------
 	// action_parentClick
@@ -396,88 +390,114 @@ export const NavigatorFinder = function <S> (
 	// ---------- ---------- ----------
 
 	const vnode: VNode<S> = div({
-		...deleteKeys(props, "state", "currentKeys", "columns", "itemClick", "afterRender", "extension")
+		...deleteKeys(
+			props,
+			"state",
+			"currentKeys",
+			"columns",
+			"afterRender"
+		)
 	},
-		// toolBar
 		div({
-			class: "toolBar"
+			class: "main"
 		},
-			input({
-				type       : "text",
-				placeholder: "search keys",
-				value      : searchText,
-				oninput    : action_inputSearchText
-			}),
-			SelectButton({
-				state   : state,
-				id      : `${ createLocalKey(id) }_filter`,
-				keyNames: [createLocalKey(id), "selected"]
-			}, "FILTER"),
-			button({
-				type   : "button",
-				title  : "現在のフォルダパスを、クリップボードにコピー",
-				onclick: action_copyFolderPath
-			}, "COPY")
-		),
-
-		// parentItems
-		ol({},
-			parentItems.map(parent => li({
-				key    : parent.path,
-				onclick: [action_parentClick, parent]
-			}, parent.name))
-		),
-
-		// items
-		div({},
-			table({},
-				thead({},
-					tr({},
-						columns.map(col => th({
-							onclick: [action_sort, col]
-						},
-							col.name + (sortKey === col.name
-								? (reverse ? " ▼" : " ▲")
-								: ""
-							)
-						))
-					)
+			section({},
+				div({
+					class: "toolBar"
+				},
+					input({
+						type       : "text",
+						placeholder: "search keys",
+						value      : searchText,
+						oninput    : action_inputSearchText
+					}),
+					SelectButton({
+						state   : state,
+						id      : `${ createLocalKey(id) }_filter`,
+						keyNames: [createLocalKey(id), "selected"]
+					}, "FILTER"),
 				),
 
-				tbody({},
-					items.map(item => tr({
-						key    : item.path,
-						onclick: item.children === undefined
-							? itemClick ? [itemClick, item] : undefined
-							: [action_itemClick, item]
-					},
-						columns.map(col => {
-							const v = col.val(item)
-							const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
-							return td({
-								title: t
-							},
-								span({
-									class: hitTest(t) ? "hit" : ""
+				div({
+					class: "parentItems"
+				},
+					ol({},
+						parentItems.map(parent => li({
+							key    : parent.path,
+							onclick: [action_parentClick, parent]
+						}, parent.name))
+					),
+					button({
+						type   : "button",
+						title  : "現在のフォルダパスを、クリップボードにコピー",
+						onclick: action_copyFolderPath
+					}, "COPY")
+				),
+
+				div({
+					class: "items"
+				},
+					table({},
+						thead({},
+							tr({},
+								columns.map(col => th({
+									class  : col.compare ? "sort" : "",
+									onclick: [action_sort, col]
 								},
-									v
-								)
+									col.name + (sortKey === col.name
+										? (reverse ? " ▼" : " ▲")
+										: ""
+									)
+								))
 							)
-						})
-					))
+						),
+
+						tbody({},
+							items.map(item => tr({
+								key    : item.path,
+								class  : item.children === undefined
+									? "file"
+									: "directory",
+								onclick: item.children === undefined
+									? undefined
+									: [action_itemClick, item]
+							},
+								columns.map(col => {
+									const v = col.val(item)
+									const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
+									return td({
+										title: t
+									},
+										span({
+											class: hitTest(t) ? "hit" : ""
+										},
+											v
+										)
+									)
+								})
+							))
+						)
+					)
 				)
-			),
+			)
 		),
 
 		// statusBar
-		div({
-			class: "statusBar"
-		}, `items ${ items.length } / ${ count }` + (searchText !== "" ? ` (${ hitCount } hit)` : ""))
+		div({ class: "statusBar" }, message)
 	)
 
 	// ---------- ---------- ----------
 	// afterRender
 	// ---------- ---------- ----------
 
-	return afterRender ? afterRender({ state, current, extension }, vnode) : vnode
+	return afterRender ? afterRender({
+		state,
+		localState: {
+			searchText,
+			selected,
+			sortType,
+			reverse,
+			sortKey
+		}
+	}, vnode) : vnode
 }

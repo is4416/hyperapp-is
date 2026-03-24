@@ -615,14 +615,10 @@ export const NavigatorFinder = function <S> (
 		id            : string
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
-		maxItemsCount?: number
-		itemClick    ?: (state: S, item: NavigatorItem) => S | [S, Effect<S>]
 		afterRender  ?: (props: {
 			state     : S
-			current  ?: NavigatorItem
-			extension?: Record<string, any>
+			localState: Recrod<string, any>
 		}, vnode: VNode<S>) => VNode<S>
-		extension   ?: Record<string, any>
 		[key: string]: any
 	}
 ): VNode<S>
@@ -632,45 +628,46 @@ export const NavigatorFinder = function <S> (
 - id           : ユニークID (DOM ID)
 - currentKeys  : カレント NavigatorItem までのパス
 - columns      : NavigatorColumn の配列を返す関数
-- maxItemsCount: 最大表示するアイテム数
-- itemClick    : アイテムをクリックした時のアクション
 - afterRender  : レンダーフック
-- extension    : レンダーフックに渡す拡張情報
-
-`maxItemsCount` は、そのうち表示数コントロールを作成するかも
 
 vnode
 ```html
 <div>
-	<!-- toolBar -->
-	<div class="toolBar">
-		<input />
-		<button>FILTER</button>
-		<button>COPY</button>
+	<div class="main">
+		<section>
+			<div class="toolBar">
+				<input type="text" />
+				<button type="button">FILTER</button>
+			</div>
+
+			<div class="parentItems">
+				<ol>
+					<li>parent</li>
+				</ol>
+				<button type="button">COPY</button>
+			</div>
+
+			<div class="items">
+				<table>
+					<thead>
+						<tr>
+							<th>ヘッダー</th>
+							<th class="sort">ソート付きヘッダー</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td class="file"><span>value</span></td>
+							<td class="directory"><span>value</span></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
 	</div>
 
-	<!-- parentItems -->
-	<ol>
-	</ol>
-
-	<!-- items -->
-	<div>
-		<table>
-			<thead>
-				<tr>
-					<th>headers</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td><span>col.text | col.val</span></td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
-
-	<div class="statusBar">
-	</div>
+	<!-- statusBar -->
+	<div class="statusBar">message</div>
 </div>
 ```
 

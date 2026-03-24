@@ -519,6 +519,7 @@ const getParentItems = (item) => {
   return result.reverse();
 };
 const div$1 = el("div");
+const section = el("section");
 const table = el("table");
 const thead = el("thead");
 const tbody = el("tbody");
@@ -535,10 +536,7 @@ const NavigatorFinder = function(props) {
     state,
     id: id2,
     currentKeys,
-    maxItemsCount = 0,
-    itemClick,
-    afterRender,
-    extension
+    afterRender
   } = props;
   const current = getValue(state, currentKeys, void 0);
   const { searchText, selected, sortType, reverse, sortKey } = getLocalState(state, id2, {
@@ -603,8 +601,7 @@ const NavigatorFinder = function(props) {
         col.text ? col.text(child) : col.val(child)
       ));
     }) : item.children;
-    const count2 = maxItemsCount === 0 ? result.length : Math.min(maxItemsCount, result.length);
-    return result.slice(0, count2);
+    return result;
   };
   const items = getItems(current);
   if (sortType) {
@@ -615,6 +612,7 @@ const NavigatorFinder = function(props) {
   const hitCount = isFilter ? items.length : items.filter((item) => columns.some((col) => hitTest(
     col.text ? col.text(item) : col.val(item)
   ))).length;
+  const message = `hit items = ${hitCount} / ${count}`;
   const action_parentClick = (state2, item) => {
     return setLocalState(
       setValue(state2, currentKeys, item),
@@ -657,87 +655,114 @@ const NavigatorFinder = function(props) {
   };
   const vnode = div$1(
     {
-      ...deleteKeys(props, "state", "currentKeys", "columns", "itemClick", "afterRender", "extension")
+      ...deleteKeys(
+        props,
+        "state",
+        "currentKeys",
+        "columns",
+        "afterRender"
+      )
     },
-    // toolBar
     div$1(
       {
-        class: "toolBar"
+        class: "main"
       },
-      input({
-        type: "text",
-        placeholder: "search keys",
-        value: searchText,
-        oninput: action_inputSearchText
-      }),
-      SelectButton({
-        state,
-        id: `${createLocalKey(id2)}_filter`,
-        keyNames: [createLocalKey(id2), "selected"]
-      }, "FILTER"),
-      button$1({
-        type: "button",
-        title: "現在のフォルダパスを、クリップボードにコピー",
-        onclick: action_copyFolderPath
-      }, "COPY")
-    ),
-    // parentItems
-    ol(
-      {},
-      parentItems.map((parent) => li$1({
-        key: parent.path,
-        onclick: [action_parentClick, parent]
-      }, parent.name))
-    ),
-    // items
-    div$1(
-      {},
-      table(
+      section(
         {},
-        thead(
-          {},
-          tr(
-            {},
-            columns.map((col) => th(
-              {
-                onclick: [action_sort, col]
-              },
-              col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
-            ))
-          )
+        div$1(
+          {
+            class: "toolBar"
+          },
+          input({
+            type: "text",
+            placeholder: "search keys",
+            value: searchText,
+            oninput: action_inputSearchText
+          }),
+          SelectButton({
+            state,
+            id: `${createLocalKey(id2)}_filter`,
+            keyNames: [createLocalKey(id2), "selected"]
+          }, "FILTER")
         ),
-        tbody(
-          {},
-          items.map((item) => tr(
-            {
-              key: item.path,
-              onclick: item.children === void 0 ? itemClick ? [itemClick, item] : void 0 : [action_itemClick, item]
-            },
-            columns.map((col) => {
-              const v = col.val(item);
-              const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
-              return td(
-                {
-                  title: t
-                },
-                span(
+        div$1(
+          {
+            class: "parentItems"
+          },
+          ol(
+            {},
+            parentItems.map((parent) => li$1({
+              key: parent.path,
+              onclick: [action_parentClick, parent]
+            }, parent.name))
+          ),
+          button$1({
+            type: "button",
+            title: "現在のフォルダパスを、クリップボードにコピー",
+            onclick: action_copyFolderPath
+          }, "COPY")
+        ),
+        div$1(
+          {
+            class: "items"
+          },
+          table(
+            {},
+            thead(
+              {},
+              tr(
+                {},
+                columns.map((col) => th(
                   {
-                    class: hitTest(t) ? "hit" : ""
+                    class: col.compare ? "sort" : "",
+                    onclick: [action_sort, col]
                   },
-                  v
-                )
-              );
-            })
-          ))
+                  col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
+                ))
+              )
+            ),
+            tbody(
+              {},
+              items.map((item) => tr(
+                {
+                  key: item.path,
+                  class: item.children === void 0 ? "file" : "directory",
+                  onclick: item.children === void 0 ? void 0 : [action_itemClick, item]
+                },
+                columns.map((col) => {
+                  const v = col.val(item);
+                  const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
+                  return td(
+                    {
+                      title: t
+                    },
+                    span(
+                      {
+                        class: hitTest(t) ? "hit" : ""
+                      },
+                      v
+                    )
+                  );
+                })
+              ))
+            )
+          )
         )
       )
     ),
     // statusBar
-    div$1({
-      class: "statusBar"
-    }, `items ${items.length} / ${count}` + (searchText !== "" ? ` (${hitCount} hit)` : ""))
+    div$1({ class: "statusBar" }, message)
   );
-  return afterRender ? afterRender({ state, current, extension }, vnode) : vnode;
+  return afterRender ? afterRender({
+    state,
+    localState: {
+      searchText,
+      selected,
+      sortType,
+      reverse,
+      sortKey
+    }
+  }, vnode) : vnode;
 };
 const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {
@@ -1447,9 +1472,11 @@ addEventListener("load", () => {
         {
           state,
           id: "navigator_finder",
-          currentKeys: navigator_finder
+          currentKeys: navigator_finder,
+          class: "navigator_finder_simple"
         }
-      )
+      ),
+      /* @__PURE__ */ h("a", { href: "css/navigator_finder_simple.css" }, "navigator_finder_simple.css")
     ))),
     node: document.getElementById("app"),
     init: param,

@@ -315,8 +315,10 @@ addEventListener("load", () => {
 						state       = { state }
 						id          = "navigator_finder"
 						currentKeys = { navigator_finder }
+						class       = "navigator_finder_simple"
 						/* columns = { createColumns } */
 					/>
+					<a href="css/navigator_finder_simple.css">navigator_finder_simple.css</a>
 				</Route>
 			</main>
 		</div>),
