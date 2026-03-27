@@ -19,7 +19,7 @@ import {
  * hが競合する可能性があるので作成した
  */
 
-export const el = (tag: string) => <S> (
+export const el = <S = any> (tag: string) => (
 	props?: { [key: string]: any },
 	...children: any[]
 ): VNode<S> => h(

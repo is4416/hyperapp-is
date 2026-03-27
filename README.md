@@ -364,7 +364,7 @@ Hyperapp の h 関数ラッパー。JSX と競合する場合に使用
 children の処理も同時に行っているため、本ライブラリでは VNode を作成する際に使用しています
 
 ```ts
-export const el = (tag: string) => <S> (
+export const el = <S = any> (tag: string) => (
 	props   ?: { [key: string]: any },
 	children?: Array
 ): VNode<S>
