@@ -632,38 +632,34 @@ export const NavigatorFinder = function <S> (
 
 vnode
 ```html
-<div>
-	<div class="main">
-		<section>
-			<div class="toolBar">
-				<input type="text" />
-				<button type="button">FILTER</button>
-			</div>
+<div id={id}>
+	<div class="toolBar">
+		<input type="text" />
+		<button type="button">FILTER</button>
+	</div>
 
-			<div class="parentItems">
-				<ol>
-					<li>parent</li>
-				</ol>
-				<button type="button">COPY</button>
-			</div>
+	<div class="parentItems">
+		<ol>
+			<li>parent</li>
+		</ol>
+		<button type="button">COPY</button>
+	</div>
 
-			<div class="items">
-				<table>
-					<thead>
-						<tr>
-							<th>ヘッダー</th>
-							<th class="sort">ソート付きヘッダー</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td class="file"><span>value</span></td>
-							<td class="directory"><span>value</span></td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</section>
+	<div class="items">
+		<table>
+			<thead>
+				<tr>
+					<th>ヘッダー</th>
+					<th class="sort">ソート付きヘッダー</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td class="file"><span>value</span></td>
+					<td class="directory"><span>value</span></td>
+				</tr>
+			</tbody>
+		</table>
 	</div>
 
 	<!-- statusBar -->

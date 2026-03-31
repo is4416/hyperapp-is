@@ -519,7 +519,6 @@ const getParentItems = (item) => {
   return result.reverse();
 };
 const div$1 = el("div");
-const section = el("section");
 const table = el("table");
 const thead = el("thead");
 const tbody = el("tbody");
@@ -660,93 +659,86 @@ const NavigatorFinder = function(props) {
         "state",
         "currentKeys",
         "columns",
-        "afterRender"
+        "afterRender",
+        "extension"
       )
     },
     div$1(
       {
-        class: "main"
+        class: "toolBar"
       },
-      section(
+      input({
+        type: "text",
+        placeholder: "search keys",
+        value: searchText,
+        oninput: action_inputSearchText
+      }),
+      SelectButton({
+        state,
+        id: `${createLocalKey(id2)}_filter`,
+        keyNames: [createLocalKey(id2), "selected"]
+      }, "FILTER")
+    ),
+    div$1(
+      {
+        class: "parentItems"
+      },
+      ol(
         {},
-        div$1(
-          {
-            class: "toolBar"
-          },
-          input({
-            type: "text",
-            placeholder: "search keys",
-            value: searchText,
-            oninput: action_inputSearchText
-          }),
-          SelectButton({
-            state,
-            id: `${createLocalKey(id2)}_filter`,
-            keyNames: [createLocalKey(id2), "selected"]
-          }, "FILTER")
-        ),
-        div$1(
-          {
-            class: "parentItems"
-          },
-          ol(
+        parentItems.map((parent) => li$1({
+          key: parent.path,
+          onclick: [action_parentClick, parent]
+        }, parent.name))
+      ),
+      button$1({
+        type: "button",
+        title: "現在のフォルダパスを、クリップボードにコピー",
+        onclick: action_copyFolderPath
+      }, "COPY")
+    ),
+    div$1(
+      {
+        class: "items"
+      },
+      table(
+        {},
+        thead(
+          {},
+          tr(
             {},
-            parentItems.map((parent) => li$1({
-              key: parent.path,
-              onclick: [action_parentClick, parent]
-            }, parent.name))
-          ),
-          button$1({
-            type: "button",
-            title: "現在のフォルダパスを、クリップボードにコピー",
-            onclick: action_copyFolderPath
-          }, "COPY")
-        ),
-        div$1(
-          {
-            class: "items"
-          },
-          table(
-            {},
-            thead(
-              {},
-              tr(
-                {},
-                columns.map((col) => th(
-                  {
-                    class: col.compare ? "sort" : "",
-                    onclick: [action_sort, col]
-                  },
-                  col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
-                ))
-              )
-            ),
-            tbody(
-              {},
-              items.map((item) => tr(
-                {
-                  key: item.path,
-                  class: item.children === void 0 ? "file" : "directory",
-                  onclick: item.children === void 0 ? void 0 : [action_itemClick, item]
-                },
-                columns.map((col) => {
-                  const v = col.val(item);
-                  const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
-                  return td(
-                    {
-                      title: t
-                    },
-                    span(
-                      {
-                        class: hitTest(t) ? "hit" : ""
-                      },
-                      v
-                    )
-                  );
-                })
-              ))
-            )
+            columns.map((col) => th(
+              {
+                class: col.compare ? "sort" : "",
+                onclick: [action_sort, col]
+              },
+              col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
+            ))
           )
+        ),
+        tbody(
+          {},
+          items.map((item) => tr(
+            {
+              key: item.path,
+              class: item.children === void 0 ? "file" : "directory",
+              onclick: item.children === void 0 ? void 0 : [action_itemClick, item]
+            },
+            columns.map((col) => {
+              const v = col.val(item);
+              const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
+              return td(
+                {
+                  title: t
+                },
+                span(
+                  {
+                    class: hitTest(t) ? "hit" : ""
+                  },
+                  v
+                )
+              );
+            })
+          ))
         )
       )
     ),

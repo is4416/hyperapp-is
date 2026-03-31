@@ -395,93 +395,88 @@ export const NavigatorFinder = function <S> (
 			"state",
 			"currentKeys",
 			"columns",
-			"afterRender"
+			"afterRender",
+			"extension"
 		)
 	},
 		div({
-			class: "main"
+			class: "toolBar"
 		},
-			section({},
-				div({
-					class: "toolBar"
-				},
-					input({
-						type       : "text",
-						placeholder: "search keys",
-						value      : searchText,
-						oninput    : action_inputSearchText
-					}),
-					SelectButton({
-						state   : state,
-						id      : `${ createLocalKey(id) }_filter`,
-						keyNames: [createLocalKey(id), "selected"]
-					}, "FILTER"),
-				),
+			input({
+				type       : "text",
+				placeholder: "search keys",
+				value      : searchText,
+				oninput    : action_inputSearchText
+			}),
+			SelectButton({
+				state   : state,
+				id      : `${ createLocalKey(id) }_filter`,
+				keyNames: [createLocalKey(id), "selected"]
+			}, "FILTER"),
+		),
 
-				div({
-					class: "parentItems"
-				},
-					ol({},
-						parentItems.map(parent => li({
-							key    : parent.path,
-							onclick: [action_parentClick, parent]
-						}, parent.name))
-					),
-					button({
-						type   : "button",
-						title  : "現在のフォルダパスを、クリップボードにコピー",
-						onclick: action_copyFolderPath
-					}, "COPY")
-				),
+		div({
+			class: "parentItems"
+		},
+			ol({},
+				parentItems.map(parent => li({
+					key    : parent.path,
+					onclick: [action_parentClick, parent]
+				}, parent.name))
+			),
+			button({
+				type   : "button",
+				title  : "現在のフォルダパスを、クリップボードにコピー",
+				onclick: action_copyFolderPath
+			}, "COPY")
+		),
 
-				div({
-					class: "items"
-				},
-					table({},
-						thead({},
-							tr({},
-								columns.map(col => th({
-									class  : col.compare ? "sort" : "",
-									onclick: [action_sort, col]
-								},
-									col.name + (sortKey === col.name
-										? (reverse ? " ▼" : " ▲")
-										: ""
-									)
-								))
+		div({
+			class: "items"
+		},
+			table({},
+				thead({},
+					tr({},
+						columns.map(col => th({
+							class  : col.compare ? "sort" : "",
+							onclick: [action_sort, col]
+						},
+							col.name + (sortKey === col.name
+								? (reverse ? " ▼" : " ▲")
+								: ""
 							)
-						),
-
-						tbody({},
-							items.map(item => tr({
-								key    : item.path,
-								class  : item.children === undefined
-									? "file"
-									: "directory",
-								onclick: item.children === undefined
-									? undefined
-									: [action_itemClick, item]
-							},
-								columns.map(col => {
-									const v = col.val(item)
-									const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
-									return td({
-										title: t
-									},
-										span({
-											class: hitTest(t) ? "hit" : ""
-										},
-											v
-										)
-									)
-								})
-							))
-						)
+						))
 					)
+				),
+
+				tbody({},
+					items.map(item => tr({
+						key    : item.path,
+						class  : item.children === undefined
+							? "file"
+							: "directory",
+						onclick: item.children === undefined
+							? undefined
+							: [action_itemClick, item]
+					},
+						columns.map(col => {
+							const v = col.val(item)
+							const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
+							return td({
+								title: t
+							},
+								span({
+									class: hitTest(t) ? "hit" : ""
+								},
+									v
+								)
+							)
+						})
+					))
 				)
 			)
 		),
-
+	
 		// statusBar
 		div({ class: "statusBar" }, message)
 	)

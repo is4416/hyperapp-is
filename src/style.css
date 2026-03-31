@@ -155,80 +155,71 @@ main {
 .navigator_finder_simple {
 	border: 1px gray solid;
 
-	> .main {
-		> section {
-			> .toolBar {
-				display: flex;
-				padding: 5px;
-				border: gray solid;
-				border-width: 0 0 1px 0;
+	> .toolBar {
+		display     : flex;
+		padding     : 5px;
+		border      : gray solid;
+		border-width: 0 0 1px 0;
 
-				> input[type="text"] {
-					padding: 5px;
-				}
+		> input[type="text"] {
+			padding: 5px;
+			width  : 20rem;
+		}
 
-				> button {
-					margin-left: 5px;
-					padding: 5px;
-					cursor: pointer;
-				}
+		> button {
+			margin-left: 5px;
+			padding    : 5px;
+		}
+	}
 
-				> button.select {
-					border: 2px black solid;
-				}
-			}
+	> .parentItems {
+		display              : grid;
+		grid-template-columns: 1fr 4rem;
+		gap                  : 5px;
+		padding              : 5px;
 
-			> .parentItems {
-				display: grid;
-				grid-template-columns: 1fr 4rem;
-				padding: 5px;
-				border: gray solid;
-				border-width: 0 0 1px 0;
+		> ol {
+			list-style: none;
+			display   : flex;
+			margin    : 0;
+			padding   : 0;
 
-				> ol {
-					display: flex;
-					list-style: none;
-					margin: 0;
-
-					> li {
-						margin-right: 5px;
-						padding: 5px;
-						border: 1px gray solid;
-						cursor: pointer;
-					}
-
-					> li::before {
-						content: "▷";
-						margin: 0 5px 0 0;
-					}
-				}
-			}
-
-			> .items {
-				table {
-					width: 100%;
-				}
-
-				th {
-					padding: 5px;
-					text-align: left;
-				}
-
-				td {
-					border: gray solid;
-					border-width: 1px 0 0 0;
-				}
-
-				.hit {
-					color: red;
-				}
+			> li {
+				margin-right: 5px;
+				padding     : 5px;
+				border      : 1px gray solid;
+				cursor      : pointer;
 			}
 		}
 	}
 
+	> .items {
+		table {
+			width       : 100%;
+			border      : gray solid;
+			border-width: 1px 0 1px 0;
+		}
+
+		th {
+			padding         : 5px;
+			background-color: lightgray;
+			text-align      : left;
+		}
+
+		th.sort {
+			cursor: pointer;
+		}
+
+		td {
+			padding     : 5px;
+			border      : gray solid;
+			border-width: 1px 0 0 0;
+			cursor      : pointer;
+		}
+	}
+
 	> .statusBar {
-		padding: 5px;
-		border: gray solid;
-		border-width: 1px 0 0 0;
+		padding         : 5px;
+		background-color: lightgray;
 	}
 }
