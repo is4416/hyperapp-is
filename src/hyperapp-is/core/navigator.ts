@@ -161,11 +161,11 @@ const span    = el("span")
  * - itemClick
  * 非ノードをクリックした際のアクション
  * 
+ * - plugIn
+ * プラグインの追加
+ * 
  * - afterRender
  * レンダーフック
- * 
- * - extension
- * レンダーフックで参照できる拡張情報
  */
 
 export const NavigatorFinder = function <S> (
@@ -174,11 +174,14 @@ export const NavigatorFinder = function <S> (
 		id            : string
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
+		plugIn       ?: (props: {
+			state     : S
+			localState: Record<string, any>
+		}) => VNode<S>[]
 		afterRender  ?: (props: {
 			state     : S
 			localState: Record<string, any>
 		}, vnode: VNode<S>) => VNode<S>
-		extension   ?: Record<string, any>
 		[key: string]: any
 	}
 ): VNode<S> {
@@ -186,11 +189,20 @@ export const NavigatorFinder = function <S> (
 		state,
 		id,
 		currentKeys,
+		plugIn,
 		afterRender
 	} = props
 	const current = getValue(state, currentKeys, undefined) as NavigatorItem | undefined
 
 	// localState
+	const localState = getLocalState(state, id, {
+		searchText: "",        // 検索テキスト
+		selected  : [],        // 選択されているボタン名
+		sortType  : undefined, // ソート用比較関数
+		reverse   : false,     // ソートを逆順にするか
+		sortKey   : undefined  // 使用されているソート名 (column.name)
+	})
+	/*
 	const { searchText, selected, sortType, reverse, sortKey } = getLocalState(state, id, {
 		searchText: "",        // 検索テキスト
 		selected  : [],        // 選択されているボタン名
@@ -198,9 +210,10 @@ export const NavigatorFinder = function <S> (
 		reverse   : false,     // ソートを逆順にするか
 		sortKey   : undefined  // 使用されているソート名 (column.name)
 	})
+	*/
 
 	// selected filter
-	const isFilter = selected.includes(`${ createLocalKey(id) }_filter`)
+	const isFilter = localState.selected.includes(`${ createLocalKey(id) }_filter`)
 
 	// ---------- ---------- ----------
 	// createColumns
@@ -261,7 +274,7 @@ export const NavigatorFinder = function <S> (
 	const hitTest = (text: unknown) => {
 		if (typeof text !== "string") return false
 
-		const S = searchText.trim().toLowerCase()
+		const S = localState.searchText.trim().toLowerCase()
 		if (S === "") return false
 
 		const keys: string[] = S.replace(/[ 　]+/g, " ").split(" ").filter(Boolean)
@@ -279,7 +292,7 @@ export const NavigatorFinder = function <S> (
 		if (!item || item.children === undefined) return []
 
 		// filter
-		const result = isFilter && searchText !== ""
+		const result = isFilter && localState.searchText !== ""
 			? item.children.filter(child => {
 				return columns.some(col => hitTest(
 					col.text ? col.text(child) : col.val(child)
@@ -294,9 +307,9 @@ export const NavigatorFinder = function <S> (
 	const items = getItems(current)
 
 	// sort
-	if (sortType) {
-		items.sort(sortType)
-		if (reverse) items.reverse()
+	if (localState.sortType) {
+		items.sort(localState.sortType)
+		if (localState.reverse) items.reverse()
 	}
 
 	// items count
@@ -380,7 +393,7 @@ export const NavigatorFinder = function <S> (
 
 		return setLocalState(state, id, {
 			sortType: column.compare,
-			reverse : sortKey === column.name ? !reverse : false,
+			reverse : localState.sortKey === column.name ? !localState.reverse : false,
 			sortKey : column.name
 		})
 	} // end action_sort
@@ -395,8 +408,8 @@ export const NavigatorFinder = function <S> (
 			"state",
 			"currentKeys",
 			"columns",
+			"plugIn",
 			"afterRender",
-			"extension"
 		)
 	},
 		div({
@@ -405,7 +418,7 @@ export const NavigatorFinder = function <S> (
 			input({
 				type       : "text",
 				placeholder: "search keys",
-				value      : searchText,
+				value      : localState.searchText,
 				oninput    : action_inputSearchText
 			}),
 			SelectButton({
@@ -441,8 +454,8 @@ export const NavigatorFinder = function <S> (
 							class  : col.compare ? "sort" : "",
 							onclick: [action_sort, col]
 						},
-							col.name + (sortKey === col.name
-								? (reverse ? " ▼" : " ▲")
+							col.name + (localState.sortKey === col.name
+								? (localState.reverse ? " ▼" : " ▲")
 								: ""
 							)
 						))
@@ -478,21 +491,17 @@ export const NavigatorFinder = function <S> (
 		),
 	
 		// statusBar
-		div({ class: "statusBar" }, message)
+		div({ class: "statusBar" }, message),
+
+		// plugIn
+		plugIn
+			? plugIn({state, localState})
+			: []
 	)
 
 	// ---------- ---------- ----------
 	// afterRender
 	// ---------- ---------- ----------
 
-	return afterRender ? afterRender({
-		state,
-		localState: {
-			searchText,
-			selected,
-			sortType,
-			reverse,
-			sortKey
-		}
-	}, vnode) : vnode
+	return afterRender ? afterRender({ state, localState }, vnode) : vnode
 }

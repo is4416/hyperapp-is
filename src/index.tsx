@@ -226,6 +226,20 @@ addEventListener("load", () => {
 	}
 
 	// ---------- ---------- ----------
+	// plugIn
+	// ---------- ---------- ----------
+
+	const plugIns = (props: {
+		state     : State,
+		localState: Record<string, any>
+	}): VNode<State>[] => {
+		return [
+			(<div>add plugIn 1</div>),
+			(<div>add plugIn 2</div>)
+		]
+	}
+
+	// ---------- ---------- ----------
 	// app
 	// ---------- ---------- ----------
 
@@ -315,6 +329,7 @@ addEventListener("load", () => {
 						state       = { state }
 						id          = "navigator_finder"
 						currentKeys = { navigator_finder }
+						// plugIn      = { plugIns }
 						class       = "navigator_finder_simple"
 						/* columns = { createColumns } */
 					/>

@@ -535,10 +535,11 @@ const NavigatorFinder = function(props) {
     state,
     id: id2,
     currentKeys,
+    plugIn,
     afterRender
   } = props;
   const current = getValue(state, currentKeys, void 0);
-  const { searchText, selected, sortType, reverse, sortKey } = getLocalState(state, id2, {
+  const localState = getLocalState(state, id2, {
     searchText: "",
     // 検索テキスト
     selected: [],
@@ -550,7 +551,7 @@ const NavigatorFinder = function(props) {
     sortKey: void 0
     // 使用されているソート名 (column.name)
   });
-  const isFilter = selected.includes(`${createLocalKey(id2)}_filter`);
+  const isFilter = localState.selected.includes(`${createLocalKey(id2)}_filter`);
   const createColumns = props.columns ?? ((directory) => {
     const result = [];
     if (!directory) return result;
@@ -586,7 +587,7 @@ const NavigatorFinder = function(props) {
   if (current) parentItems.push(current);
   const hitTest = (text2) => {
     if (typeof text2 !== "string") return false;
-    const S = searchText.trim().toLowerCase();
+    const S = localState.searchText.trim().toLowerCase();
     if (S === "") return false;
     const keys = S.replace(/[ 　]+/g, " ").split(" ").filter(Boolean);
     if (keys.length === 0) return false;
@@ -595,7 +596,7 @@ const NavigatorFinder = function(props) {
   };
   const getItems = (item) => {
     if (!item || item.children === void 0) return [];
-    const result = isFilter && searchText !== "" ? item.children.filter((child) => {
+    const result = isFilter && localState.searchText !== "" ? item.children.filter((child) => {
       return columns.some((col) => hitTest(
         col.text ? col.text(child) : col.val(child)
       ));
@@ -603,9 +604,9 @@ const NavigatorFinder = function(props) {
     return result;
   };
   const items = getItems(current);
-  if (sortType) {
-    items.sort(sortType);
-    if (reverse) items.reverse();
+  if (localState.sortType) {
+    items.sort(localState.sortType);
+    if (localState.reverse) items.reverse();
   }
   const count = current ? current.children?.length : 0;
   const hitCount = isFilter ? items.length : items.filter((item) => columns.some((col) => hitTest(
@@ -648,7 +649,7 @@ const NavigatorFinder = function(props) {
     if (column.compare === void 0) return state2;
     return setLocalState(state2, id2, {
       sortType: column.compare,
-      reverse: sortKey === column.name ? !reverse : false,
+      reverse: localState.sortKey === column.name ? !localState.reverse : false,
       sortKey: column.name
     });
   };
@@ -659,8 +660,8 @@ const NavigatorFinder = function(props) {
         "state",
         "currentKeys",
         "columns",
-        "afterRender",
-        "extension"
+        "plugIn",
+        "afterRender"
       )
     },
     div$1(
@@ -670,7 +671,7 @@ const NavigatorFinder = function(props) {
       input({
         type: "text",
         placeholder: "search keys",
-        value: searchText,
+        value: localState.searchText,
         oninput: action_inputSearchText
       }),
       SelectButton({
@@ -711,7 +712,7 @@ const NavigatorFinder = function(props) {
                 class: col.compare ? "sort" : "",
                 onclick: [action_sort, col]
               },
-              col.name + (sortKey === col.name ? reverse ? " ▼" : " ▲" : "")
+              col.name + (localState.sortKey === col.name ? localState.reverse ? " ▼" : " ▲" : "")
             ))
           )
         ),
@@ -743,18 +744,11 @@ const NavigatorFinder = function(props) {
       )
     ),
     // statusBar
-    div$1({ class: "statusBar" }, message)
+    div$1({ class: "statusBar" }, message),
+    // plugIn
+    plugIn ? plugIn({ state, localState }) : []
   );
-  return afterRender ? afterRender({
-    state,
-    localState: {
-      searchText,
-      selected,
-      sortType,
-      reverse,
-      sortKey
-    }
-  }, vnode) : vnode;
+  return afterRender ? afterRender({ state, localState }, vnode) : vnode;
 };
 const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {

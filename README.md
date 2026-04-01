@@ -615,6 +615,10 @@ export const NavigatorFinder = function <S> (
 		id            : string
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
+		plugIn       ?: (props: {
+			state     : S
+			localState: Record<string, any>
+		}) => VNode<S>[]
 		afterRender  ?: (props: {
 			state     : S
 			localState: Recrod<string, any>
@@ -628,11 +632,13 @@ export const NavigatorFinder = function <S> (
 - id           : ユニークID (DOM ID)
 - currentKeys  : カレント NavigatorItem までのパス
 - columns      : NavigatorColumn の配列を返す関数
+- plugIn       : プラグインの挿入
 - afterRender  : レンダーフック
 
 vnode
 ```html
 <div id={id}>
+
 	<div class="toolBar">
 		<input type="text" />
 		<button type="button">FILTER</button>
@@ -662,10 +668,17 @@ vnode
 		</table>
 	</div>
 
-	<!-- statusBar -->
 	<div class="statusBar">message</div>
+
+	<!-- plugIn 必要な文だけ追加 -->
+	<div id={plugInID}>
+	</div>
 </div>
 ```
+
+**CSS設計**
+- plugInを追加する場合は `grid` で整える前提
+- `flex` で整える場合は `afterRender` を併用し VNode を調整する
 
 ---
 
