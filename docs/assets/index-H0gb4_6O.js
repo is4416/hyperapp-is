@@ -530,6 +530,9 @@ const li$1 = el("li");
 const button$1 = el("button");
 const input = el("input");
 const span = el("span");
+const svg = el("svg");
+const rect = el("rect");
+const path = el("path");
 const NavigatorFinder = function(props) {
   const {
     state,
@@ -545,7 +548,7 @@ const NavigatorFinder = function(props) {
     selected: [],
     // 選択されているボタン名
     sortType: void 0,
-    // ソート用比較関数
+    // ソート用比較関数: (a: NavigatorItem, b: NavigatorItem) => number
     reverse: false,
     // ソートを逆順にするか
     sortKey: void 0
@@ -750,6 +753,88 @@ const NavigatorFinder = function(props) {
   );
   return afterRender ? afterRender({ state, localState }, vnode) : vnode;
 };
+svg(
+  {
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  },
+  rect({
+    x: 9,
+    y: 3,
+    width: 6,
+    height: 4,
+    rx: 1
+  }),
+  rect({
+    x: 3,
+    y: 15,
+    width: 6,
+    height: 4,
+    rx: 1
+  }),
+  rect({
+    x: 15,
+    y: 15,
+    width: 6,
+    height: 4,
+    rx: 1
+  }),
+  path({
+    d: "M12 7v4"
+  }),
+  path({
+    d: "M6 15v-4h12v4"
+  })
+);
+svg(
+  {
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  },
+  path({ d: "M4 18l2-8 2 8M5 14h2" }),
+  path({ d: "M10 10h6l-6 8h6" }),
+  path({ d: "M20 6v12" }),
+  path({ d: "M17 15l3 3 3-3" })
+);
+svg(
+  {
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  },
+  path({ d: "M3 7h6l2 2h10v8a2 2 0 0 1-2 2H3z" })
+);
+svg(
+  {
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  },
+  path({ d: "M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" }),
+  path({ d: "M14 2v6h6" })
+);
 const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {
   // ---------- ---------- ----------
