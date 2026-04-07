@@ -762,7 +762,7 @@ const NavigatorFinder = function(props) {
     // plugIn
     plugIn ? plugIn(state, localState) : []
   );
-  return afterRender ? afterRender({ state, localState }, vnode) : vnode;
+  return afterRender ? afterRender(state, localState, vnode) : vnode;
 };
 const icon_depth = svg(
   {
@@ -984,7 +984,7 @@ const NavigatorSearch = function(props) {
       class: "statusBar"
     }, message)
   );
-  return afterRender ? afterRender({ state, localState }, vnode) : vnode;
+  return afterRender ? afterRender(state, localState, vnode) : vnode;
 };
 const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {

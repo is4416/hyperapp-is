@@ -178,10 +178,7 @@ export const NavigatorFinder = function <S> (
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
 		plugIn       ?: (state: S, localState: Record<string, any>) => VNode<S>[]
-		afterRender  ?: (props: {
-			state     : S
-			localState: Record<string, any>
-		}, vnode: VNode<S>) => VNode<S>
+		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
 		[key: string]: any
 	}
 ): VNode<S> {
@@ -496,7 +493,7 @@ export const NavigatorFinder = function <S> (
 	// afterRender
 	// ---------- ---------- ----------
 
-	return afterRender ? afterRender({ state, localState }, vnode) : vnode
+	return afterRender ? afterRender(state, localState, vnode) : vnode
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -647,10 +644,7 @@ export const NavigatorSearch = function <S> (
 		searchResult  : (item: NavigatorItem, depth: number) => VNode<S> | VNode<S>[]
 		hitTest       : (item: NavigatorItem) => boolean
 		maxItemsCount : number
-		afterRender  ?: (props: {
-			state     : S
-			localState: Record<string, any>
-		}, vnode: VNode<S>) => VNode<S>
+		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
 		[key: string]: any
 	}
 ): VNode<S> {
@@ -865,5 +859,5 @@ export const NavigatorSearch = function <S> (
 	// afterRender
 	// ---------- ---------- ----------
 
-	return afterRender ? afterRender({ state, localState }, vnode): vnode
+	return afterRender ? afterRender(state, localState, vnode): vnode
 }
