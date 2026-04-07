@@ -153,6 +153,8 @@ npm で非公開の関数 (実験用)は、解説に記載します
 - [convertJsonToNavigatorItem](#convertjsontonavigatoritem)
 - [getParentItems](#getparentitems)
 - [NavigatorFinder](#navigatorfinder)
+- [SearchResult](#searchresult)
+- [NavigatorSearch](#navigatorsearch)
 
 **animation / step.ts**
 - [effect_throwMessageStart](#effect_throwmessagestart)
@@ -221,6 +223,7 @@ src
 	 │  └ navigator.ts
 	 │       Keys_NavigatorItem, NavigatorItem, JsonEntry, NavigatorColumn
 	 │       convertJsonToNavigatorItem, getParentItems, NavigatorFinder
+	 │       SearchResult, NavigatorSearch
 	 │
 	 ├ animation
 	 │  ├ step.ts
@@ -635,6 +638,13 @@ export const NavigatorFinder = function <S> (
 - plugIn       : プラグインの挿入
 - afterRender  : レンダーフック
 
+localState
+- searchText: "" as string     // 検索テキスト
+- selected  : [] as string[]   // 選択されているボタン名
+- sortType  : undefined        // ソート用比較関数: (a: NavigatorItem, b: NavigatorItem) => number
+- reverse   : false as boolean // ソートを逆順にするか
+- sortKey   : undefined as undefined | string // 使用されているソート名 (column.name)
+
 vnode
 ```html
 <div id={id}>
@@ -676,9 +686,54 @@ vnode
 </div>
 ```
 
-**CSS設計**
-- plugInを追加する場合は `grid` で整える前提
-- `flex` で整える場合は `afterRender` を併用し VNode を調整する
+---
+
+### SearchResult
+`NavigatorSearch` で検索結果となる構造体
+
+```ts
+export interface SearchResult {
+	item : NavigatorItem
+	depth: number
+}
+```
+
+---
+
+### NavigatorSearch
+`NavigatorFinder` プラグイン
+
+```ts
+export const NavigatorSearch = function <S> (
+	props: {
+		state         : S
+		id            : string
+		currentKeys   : Keys_NavigatorItem
+		searchResult  : (item: NavigatorItem, depth: number) => VNode<S> | VNode<S>[]
+		hitTest       : (item: NavigatorItem) => boolean
+		maxItemsCount : number
+		afterRender  ?: (props: {
+			state     : S
+			localState: Record<string, any>
+		}, vnode: VNode<S>) => VNode<S>
+		[key: string]: any
+	}
+): VNode<S>
+```
+
+- state        : ステート
+- id           : ユニークID (DOM ID)
+- searchResult : カードとして表示する VNode
+- hitTest      : 抽出条件
+- maxItemsCount: 最初に表示するカードの最大数
+- afterRender  : レンダーフック
+
+localState
+- maxItemsCount: props.maxItemsCount as number   // カードの最大表示数
+- sortName     : undefined as undefined | string // ソート名
+- sortFn       : undefined as undefined | ((a: SearchResult, b: SearchResult) => number) // 比較関数
+- isDirectory  : true // ディレクトリを表示
+- isFile       : true // ファイルを表示
 
 ---
 

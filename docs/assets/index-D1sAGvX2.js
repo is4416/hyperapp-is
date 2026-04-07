@@ -473,6 +473,16 @@ const OptionButton = function(props, children) {
     onclick: action
   }, children);
 };
+const getScrollMargin = function(e) {
+  const el2 = e.currentTarget;
+  if (!el2) return { top: 0, left: 0, right: 0, bottom: 0 };
+  return {
+    top: el2.scrollTop,
+    left: el2.scrollLeft,
+    right: el2.scrollWidth - (el2.clientWidth + el2.scrollLeft),
+    bottom: el2.scrollHeight - (el2.clientHeight + el2.scrollTop)
+  };
+};
 const convertJsonToNavigatorItem = function(props) {
   const { parent, name, data, getEntries, isNode, depth = 0, extension } = props;
   const result = {
@@ -526,6 +536,7 @@ const tr = el("tr");
 const th = el("th");
 const td = el("td");
 const ol = el("ol");
+const ul$1 = el("ul");
 const li$1 = el("li");
 const button$1 = el("button");
 const input = el("input");
@@ -749,11 +760,11 @@ const NavigatorFinder = function(props) {
     // statusBar
     div$1({ class: "statusBar" }, message),
     // plugIn
-    plugIn ? plugIn({ state, localState }) : []
+    plugIn ? plugIn(state, localState) : []
   );
   return afterRender ? afterRender({ state, localState }, vnode) : vnode;
 };
-svg(
+const icon_depth = svg(
   {
     width: 24,
     height: 24,
@@ -792,7 +803,7 @@ svg(
     d: "M6 15v-4h12v4"
   })
 );
-svg(
+const icon_name = svg(
   {
     width: 24,
     height: 24,
@@ -808,7 +819,7 @@ svg(
   path({ d: "M20 6v12" }),
   path({ d: "M17 15l3 3 3-3" })
 );
-svg(
+const icon_directory = svg(
   {
     width: 24,
     height: 24,
@@ -821,7 +832,7 @@ svg(
   },
   path({ d: "M3 7h6l2 2h10v8a2 2 0 0 1-2 2H3z" })
 );
-svg(
+const icon_file = svg(
   {
     width: 24,
     height: 24,
@@ -835,6 +846,146 @@ svg(
   path({ d: "M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" }),
   path({ d: "M14 2v6h6" })
 );
+const NavigatorSearch = function(props) {
+  const {
+    state,
+    id: id2,
+    currentKeys,
+    searchResult,
+    hitTest,
+    afterRender
+  } = props;
+  const localState = getLocalState(state, id2, {
+    maxItemsCount: props.maxItemsCount,
+    // カードの最大表示数
+    sortName: void 0,
+    // ソート名
+    sortFn: void 0,
+    // 比較関数
+    isDirectory: true,
+    // ディレクトリを表示
+    isFile: true
+    // ファイルを表示
+  });
+  const current = getValue(state, currentKeys, void 0);
+  const searchItems = (item, depth) => {
+    if (!item) return [];
+    const result = [];
+    if (hitTest(item)) result.push({ item, depth });
+    if (item.children && item.children.length !== 0) {
+      item.children.forEach((child) => {
+        const r = searchItems(child, depth + 1);
+        if (r.length !== 0) result.push(...r);
+      });
+    }
+    return result;
+  };
+  const items = current ? searchItems(current, 0) : [];
+  if (localState.sortFn !== void 0) items.sort(localState.sortFn);
+  const drawItems = items.filter((item) => {
+    return item.item.children ? localState.isDirectory : localState.isFile;
+  }).slice(0, localState.maxItemsCount);
+  const parentItems = current ? getParentItems(current).concat(current) : [];
+  const message = `hit ${items.length} items`;
+  const action_itemsScroll = (state2, e) => {
+    const margin = getScrollMargin(e);
+    return setLocalState(state2, id2, {
+      maxItemsCount: margin.bottom < 10 ? localState.maxItemsCount + 10 < items.length ? localState.maxItemsCount + 10 : Math.max(10, items.length) : localState.maxItemsCount
+    });
+  };
+  const action_setSort = (state2, newSortName) => {
+    const reverse = localState.sortName === newSortName;
+    const obj = {
+      "depth": (a, b) => a.depth - b.depth,
+      "name": (a, b) => {
+        if (a.item.name === b.item.name) return 0;
+        return a.item.name < b.item.name ? -1 : 1;
+      }
+    };
+    const fn = obj[newSortName] !== void 0 ? reverse ? (a, b) => obj[newSortName](b, a) : (a, b) => obj[newSortName](a, b) : (a, b) => {
+      return a.depth === b.depth ? obj["name"](a, b) : obj["depth"](a, b);
+    };
+    return setLocalState(state2, id2, {
+      sortName: reverse ? `r_${newSortName}` : newSortName,
+      sortFn: fn
+    });
+  };
+  const vnode = div$1(
+    {
+      ...deleteKeys(
+        props,
+        "state",
+        "currentKeys",
+        "searchResult",
+        "hitTest",
+        "maxItemsCount",
+        "afterRender"
+      )
+    },
+    // toolBar
+    div$1(
+      {
+        class: "toolBar"
+      },
+      // sort
+      button$1({
+        type: "button",
+        onclick: [action_setSort, "depth"]
+      }, icon_depth),
+      button$1({
+        type: "button",
+        onclick: [action_setSort, "name"]
+      }, icon_name),
+      // filter
+      button$1({
+        type: "button",
+        class: localState.isDirectory ? "" : "ignore",
+        onclick: (state2) => setLocalState(state2, id2, {
+          isDirectory: !localState.isDirectory
+        })
+      }, icon_directory),
+      button$1({
+        type: "button",
+        class: localState.isFile ? "" : "ignore",
+        onclick: (state2) => setLocalState(state2, id2, {
+          isFile: !localState.isFile
+        })
+      }, icon_file)
+    ),
+    // parentItems
+    div$1(
+      {
+        class: "parentItems"
+      },
+      ol(
+        {},
+        parentItems.map((item) => li$1({
+          onclick: (state2) => setValue(state2, currentKeys, item)
+        }, item.name))
+      )
+    ),
+    // items
+    div$1(
+      {
+        class: "items",
+        onscroll: action_itemsScroll
+      },
+      ul$1(
+        {},
+        drawItems.map((item) => li$1({
+          class: "item",
+          key: item.item.path,
+          title: item.item.path
+        }, searchResult(item.item, item.depth)))
+      )
+    ),
+    // statusBar
+    div$1({
+      class: "statusBar"
+    }, message)
+  );
+  return afterRender ? afterRender({ state, localState }, vnode) : vnode;
+};
 const _isStart = /* @__PURE__ */ Symbol("RAFTask.isStart");
 class RAFTask {
   // ---------- ---------- ----------
@@ -1369,13 +1520,15 @@ const param = {
     pageNumber: 0
   },
   navigator: {
-    finder_current: void 0
+    finder_current: void 0,
+    search_current: void 0
   }
 };
 addEventListener("load", () => {
   const tasks = ["tasks"];
   const page = ["page"];
   const navigator_finder = ["navigator", "finder_current"];
+  const navigator_search = ["navigator", "search_current"];
   const action_initCarousel = (state) => {
     const param1 = {
       id: "sample_carousel1",
@@ -1451,7 +1604,11 @@ addEventListener("load", () => {
           };
         }
       });
-      dispatch((state2) => setValue(state2, navigator_finder, rootItem));
+      dispatch((state2) => setValue(
+        setValue(state2, navigator_search, rootItem),
+        navigator_finder,
+        rootItem
+      ));
     };
     return [
       state,
@@ -1537,17 +1694,48 @@ addEventListener("load", () => {
         match: "navigator"
       },
       /* @__PURE__ */ h("h2", null, "Navigator"),
-      /* @__PURE__ */ h("h3", null, "#sample_navigatorFinder"),
+      /* @__PURE__ */ h("h3", null, "#sample_navigatorFinder + NavigatorSerch"),
       /* @__PURE__ */ h(
         NavigatorFinder,
         {
           state,
           id: "navigator_finder",
           currentKeys: navigator_finder,
-          class: "navigator_finder_simple"
+          class: "navigator_finder_simple",
+          plugIn: (state2, localState) => {
+            const keys = localState.searchText.trim().replace(/[ 　]+/g, " ").replace(/^ | $/g, "").split(" ").filter(Boolean);
+            return [
+              /* @__PURE__ */ h(
+                NavigatorSearch,
+                {
+                  state: state2,
+                  id: "navigator_search",
+                  currentKeys: ["navigator", "search_current"],
+                  searchResult: (item, depth) => /* @__PURE__ */ h(
+                    "div",
+                    {
+                      onclick: (state3) => {
+                        return setValue(
+                          state3,
+                          ["navigator", "search_current"],
+                          item
+                        );
+                      }
+                    },
+                    /* @__PURE__ */ h("div", null, item.children === void 0 ? "FILE" : "DIR"),
+                    /* @__PURE__ */ h("div", null, item.name)
+                  ),
+                  hitTest: (item) => {
+                    if (keys.length === 0) return true;
+                    return keys.every((key) => item.name.indexOf(key) !== -1);
+                  },
+                  maxItemsCount: 10
+                }
+              )
+            ];
+          }
         }
-      ),
-      /* @__PURE__ */ h("a", { href: "css/navigator_finder_simple.css" }, "navigator_finder_simple.css")
+      )
     ))),
     node: document.getElementById("app"),
     init: param,

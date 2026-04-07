@@ -14,6 +14,7 @@ import {
 	ScrollMargin, getScrollMargin
 } from "../dom/utils"
 import { el, deleteKeys, SelectButton } from "./component"
+import { ServerHotChannel } from "vite"
 
 // ---------- ---------- ---------- ---------- ----------
 // interface NavigatorItem
@@ -176,10 +177,7 @@ export const NavigatorFinder = function <S> (
 		id            : string
 		currentKeys   : Keys_NavigatorItem
 		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
-		plugIn       ?: (props: {
-			state     : S
-			localState: Record<string, any>
-		}) => VNode<S>[]
+		plugIn       ?: (state: S, localState: Record<string, any>) => VNode<S>[]
 		afterRender  ?: (props: {
 			state     : S
 			localState: Record<string, any>
@@ -194,6 +192,8 @@ export const NavigatorFinder = function <S> (
 		plugIn,
 		afterRender
 	} = props
+
+	// current
 	const current = getValue(state, currentKeys, undefined) as NavigatorItem | undefined
 
 	// localState
@@ -488,7 +488,7 @@ export const NavigatorFinder = function <S> (
 
 		// plugIn
 		plugIn
-			? plugIn({state, localState})
+			? plugIn(state, localState)
 			: []
 	)
 
@@ -667,61 +667,13 @@ export const NavigatorSearch = function <S> (
 	const localKey = createLocalKey(id)
 
 	// localState
-	const { maxItemsCount, sortName, filter } = getLocalState(state, id, {
-		maxItemsCount: props.maxItemsCount as number,   // カードの最大表示数
-		sortName     : undefined as undefined | string, // ソート名
-		filter       : [] as string[]                   // フォルダ, ファイルの非表示を管理
+	const localState = getLocalState(state, id, {
+		maxItemsCount: props.maxItemsCount as number,                                             // カードの最大表示数
+		sortName     : undefined as undefined | string,                                           // ソート名
+		sortFn       : undefined as undefined | ((a: SearchResult, b: SearchResult) => number),   // 比較関数
+		isDirectory  : true, // ディレクトリを表示
+		isFile       : true  // ファイルを表示
 	})
-
-	// ---------- ---------- ----------
-	// sortFn
-	// ---------- ---------- ----------
-
-	/**
-	 * ソート名から比較関数を取得している
-	 * 拡張性を考えると、ローカルステートに比較関数を保存してしまっても良いかもしれない
-	 * NavigatorFinder が比較関数をステートに持つため、こちらもそれで良いかも
-	 */
-
-	const sortFn = (() => {
-		switch (sortName) {
-			case localKey + "_depth":
-				return (a: SearchResult, b: SearchResult) => a.depth - b.depth
-
-			case "r_" + localKey + "_depth":
-				return (a: SearchResult, b: SearchResult) => b.depth - a.depth
-
-			case localKey + "_name":
-				return (a: SearchResult, b: SearchResult) => {
-					if (a.item.name === b.item.name) return 0
-					return a.item.name < b.item.name ? - 1 : 1
-				}
-
-			case "r_" + localKey + "_name":
-				return (a: SearchResult, b: SearchResult) => {
-					if (a.item.name === b.item.name) return 0
-					return a.item.name > b.item.name ? - 1 : 1
-				}
-
-			case localKey + "_directory":
-				return (a: SearchResult, b: SearchResult) => {
-					const aIsDir = !!a.item.children
-					const bIsDir = !!b.item.children
-					if (aIsDir === bIsDir) return 0
-					return aIsDir ? - 1 : 1
-				}
-
-			case localKey + "_file":
-				return (a: SearchResult, b: SearchResult) => {
-					const aIsDir = !!a.item.children
-					const bIsDir = !!b.item.children
-					if (aIsDir === bIsDir) return 0
-					return aIsDir ? 1 : - 1
-				}
-		}
-
-		return undefined
-	})() // end sortFn
 
 	// current
 	const current = getValue(state, currentKeys, undefined) as NavigatorItem | undefined
@@ -757,15 +709,14 @@ export const NavigatorSearch = function <S> (
 		: []
 
 	// sort
-	if (sortFn !== undefined) items.sort(sortFn)
+	if (localState.sortFn !== undefined) items.sort(localState.sortFn)
 
 	// drawItems (filter, maxItemsCount の適用)
-	const drawItems = filter.length !== 0
-		? items.filter(item => {
-			const key = localKey + (item.item.children ? "_directory" : "_file")
-			return !filter.includes(key)
-		}).slice(0, maxItemsCount)
-		: items.slice(0, maxItemsCount)
+	const drawItems = items.filter(item => {
+		return item.item.children
+			? localState.isDirectory
+			: localState.isFile
+	}).slice(0, localState.maxItemsCount)
 
 	// get parentItems
 	const parentItems = current
@@ -788,13 +739,15 @@ export const NavigatorSearch = function <S> (
 
 		return setLocalState(state, id, {
 			maxItemsCount: margin.bottom < 10
-				? maxItemsCount + 10 < items.length ? maxItemsCount + 10 : Math.max(10, items.length)
-				: maxItemsCount
+				? localState.maxItemsCount + 10 < items.length
+					? localState.maxItemsCount + 10
+					: Math.max(10, items.length)
+				: localState.maxItemsCount
 		})
 	}
 
 	// ---------- ---------- ----------
-	// action_setSortName
+	// action_setSort
 	// ---------- ---------- ----------
 
 	/**
@@ -802,13 +755,30 @@ export const NavigatorSearch = function <S> (
 	 * sortFn をステートに持つように変更する場合、ここも修正
 	 */
 
-	const action_setSortName = (state: S, sortName: string) => {
-		const localState = getLocalState(state, id, {
-			sortName: undefined as undefined | string
-		})
+	const action_setSort = (state: S, newSortName: string) => {
+		const reverse = localState.sortName === newSortName
+
+		const obj: Record<string, any> = {
+			"depth"  : (a: SearchResult, b: SearchResult) => a.depth - b.depth,
+			"name"   : (a: SearchResult, b: SearchResult) => {
+				if (a.item.name === b.item.name) return 0
+				return a.item.name < b.item.name ? - 1 : 1
+			}
+		}
+
+		const fn = obj[newSortName] !== undefined
+			? reverse
+				? (a: SearchResult, b: SearchResult) => obj[newSortName](b, a)
+				: (a: SearchResult, b: SearchResult) => obj[newSortName](a, b)
+			: (a: SearchResult, b: SearchResult) => {
+				return a.depth === b.depth
+					? obj["name"](a, b)
+					: obj["depth"](a, b)
+			}
 
 		return setLocalState(state, id, {
-			sortName: localState.sortName === sortName ? "r_" + sortName : sortName
+			sortName: reverse ? `r_${ newSortName }` : newSortName,
+			sortFn  : fn
 		})
 	}
 
@@ -817,7 +787,15 @@ export const NavigatorSearch = function <S> (
 	// ---------- ---------- ----------
 
 	const vnode = div({
-		...deleteKeys(props, "state", "currentKeys", "searchResult", "hitTest", "maxItemsCount", "afterRender")
+		...deleteKeys(
+			props,
+			"state",
+			"currentKeys",
+			"searchResult",
+			"hitTest",
+			"maxItemsCount",
+			"afterRender"
+		)
 	},
 		// toolBar
 		div({
@@ -826,25 +804,29 @@ export const NavigatorSearch = function <S> (
 			// sort
 			button({
 				type   : "button",
-				onclick: [action_setSortName, localKey + "_depth"]
+				onclick: [action_setSort, "depth"]
 			}, icon_depth),
 
 			button({
-				type: "button",
-				onclick: [action_setSortName, localKey + "_name"]
+				type   : "button",
+				onclick: [action_setSort, "name"]
 			}, icon_name),
 
 			// filter
-			SelectButton({
-				state,
-				keyNames: [localKey, "filter"],
-				id      : localKey + "_directory"
+			button({
+				type   : "button",
+				class  : localState.isDirectory ? "" : "ignore",
+				onclick: (state: S) => setLocalState(state, id, {
+					isDirectory: !localState.isDirectory
+				})
 			}, icon_directory),
 
-			SelectButton({
-				state,
-				keyNames: [localKey, "filter"],
-				id      : localKey + "_file"
+			button({
+				type   : "button",
+				class  : localState.isFile ? "" : "ignore",
+				onclick: (state: S) => setLocalState(state, id, {
+					isFile: !localState.isFile
+				})
 			}, icon_file)
 		),
 
@@ -883,7 +865,5 @@ export const NavigatorSearch = function <S> (
 	// afterRender
 	// ---------- ---------- ----------
 
-	return afterRender ? afterRender({ state, localState: {
-		maxItemsCount, sortName, filter
-	} }, vnode): vnode
+	return afterRender ? afterRender({ state, localState }, vnode): vnode
 }

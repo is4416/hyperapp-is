@@ -8,10 +8,10 @@ export type {
 	Keys_ArrayRAFTask,
 	Keys_NavigatorItem,
 } from "./core/state"
-export type { NavigatorItem, JsonEntry, NavigatorColumn } from "./core/navigator"
+export type { NavigatorItem, JsonEntry, NavigatorColumn, SearchResult } from "./core/navigator"
 export { getValue, setValue, getLocalState, setLocalState, createLocalKey } from "./core/state"
 export { el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton } from "./core/component"
-export { convertJsonToNavigatorItem, getParentItems, NavigatorFinder } from "./core/navigator"
+export { convertJsonToNavigatorItem, getParentItems, NavigatorFinder, NavigatorSearch } from "./core/navigator"
 
 // animation
 export type { InternalEffect, RAFEvent } from "./animation/raf"

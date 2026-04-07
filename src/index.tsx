@@ -15,7 +15,7 @@ import {
 	progress_easing,
 	NavigatorFinder, NavigatorItem, convertJsonToNavigatorItem, JsonEntry,
 	NavigatorColumn,
-	SelectButton
+	NavigatorSearch
 } from "./hyperapp-is"
 import { InternalEffect } from "../dist/hyperapp-is"
 
@@ -32,6 +32,7 @@ interface State {
 	},
 	navigator: {
 		finder_current: NavigatorItem | undefined
+		search_current: NavigatorItem | undefined
 	}
 }
 
@@ -46,6 +47,7 @@ const param: State = {
 	},
 	navigator: {
 		finder_current: undefined,
+		search_current: undefined
 	}
 }
 
@@ -62,6 +64,7 @@ addEventListener("load", () => {
 	const tasks: Keys_ArrayRAFTask             = ["tasks"]
 	const page : Keys_String                   = ["page"]
 	const navigator_finder: Keys_NavigatorItem = ["navigator", "finder_current"]
+	const navigator_search: Keys_NavigatorItem = ["navigator", "search_current"]
 
 	// ---------- ---------- ----------
 	// action_initCarousel
@@ -171,7 +174,12 @@ addEventListener("load", () => {
 				}
 			})
 
-			dispatch((state: State) => setValue(state, navigator_finder, rootItem))
+			// dispatch
+			dispatch((state: State) => setValue(
+				setValue(state, navigator_search, rootItem),
+				navigator_finder,
+				rootItem
+			))
 		} // end effect_loadJson
 
 		return [
@@ -324,16 +332,54 @@ addEventListener("load", () => {
 					match    = "navigator"
 				>
 					<h2>Navigator</h2>
-					<h3>#sample_navigatorFinder</h3>
+					<h3>#sample_navigatorFinder + NavigatorSerch</h3>
 					<NavigatorFinder
 						state       = { state }
 						id          = "navigator_finder"
 						currentKeys = { navigator_finder }
-						// plugIn      = { plugIns }
 						class       = "navigator_finder_simple"
-						/* columns = { createColumns } */
+						plugIn = {
+							(state: State, localState: Record<string, any>) => {
+								const keys: string[] = localState.searchText
+									.trim()
+									.replace(/[ 　]+/g, " ")
+									.replace(/^ | $/g, "")
+									.split(" ")
+									.filter(Boolean)
+
+								return [
+									(<NavigatorSearch
+										state        = { state }
+										id           = "navigator_search"
+										currentKeys  = { ["navigator", "search_current"] }
+										searchResult = {
+											(item: NavigatorItem, depth: number) => (<div
+												onclick = {
+													(state: State) => {
+														return setValue(
+															state,
+															["navigator", "search_current"],
+															item
+														)
+													}
+												}
+											>
+												<div>{ item.children === undefined ? "FILE" : "DIR"}</div>
+												<div>{ item.name }</div>
+											</div>)
+										}
+										hitTest = {
+											(item: NavigatorItem) => {
+												if (keys.length === 0) return true
+												return keys.every(key => item.name.indexOf(key) !== -1)
+											}
+										}
+										maxItemsCount = { 10 }
+									/>)
+								]
+							}
+						}
 					/>
-					<a href="css/navigator_finder_simple.css">navigator_finder_simple.css</a>
 				</Route>
 			</main>
 		</div>),
