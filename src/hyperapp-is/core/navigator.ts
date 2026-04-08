@@ -173,12 +173,15 @@ const path   = el("path")
 
 export const NavigatorFinder = function <S> (
 	props: {
-		state         : S
-		id            : string
-		currentKeys   : Keys_NavigatorItem
-		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
-		plugIn       ?: (state: S, localState: Record<string, any>) => VNode<S>[]
-		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		state            : S
+		id               : string
+		currentKeys      : Keys_NavigatorItem
+		columns         ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
+		plugIn          ?: (state: S, localState: Record<string, any>) => VNode<S>[]
+		toolBarNode     ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		parentItemsNode ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		statusBarNode   ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		afterRender     ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
 		[key: string]: any
 	}
 ): VNode<S> {
@@ -392,6 +395,104 @@ export const NavigatorFinder = function <S> (
 	// VNode
 	// ---------- ---------- ----------
 
+	// toolBarNode
+	const toolBarNode = div({
+		class: "toolBar"
+	},
+		input({
+			type       : "text",
+			placeholder: "search keys",
+			value      : localState.searchText,
+			oninput    : action_inputSearchText
+		}),
+
+		button({
+			type   : "button",
+			title  : "delete keys",
+			onclick: (state: S) => {
+				return setLocalState(state, id, {
+					searchText: ""
+				})
+			}
+		}, icon_trashBox),
+
+		SelectButton({
+			state   : state,
+			id      : `${ createLocalKey(id) }_filter`,
+			keyNames: [createLocalKey(id), "selected"],
+			title   : "filter"
+		}, icon_filter),
+	)
+
+	// parentItemsNode
+	const parentItemsNode = div({
+		class: "parentItems"
+	},
+		ol({},
+			parentItems.map(parent => li({
+				key    : parent.path,
+				onclick: [action_parentClick, parent]
+			}, parent.name))
+		),
+
+		button({
+			type   : "button",
+			title  : "copy",
+			onclick: action_copyFolderPath
+		}, icon_copy)
+	)
+
+	// itemsNode
+	const itemsNode = div({
+		class: "items"
+	},
+		table({},
+			thead({},
+				tr({},
+					columns.map(col => th({
+						class  : col.compare ? "sort" : "",
+						onclick: [action_sort, col]
+					},
+						col.name + (localState.sortKey === col.name
+							? (localState.reverse ? " ▼" : " ▲")
+							: ""
+						)
+					))
+				)
+			),
+
+			tbody({},
+				items.map(item => tr({
+					key    : item.path,
+					class  : item.children === undefined
+						? "file"
+						: "directory",
+					onclick: item.children === undefined
+						? undefined
+						: [action_itemClick, item]
+				},
+					columns.map(col => {
+						const v = col.val(item)
+						const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
+						return td({
+							title: t
+						},
+							span({
+								class: hitTest(t) ? "hit" : ""
+							},
+								v
+							)
+						)
+					})
+				))
+			)
+		)
+	)
+
+	// statusBarNode
+	const statusBarNode = div({ class: "statusBar" }, message)
+
+	// vnode
 	const vnode: VNode<S> = div({
 		...deleteKeys(
 			props,
@@ -399,89 +500,20 @@ export const NavigatorFinder = function <S> (
 			"currentKeys",
 			"columns",
 			"plugIn",
-			"afterRender",
+			"toolBarNode",
+			"parentItemsNode",
+			"statusBarNode",
+			"afterRender"
 		)
 	},
 		div({
-			class: "toolBar"
+			class: "rapper"
 		},
-			input({
-				type       : "text",
-				placeholder: "search keys",
-				value      : localState.searchText,
-				oninput    : action_inputSearchText
-			}),
-			SelectButton({
-				state   : state,
-				id      : `${ createLocalKey(id) }_filter`,
-				keyNames: [createLocalKey(id), "selected"]
-			}, "FILTER"),
+			props.toolBarNode ? props.toolBarNode(state, localState, toolBarNode) : toolBarNode,
+			props.parentItemsNode ? props.parentItemsNode(state, localState, parentItemsNode) : parentItemsNode,
+			itemsNode,
+			props.statusBarNode ? props.statuBarNode(state, localState, statusBarNode) : statusBarNode
 		),
-
-		div({
-			class: "parentItems"
-		},
-			ol({},
-				parentItems.map(parent => li({
-					key    : parent.path,
-					onclick: [action_parentClick, parent]
-				}, parent.name))
-			),
-			button({
-				type   : "button",
-				title  : "現在のフォルダパスを、クリップボードにコピー",
-				onclick: action_copyFolderPath
-			}, "COPY")
-		),
-
-		div({
-			class: "items"
-		},
-			table({},
-				thead({},
-					tr({},
-						columns.map(col => th({
-							class  : col.compare ? "sort" : "",
-							onclick: [action_sort, col]
-						},
-							col.name + (localState.sortKey === col.name
-								? (localState.reverse ? " ▼" : " ▲")
-								: ""
-							)
-						))
-					)
-				),
-
-				tbody({},
-					items.map(item => tr({
-						key    : item.path,
-						class  : item.children === undefined
-							? "file"
-							: "directory",
-						onclick: item.children === undefined
-							? undefined
-							: [action_itemClick, item]
-					},
-						columns.map(col => {
-							const v = col.val(item)
-							const t = col.text ? col.text(item) : typeof v === "string" ? v : ""
-							return td({
-								title: t
-							},
-								span({
-									class: hitTest(t) ? "hit" : ""
-								},
-									v
-								)
-							)
-						})
-					))
-				)
-			)
-		),
-	
-		// statusBar
-		div({ class: "statusBar" }, message),
 
 		// plugIn
 		plugIn
@@ -592,6 +624,55 @@ const icon_file = svg({
 	path({ d: "M14 2v6h6" })
 )
 
+// icon_trashBox
+const icon_trashBox = svg({
+	viewBox       : "0 0 24 24",
+	width         : 24,
+	height        : 24,
+	fill          : "none",
+	stroke        : "currentColor",
+	strokeWidth   : 2,
+	strokeLinecap : "round",
+	strokeLinejoin: "round"
+},
+	path({ d: "M3 6h18" }),
+	path({ d: "M8 6V4h8v2" }),
+	path({ d: "M6 6l1 14h10l1-14" }),
+	path({ d: "M10 11v6" }),
+	path({ d: "M14 11v6" })
+)
+
+// icon_filter
+const icon_filter = svg({
+	viewBox       : "0 0 24 24",
+	width         : 24,
+	height        : 24,
+	fill          : "none",
+	stroke        : "currentColor",
+	strokeWidth   : 2,
+	strokeLinecap : "round",
+	strokeLinejoin: "round"
+},
+	path({ d: "M3 5h18" }),
+	path({ d: "M6 12h12" }),
+	path({ d: "M10 19h4" })
+)
+
+// icon_copy
+const icon_copy = svg({
+	viewBox       : "0 0 24 24",
+	width         : 24,
+	height        : 24,
+	fill          : "none",
+	stroke        : "currentColor",
+	strokeWidth   : 2,
+	strokeLinecap : "round",
+	strokeLinejoin: "round"
+},
+	path({ d: "M9 9h11v11H9z" }),
+	path({ d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" })
+)
+
 // ---------- ---------- ---------- ---------- ----------
 // interface SearchResult
 // ---------- ---------- ---------- ---------- ----------
@@ -638,14 +719,17 @@ export interface SearchResult {
  */
 export const NavigatorSearch = function <S> (
 	props: {
-		state         : S
-		id            : string
-		currentKeys   : Keys_NavigatorItem
-		searchResult  : (item: NavigatorItem, depth: number) => VNode<S> | VNode<S>[]
-		hitTest       : (item: NavigatorItem) => boolean
-		maxItemsCount : number
-		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		[key: string]: any
+		state           : S
+		id              : string
+		currentKeys     : Keys_NavigatorItem
+		searchResult    : (item: NavigatorItem, depth: number) => VNode<S> | VNode<S>[]
+		hitTest         : (item: NavigatorItem) => boolean
+		maxItemsCount   : number
+		toolBarNode    ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		parentItemsNode?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		statusBarNode  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		afterRender    ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		[key: string]   : any
 	}
 ): VNode<S> {
 	const {
@@ -780,6 +864,73 @@ export const NavigatorSearch = function <S> (
 	// vnode
 	// ---------- ---------- ----------
 
+	const toolBarNode = div({
+		class: "toolBar"
+	},
+		// sort
+		button({
+			type   : "button",
+			title  : "sort depth",
+			onclick: [action_setSort, "depth"]
+		}, icon_depth),
+
+		button({
+			type   : "button",
+			title  : "sort name",
+			onclick: [action_setSort, "name"]
+		}, icon_name),
+
+		// filter
+		button({
+			type   : "button",
+			class  : localState.isDirectory ? "" : "ignore",
+			title  : "directory",
+			onclick: (state: S) => setLocalState(state, id, {
+				isDirectory: !localState.isDirectory
+			})
+		}, icon_directory),
+
+		button({
+			type   : "button",
+			class  : localState.isFile ? "" : "ignore",
+			title  : "file",
+			onclick: (state: S) => setLocalState(state, id, {
+				isFile: !localState.isFile
+			})
+		}, icon_file)
+	)
+
+	// parentItemsNode
+	const parentItemsNode = div({
+		class: "parentItems"
+	},
+		ol({},
+			parentItems.map(item => li({
+				onclick: (state: S) => setValue(state, currentKeys, item)
+			}, item.name))
+		)
+	)
+
+	// itemsNode
+	const itemsNode = div({
+		class   : "items",
+		onscroll: action_itemsScroll
+	},
+		ul({},
+			drawItems.map(item => li({
+				class: "item",
+				key  : item.item.path,
+				title: item.item.path
+			}, searchResult(item.item, item.depth)))
+		)
+	)
+
+	// statusBarNode
+	const statusBarNode = div({
+		class: "statusBar"
+	}, message)
+
+	// vnode
 	const vnode = div({
 		...deleteKeys(
 			props,
@@ -788,71 +939,16 @@ export const NavigatorSearch = function <S> (
 			"searchResult",
 			"hitTest",
 			"maxItemsCount",
+			"toolBarNode",
+			"parentItemsNode",
+			"statusBarNode",
 			"afterRender"
 		)
 	},
-		// toolBar
-		div({
-			class: "toolBar"
-		},
-			// sort
-			button({
-				type   : "button",
-				onclick: [action_setSort, "depth"]
-			}, icon_depth),
-
-			button({
-				type   : "button",
-				onclick: [action_setSort, "name"]
-			}, icon_name),
-
-			// filter
-			button({
-				type   : "button",
-				class  : localState.isDirectory ? "" : "ignore",
-				onclick: (state: S) => setLocalState(state, id, {
-					isDirectory: !localState.isDirectory
-				})
-			}, icon_directory),
-
-			button({
-				type   : "button",
-				class  : localState.isFile ? "" : "ignore",
-				onclick: (state: S) => setLocalState(state, id, {
-					isFile: !localState.isFile
-				})
-			}, icon_file)
-		),
-
-		// parentItems
-		div({
-			class: "parentItems"
-		},
-			ol({},
-				parentItems.map(item => li({
-					onclick: (state: S) => setValue(state, currentKeys, item)
-				}, item.name))
-			)
-		),
-
-		// items
-		div({
-			class   : "items",
-			onscroll: action_itemsScroll
-		},
-			ul({},
-				drawItems.map(item => li({
-					class: "item",
-					key  : item.item.path,
-					title: item.item.path
-				}, searchResult(item.item, item.depth)))
-			)
-		),
-
-		// statusBar
-		div({
-			class: "statusBar"
-		}, message)
+		props.toolBarNode ? props.toolBarNode(state, localState, toolBarNode) : toolBarNode,
+		props.parentItemsNode ? props.parentItemsNode(state, localState, parentItemsNode) : parentItemsNode,
+		itemsNode,
+		props.statusBarNode ? props.statusBarNode(state, localState, statusBarNode) : statusBarNode
 	)
 
 	// ---------- ---------- ----------

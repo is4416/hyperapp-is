@@ -153,125 +153,144 @@ main {
 /* *** navigator_finder_simple *** */
 
 .navigator_finder_simple {
-	overflow      : hidden;
-	position      : relative;
-	display       : flex;
-	flex-direction: column;
-	height        : 80%;
-	border        : 1px gray solid;
+	overflow: hidden;
+	position: relative;
+	display : flex;
+	height  : 80%;
+	border  : 1px gray solid;
 
-	> .toolBar {
-		flex-shrink: 0;
-		margin-left: 30%;
-		display    : flex;
-		padding    : 5px;
+	> .rapper {
+		flex-grow     : 1;
+		overflow      : hidden;
+		display       : flex;
+		flex-direction: column;
+		border        : gray solid;
+		border-width  : 0 1px 0 0;
 
-		> input {
-			flex-grow: 1;
-			padding  : 5px;
-		}
-
-		> button {
-			margin-left: 5px;
+		> .toolBar {
+			flex-shrink: 0;
+			display    : flex;
 			padding    : 5px;
-			cursor     : pointer;
+
+			> input {
+				flex-grow: 1;
+				padding  : 5px;
+			}
+
+			> button {
+				flex-shrink: 0;
+				margin-left: 5px;
+				padding    : 5px;
+				width      : 2.5rem;
+				height     : 2.5rem;
+				cursor     : pointer;
+			}
 		}
-	}
 
-	> .parentItems {
-		flex-shrink: 0;
-		margin-left: 30%;
-		padding    : 5px;
-		display    : flex;
+		> .parentItems {
+			flex-shrink: 0;
+			overflow   : hidden;
+			display    : flex;
+			padding    : 5px;
 
-		> ol {
-			flex-grow : 1;
-			display   : flex;
-			list-style: none;
+			> ol {
+				flex-grow : 1;
+				display   : flex;
+				list-style: none;
 
-			> li {
-				padding: 5px;
-				border : 1px gray solid;
-				cursor : pointer;
+				> li {
+					margin-right: 5px;
+					padding     : 5px;
+					border      : 1px gray solid;
+					cursor      : pointer;
+				}
+			}
 
-				&:not(:first-child) {
-					margin-left: 5px;
+			> button {
+				width : 2.5rem;
+				height: 2.5rem;
+				cursor: pointer;
+			}
+		}
+
+		> .items {
+			flex-grow: 1;
+			overflow : auto;
+			padding  : 5px;
+
+			> table {
+				width          : 100%;
+				border         : 1px gray solid;
+				border-collapse: collapse;
+
+				tr:hover {
+					background-color: #C0FFC0;
+				}
+
+				th {
+					padding         : 5px;
+					text-align      : left;
+					background-color: #C0C0C0;
+
+					&.sort {
+						cursor: pointer;
+					}
+				}
+
+				td {
+					padding: 5px;
+					border : 1px gray solid;
 				}
 			}
 		}
 
-		> button {
-			margin-left: 5px;
-			padding    : 5px;
-			cursor     : pointer;
+		> .statusBar {
+			flex-shrink : 0;
+			padding     : 5px;
+			border      : gray solid;
+			border-width: 1px 0 0 0;
 		}
-	}
-
-	> .items {
-		flex-grow  : 1;
-		overflow   : auto;
-		margin-left: 30%;
-		padding    : 5px;
-
-		> table {
-			border-collapse: collapse;
-			width          : 100%;
-
-			th {
-				padding   : 5px;
-				border    : 1px gray solid;
-				text-align: left;
-			}
-
-			td {
-				padding: 5px;
-				border : 1px gray solid;
-			}
-		}
-	}
-
-	> .statusBar {
-		flex-shrink : 0;
-		margin-left : calc(30% + 5px);
-		border      : gray solid;
-		border-width: 1px 0 0 1px;
-		padding     : 5px;
 	}
 }
 
 #navigator_search {
+	flex-shrink   : 0;
 	overflow      : hidden;
-	position      : absolute;
 	display       : flex;
 	flex-direction: column;
-	margin        : 0;
-	top           : 0;
-	left          : 0;
-	width         : 30%;
-	height        : 100%;
+	width         : 400px;
 
 	> .toolBar {
-		flex-shrink: 0;
-		padding: 5px;
+		flex-shrink : 0;
+		padding     : 5px;
+		border      : gray solid;
+		border-width: 0 0 1px 0;
 
-		> button:not(:first-child) {
-			margin-left: 5px;
+		> button {
+			width : 2.5rem;
+			height: 2.5rem;
+			cursor: pointer;
+
+			&:not(:first-child) {
+				margin-left: 5px;
+			}
 
 			&.ignore {
-				background-color: gray;
+				background-color: transparent;
 			}
 		}
 	}
 
 	> .parentItems {
-		flex-shrink: 0;
-		overflow   : auto;
-		display    : flex;
+		flex-shrink : 0;
+		overflow    : auto;
+		padding     : 5px;
+		border      : gray solid;
+		border-width: 0 0 1px 0;
 
 		> ol {
-			list-style: none;
 			display   : flex;
-			padding   : 5px;
+			list-style: none;
 
 			> li {
 				padding: 5px;
@@ -290,22 +309,24 @@ main {
 		overflow : auto;
 
 		> ul {
-			padding: 5px;
+			list-style: none;
+			padding   : 5px;
 
 			> li {
 				border: 1px gray solid;
 
-				&:not(:first-child) {
+				&:not(first-child) {
 					margin-top: 5px;
+					padding   : 5px;
 				}
 			}
 		}
 	}
 
 	> .statusBar {
-		flex-shrink: 0;
-		padding: 5px;
-		border: gray solid;
-		border-width: 1px 1px 0 0;
+		flex-shrink : 0;
+		padding     : 5px;
+		border      : gray solid;
+		border-width: 1px 0 0 0;
 	}
 }

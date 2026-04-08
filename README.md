@@ -614,26 +614,29 @@ export const getParentItems = (
 ```ts
 export const NavigatorFinder = function <S> (
 	props: {
-		state         : S
-		id            : string
-		currentKeys   : Keys_NavigatorItem
-		columns      ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
-		plugIn       ?: (props: {
-			state     : S
-			localState: Record<string, any>
-		}) => VNode<S>[]
-		afterRender  ?: (state: S, localState: Recrod<string, any>, vnode: VNode<S>) => VNode<S>
+		state            : S
+		id               : string
+		currentKeys      : Keys_NavigatorItem
+		columns         ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
+		plugIn          ?: (state: S, localState: Record<string, any>) => VNode<S>[]
+		toolBarNode     ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		parentItemsNode ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		statusBarNode   ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		afterRender     ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
 		[key: string]: any
 	}
 ): VNode<S>
 ```
 
-- state        : ステート
-- id           : ユニークID (DOM ID)
-- currentKeys  : カレント NavigatorItem までのパス
-- columns      : NavigatorColumn の配列を返す関数
-- plugIn       : プラグインの挿入
-- afterRender  : レンダーフック
+- state          : ステート
+- id             : ユニークID (DOM ID)
+- currentKeys    : カレント NavigatorItem までのパス
+- columns        : NavigatorColumn の配列を返す関数
+- plugIn         : プラグインの挿入
+- toolBarNode    : `toolBar` レンダーフック
+- parentItemsNode: `parentItems` レンダーフック
+- statusBarNode  : `statusBar` レンダーフック
+- afterRender    : 全体のレンダーフック
 
 localState
 - searchText: "" as string     // 検索テキスト
@@ -645,39 +648,40 @@ localState
 vnode
 ```html
 <div id={id}>
+	<div class="rapper">
+		<div class="toolBar">
+			<input type="text" />
+			<button type="button">FILTER</button>
+		</div>
 
-	<div class="toolBar">
-		<input type="text" />
-		<button type="button">FILTER</button>
+		<div class="parentItems">
+			<ol>
+				<li>parent</li>
+			</ol>
+			<button type="button">COPY</button>
+		</div>
+
+		<div class="items">
+			<table>
+				<thead>
+					<tr>
+						<th>ヘッダー</th>
+						<th class="sort">ソート付きヘッダー</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td class="file"><span>value</span></td>
+						<td class="directory"><span>value</span></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<div class="statusBar">message</div>
 	</div>
 
-	<div class="parentItems">
-		<ol>
-			<li>parent</li>
-		</ol>
-		<button type="button">COPY</button>
-	</div>
-
-	<div class="items">
-		<table>
-			<thead>
-				<tr>
-					<th>ヘッダー</th>
-					<th class="sort">ソート付きヘッダー</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td class="file"><span>value</span></td>
-					<td class="directory"><span>value</span></td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
-
-	<div class="statusBar">message</div>
-
-	<!-- plugIn 必要な文だけ追加 -->
+	<!-- plugIn 必要な分だけ追加 -->
 	<div id={plugInID}>
 	</div>
 </div>
@@ -703,24 +707,31 @@ export interface SearchResult {
 ```ts
 export const NavigatorSearch = function <S> (
 	props: {
-		state         : S
-		id            : string
-		currentKeys   : Keys_NavigatorItem
-		searchResult  : (item: NavigatorItem, depth: number) => VNode<S> | VNode<S>[]
-		hitTest       : (item: NavigatorItem) => boolean
-		maxItemsCount : number
-		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		[key: string]: any
+		state           : S
+		id              : string
+		currentKeys     : Keys_NavigatorItem
+		searchResult    : (item: NavigatorItem, depth: number) => VNode<S> | VNode<S>[]
+		hitTest         : (item: NavigatorItem) => boolean
+		maxItemsCount   : number
+		toolBarNode    ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		parentItemsNode?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		statusBarNode  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		afterRender    ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
+		[key: string]   : any
 	}
 ): VNode<S>
 ```
 
-- state        : ステート
-- id           : ユニークID (DOM ID)
-- searchResult : カードとして表示する VNode
-- hitTest      : 抽出条件
-- maxItemsCount: 最初に表示するカードの最大数
-- afterRender  : レンダーフック
+- state          : ステート
+- id             : ユニークID (DOM ID)
+- currentKeys    : カレント NavigatorItem までのパス
+- searchResult   : カードとして表示する VNode
+- hitTest        : 抽出条件
+- maxItemsCount  : 最初に表示するカードの最大数
+- toolBarNode    : `toolBar` レンダーフック
+- parentItemsNode: `parentItems` レンダーフック
+- statusBarNode  : `statusBar` レンダーフック
+- afterRender    : 全体のレンダーフック
 
 localState
 - maxItemsCount: props.maxItemsCount as number   // カードの最大表示数

@@ -667,6 +667,96 @@ const NavigatorFinder = function(props) {
       sortKey: column.name
     });
   };
+  const toolBarNode = div$1(
+    {
+      class: "toolBar"
+    },
+    input({
+      type: "text",
+      placeholder: "search keys",
+      value: localState.searchText,
+      oninput: action_inputSearchText
+    }),
+    button$1({
+      type: "button",
+      title: "delete keys",
+      onclick: (state2) => {
+        return setLocalState(state2, id2, {
+          searchText: ""
+        });
+      }
+    }, icon_trashBox),
+    SelectButton({
+      state,
+      id: `${createLocalKey(id2)}_filter`,
+      keyNames: [createLocalKey(id2), "selected"],
+      title: "filter"
+    }, icon_filter)
+  );
+  const parentItemsNode = div$1(
+    {
+      class: "parentItems"
+    },
+    ol(
+      {},
+      parentItems.map((parent) => li$1({
+        key: parent.path,
+        onclick: [action_parentClick, parent]
+      }, parent.name))
+    ),
+    button$1({
+      type: "button",
+      title: "copy",
+      onclick: action_copyFolderPath
+    }, icon_copy)
+  );
+  const itemsNode = div$1(
+    {
+      class: "items"
+    },
+    table(
+      {},
+      thead(
+        {},
+        tr(
+          {},
+          columns.map((col) => th(
+            {
+              class: col.compare ? "sort" : "",
+              onclick: [action_sort, col]
+            },
+            col.name + (localState.sortKey === col.name ? localState.reverse ? " ▼" : " ▲" : "")
+          ))
+        )
+      ),
+      tbody(
+        {},
+        items.map((item) => tr(
+          {
+            key: item.path,
+            class: item.children === void 0 ? "file" : "directory",
+            onclick: item.children === void 0 ? void 0 : [action_itemClick, item]
+          },
+          columns.map((col) => {
+            const v = col.val(item);
+            const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
+            return td(
+              {
+                title: t
+              },
+              span(
+                {
+                  class: hitTest(t) ? "hit" : ""
+                },
+                v
+              )
+            );
+          })
+        ))
+      )
+    )
+  );
+  const statusBarNode = div$1({ class: "statusBar" }, message);
   const vnode = div$1(
     {
       ...deleteKeys(
@@ -675,90 +765,21 @@ const NavigatorFinder = function(props) {
         "currentKeys",
         "columns",
         "plugIn",
+        "toolBarNode",
+        "parentItemsNode",
+        "statusBarNode",
         "afterRender"
       )
     },
     div$1(
       {
-        class: "toolBar"
+        class: "rapper"
       },
-      input({
-        type: "text",
-        placeholder: "search keys",
-        value: localState.searchText,
-        oninput: action_inputSearchText
-      }),
-      SelectButton({
-        state,
-        id: `${createLocalKey(id2)}_filter`,
-        keyNames: [createLocalKey(id2), "selected"]
-      }, "FILTER")
+      props.toolBarNode ? props.toolBarNode(state, localState, toolBarNode) : toolBarNode,
+      props.parentItemsNode ? props.parentItemsNode(state, localState, parentItemsNode) : parentItemsNode,
+      itemsNode,
+      props.statusBarNode ? props.statuBarNode(state, localState, statusBarNode) : statusBarNode
     ),
-    div$1(
-      {
-        class: "parentItems"
-      },
-      ol(
-        {},
-        parentItems.map((parent) => li$1({
-          key: parent.path,
-          onclick: [action_parentClick, parent]
-        }, parent.name))
-      ),
-      button$1({
-        type: "button",
-        title: "現在のフォルダパスを、クリップボードにコピー",
-        onclick: action_copyFolderPath
-      }, "COPY")
-    ),
-    div$1(
-      {
-        class: "items"
-      },
-      table(
-        {},
-        thead(
-          {},
-          tr(
-            {},
-            columns.map((col) => th(
-              {
-                class: col.compare ? "sort" : "",
-                onclick: [action_sort, col]
-              },
-              col.name + (localState.sortKey === col.name ? localState.reverse ? " ▼" : " ▲" : "")
-            ))
-          )
-        ),
-        tbody(
-          {},
-          items.map((item) => tr(
-            {
-              key: item.path,
-              class: item.children === void 0 ? "file" : "directory",
-              onclick: item.children === void 0 ? void 0 : [action_itemClick, item]
-            },
-            columns.map((col) => {
-              const v = col.val(item);
-              const t = col.text ? col.text(item) : typeof v === "string" ? v : "";
-              return td(
-                {
-                  title: t
-                },
-                span(
-                  {
-                    class: hitTest(t) ? "hit" : ""
-                  },
-                  v
-                )
-              );
-            })
-          ))
-        )
-      )
-    ),
-    // statusBar
-    div$1({ class: "statusBar" }, message),
     // plugIn
     plugIn ? plugIn(state, localState) : []
   );
@@ -846,6 +867,52 @@ const icon_file = svg(
   path({ d: "M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" }),
   path({ d: "M14 2v6h6" })
 );
+const icon_trashBox = svg(
+  {
+    viewBox: "0 0 24 24",
+    width: 24,
+    height: 24,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  },
+  path({ d: "M3 6h18" }),
+  path({ d: "M8 6V4h8v2" }),
+  path({ d: "M6 6l1 14h10l1-14" }),
+  path({ d: "M10 11v6" }),
+  path({ d: "M14 11v6" })
+);
+const icon_filter = svg(
+  {
+    viewBox: "0 0 24 24",
+    width: 24,
+    height: 24,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  },
+  path({ d: "M3 5h18" }),
+  path({ d: "M6 12h12" }),
+  path({ d: "M10 19h4" })
+);
+const icon_copy = svg(
+  {
+    viewBox: "0 0 24 24",
+    width: 24,
+    height: 24,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  },
+  path({ d: "M9 9h11v11H9z" }),
+  path({ d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" })
+);
 const NavigatorSearch = function(props) {
   const {
     state,
@@ -910,6 +977,67 @@ const NavigatorSearch = function(props) {
       sortFn: fn
     });
   };
+  const toolBarNode = div$1(
+    {
+      class: "toolBar"
+    },
+    // sort
+    button$1({
+      type: "button",
+      title: "sort depth",
+      onclick: [action_setSort, "depth"]
+    }, icon_depth),
+    button$1({
+      type: "button",
+      title: "sort name",
+      onclick: [action_setSort, "name"]
+    }, icon_name),
+    // filter
+    button$1({
+      type: "button",
+      class: localState.isDirectory ? "" : "ignore",
+      title: "directory",
+      onclick: (state2) => setLocalState(state2, id2, {
+        isDirectory: !localState.isDirectory
+      })
+    }, icon_directory),
+    button$1({
+      type: "button",
+      class: localState.isFile ? "" : "ignore",
+      title: "file",
+      onclick: (state2) => setLocalState(state2, id2, {
+        isFile: !localState.isFile
+      })
+    }, icon_file)
+  );
+  const parentItemsNode = div$1(
+    {
+      class: "parentItems"
+    },
+    ol(
+      {},
+      parentItems.map((item) => li$1({
+        onclick: (state2) => setValue(state2, currentKeys, item)
+      }, item.name))
+    )
+  );
+  const itemsNode = div$1(
+    {
+      class: "items",
+      onscroll: action_itemsScroll
+    },
+    ul$1(
+      {},
+      drawItems.map((item) => li$1({
+        class: "item",
+        key: item.item.path,
+        title: item.item.path
+      }, searchResult(item.item, item.depth)))
+    )
+  );
+  const statusBarNode = div$1({
+    class: "statusBar"
+  }, message);
   const vnode = div$1(
     {
       ...deleteKeys(
@@ -919,70 +1047,16 @@ const NavigatorSearch = function(props) {
         "searchResult",
         "hitTest",
         "maxItemsCount",
+        "toolBarNode",
+        "parentItemsNode",
+        "statusBarNode",
         "afterRender"
       )
     },
-    // toolBar
-    div$1(
-      {
-        class: "toolBar"
-      },
-      // sort
-      button$1({
-        type: "button",
-        onclick: [action_setSort, "depth"]
-      }, icon_depth),
-      button$1({
-        type: "button",
-        onclick: [action_setSort, "name"]
-      }, icon_name),
-      // filter
-      button$1({
-        type: "button",
-        class: localState.isDirectory ? "" : "ignore",
-        onclick: (state2) => setLocalState(state2, id2, {
-          isDirectory: !localState.isDirectory
-        })
-      }, icon_directory),
-      button$1({
-        type: "button",
-        class: localState.isFile ? "" : "ignore",
-        onclick: (state2) => setLocalState(state2, id2, {
-          isFile: !localState.isFile
-        })
-      }, icon_file)
-    ),
-    // parentItems
-    div$1(
-      {
-        class: "parentItems"
-      },
-      ol(
-        {},
-        parentItems.map((item) => li$1({
-          onclick: (state2) => setValue(state2, currentKeys, item)
-        }, item.name))
-      )
-    ),
-    // items
-    div$1(
-      {
-        class: "items",
-        onscroll: action_itemsScroll
-      },
-      ul$1(
-        {},
-        drawItems.map((item) => li$1({
-          class: "item",
-          key: item.item.path,
-          title: item.item.path
-        }, searchResult(item.item, item.depth)))
-      )
-    ),
-    // statusBar
-    div$1({
-      class: "statusBar"
-    }, message)
+    props.toolBarNode ? props.toolBarNode(state, localState, toolBarNode) : toolBarNode,
+    props.parentItemsNode ? props.parentItemsNode(state, localState, parentItemsNode) : parentItemsNode,
+    itemsNode,
+    props.statusBarNode ? props.statusBarNode(state, localState, statusBarNode) : statusBarNode
   );
   return afterRender ? afterRender(state, localState, vnode) : vnode;
 };
@@ -1584,10 +1658,11 @@ addEventListener("load", () => {
         const result = [];
         Object.keys(data).forEach((key) => {
           const obj = data[key];
+          const isNode = Object.keys(obj).some((key2) => typeof obj[key2] === "object" && !Array.isArray(obj[key2]));
           result.push({
             name: key,
             data: obj,
-            isNode: typeof obj === "object" && !Array.isArray(obj)
+            isNode
           });
         });
         return result;
@@ -1715,15 +1790,15 @@ addEventListener("load", () => {
                     "div",
                     {
                       onclick: (state3) => {
+                        const isDirectory = item.children !== void 0;
                         return setValue(
                           state3,
-                          ["navigator", "search_current"],
-                          item
+                          ["navigator", "finder_current"],
+                          isDirectory ? item : item.parent
                         );
                       }
                     },
-                    /* @__PURE__ */ h("div", null, item.children === void 0 ? "FILE" : "DIR"),
-                    /* @__PURE__ */ h("div", null, item.name)
+                    /* @__PURE__ */ h("div", null, /* @__PURE__ */ h("span", null, item.children === void 0 ? "" : "[D]"), /* @__PURE__ */ h("span", null, `(${depth})`), /* @__PURE__ */ h("span", null, item.name))
                   ),
                   hitTest: (item) => {
                     if (keys.length === 0) return true;

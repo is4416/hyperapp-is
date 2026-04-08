@@ -150,13 +150,15 @@ addEventListener("load", () => {
 
 				Object.keys(data).forEach(key => {
 					const obj = data[key]
+					const isNode = Object.keys(obj).some(key => typeof obj[key] === "object" && !Array.isArray(obj[key]))
 
 					result.push({
 						name  : key,
 						data  : obj,
-						isNode: typeof obj === "object" && !Array.isArray(obj)
+						isNode
 					})
 				})
+	
 				return result
 			} // end getEntries
 
@@ -356,16 +358,20 @@ addEventListener("load", () => {
 											(item: NavigatorItem, depth: number) => (<div
 												onclick = {
 													(state: State) => {
+														const isDirectory = item.children !== undefined
 														return setValue(
 															state,
-															["navigator", "search_current"],
-															item
+															["navigator", "finder_current"],
+															isDirectory ? item : item.parent
 														)
 													}
 												}
 											>
-												<div>{ item.children === undefined ? "FILE" : "DIR"}</div>
-												<div>{ item.name }</div>
+												<div>
+													<span>{ item.children === undefined ? "" : "[D]"}</span>
+													<span>{ `(${ depth })` }</span>
+													<span>{ item.name }</span>
+												</div>
 											</div>)
 										}
 										hitTest = {
