@@ -654,11 +654,6 @@ const NavigatorFinder = function(props) {
       searchText: input2.value
     });
   };
-  const action_copyFolderPath = (state2) => {
-    if (!current) return state2;
-    navigator.clipboard.writeText(current.path);
-    return state2;
-  };
   const action_sort = (state2, column) => {
     if (column.compare === void 0) return state2;
     return setLocalState(state2, id2, {
@@ -703,12 +698,7 @@ const NavigatorFinder = function(props) {
         key: parent.path,
         onclick: [action_parentClick, parent]
       }, parent.name))
-    ),
-    button$1({
-      type: "button",
-      title: "copy",
-      onclick: action_copyFolderPath
-    }, icon_copy)
+    )
   );
   const itemsNode = div$1(
     {
@@ -899,7 +889,7 @@ const icon_filter = svg(
   path({ d: "M6 12h12" }),
   path({ d: "M10 19h4" })
 );
-const icon_copy = svg(
+svg(
   {
     viewBox: "0 0 24 24",
     width: 24,

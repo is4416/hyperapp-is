@@ -368,16 +368,6 @@ export const NavigatorFinder = function <S> (
 	} // end action_inputSearchText
 
 	// ---------- ---------- ----------
-	// action_copyFolderPath
-	// ---------- ---------- ----------
-
-	const action_copyFolderPath = (state: S) => {
-		if (!current) return state
-		navigator.clipboard.writeText(current.path)
-		return state
-	} // end action_copyFolderPath
-
-	// ---------- ---------- ----------
 	// action_sort
 	// ---------- ---------- ----------
 
@@ -433,13 +423,7 @@ export const NavigatorFinder = function <S> (
 				key    : parent.path,
 				onclick: [action_parentClick, parent]
 			}, parent.name))
-		),
-
-		button({
-			type   : "button",
-			title  : "copy",
-			onclick: action_copyFolderPath
-		}, icon_copy)
+		)
 	)
 
 	// itemsNode
