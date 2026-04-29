@@ -11,7 +11,10 @@ export type {
 export type { NavigatorItem, JsonEntry, NavigatorColumn, SearchResult } from "./core/navigator"
 export { getValue, setValue, getLocalState, setLocalState, createLocalKey } from "./core/state"
 export { el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton } from "./core/component"
-export { convertJsonToNavigatorItem, getParentItems, NavigatorFinder, NavigatorSearch } from "./core/navigator"
+export {
+	convertJsonToNavigatorItem, getParentItems, NavigatorFinder, NavigatorSearch,
+	icon_depth, icon_name, icon_directory, icon_file, icon_trashBox, icon_filter, icon_copy
+} from "./core/navigator"
 
 // animation
 export type { InternalEffect, RAFEvent } from "./animation/raf"

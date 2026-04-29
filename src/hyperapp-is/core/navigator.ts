@@ -517,7 +517,7 @@ export const NavigatorFinder = function <S> (
 // ---------- ---------- ---------- ---------- ----------
 
 // icon_depth
-const icon_depth = svg({
+export const icon_depth = svg({
 	width         : 24,
 	height        : 24,
 	viewBox       : "0 0 24 24",
@@ -560,7 +560,7 @@ const icon_depth = svg({
 )
 
 // icon_name
-const icon_name = svg({
+export const icon_name = svg({
 	width         : 24,
 	height        : 24,
 	viewBox       : "0 0 24 24",
@@ -579,7 +579,7 @@ const icon_name = svg({
 )
 
 // icon_directory
-const icon_directory = svg({
+export const icon_directory = svg({
 	width         : 24,
 	height        : 24,
 	viewBox       : "0 0 24 24",
@@ -593,7 +593,7 @@ const icon_directory = svg({
 )
 
 // icon_file
-const icon_file = svg({
+export const icon_file = svg({
 	width         : 24,
 	height        : 24,
 	viewBox       : "0 0 24 24",
@@ -609,7 +609,7 @@ const icon_file = svg({
 )
 
 // icon_trashBox
-const icon_trashBox = svg({
+export const icon_trashBox = svg({
 	viewBox       : "0 0 24 24",
 	width         : 24,
 	height        : 24,
@@ -627,7 +627,7 @@ const icon_trashBox = svg({
 )
 
 // icon_filter
-const icon_filter = svg({
+export const icon_filter = svg({
 	viewBox       : "0 0 24 24",
 	width         : 24,
 	height        : 24,
@@ -643,7 +643,7 @@ const icon_filter = svg({
 )
 
 // icon_copy
-const icon_copy = svg({
+export const icon_copy = svg({
 	viewBox       : "0 0 24 24",
 	width         : 24,
 	height        : 24,
