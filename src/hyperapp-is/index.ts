@@ -10,7 +10,10 @@ export type {
 } from "./core/state"
 export type { NavigatorItem, JsonEntry, NavigatorColumn, SearchResult } from "./core/navigator"
 export { getValue, setValue, getLocalState, setLocalState, createLocalKey } from "./core/state"
-export { el, concatAction, getClassList, deleteKeys, Route, SelectButton, OptionButton } from "./core/component"
+export {
+	el, concatAction, getClassList, deleteKeys,
+	Route, SelectButton, OptionButton, HistoryInput
+} from "./core/component"
 export {
 	convertJsonToNavigatorItem, getParentItems, NavigatorFinder, NavigatorSearch,
 	icon_depth, icon_name, icon_directory, icon_file, icon_trashBox, icon_filter, icon_copy

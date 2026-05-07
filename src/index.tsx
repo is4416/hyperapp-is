@@ -9,7 +9,7 @@ import h from "hyperapp-jsx-pragma"
 import {
 	Keys_String, Keys_NavigatorItem, Keys_ArrayRAFTask,
 	setValue,
-	OptionButton, Route,
+	OptionButton, Route, HistoryInput,
 	RAFTask, subscription_RAFManager,
 	Carousel, effect_InitCarousel, CarouselState,
 	progress_easing,
@@ -27,6 +27,9 @@ interface State {
 	page    : string
 	selected: string[]
 	tasks   : RAFTask<State>[]
+	component: {
+		value: string
+	},
 	carousel: {
 		pageNumber: number
 	},
@@ -42,6 +45,9 @@ const param: State = {
 	page    : "0",
 	selected: [],
 	tasks   : [],
+	component: {
+		value: ""
+	},
 	carousel: {
 		pageNumber: 0
 	},
@@ -261,6 +267,13 @@ addEventListener("load", () => {
 				<li>
 					<OptionButton
 						state    = { state }
+						id       = "component"
+						keyNames = { page }
+					>Component</OptionButton>
+				</li>
+				<li>
+					<OptionButton
+						state    = { state }
 						id       = "carousel"
 						keyNames = { page }
 						onclick  = { action_initCarousel }
@@ -278,6 +291,21 @@ addEventListener("load", () => {
 
 			{/* *** main *** */}
 			<main>
+				{/* *** Component *** */}
+				<Route
+					state    = { state }
+					keyNames = { page }
+					match    = "component"
+				>
+					<h2>Component</h2>
+					<h3>HistoryInput</h3>
+					<HistoryInput
+						state    = { state }
+						id       = "histroyInput"
+						keyNames = { ["component", "value"] }
+						placeholder = "History Input"
+					/>
+				</Route>
 				{/* *** Carousel *** */}
 				<Route
 					state    = { state }

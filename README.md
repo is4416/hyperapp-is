@@ -144,6 +144,7 @@ npm で非公開の関数 (実験用)は、解説に記載します
 - [Route](#route)
 - [SelectButton](#selectbutton)
 - [OptionButton](#optionbutton)
+- [HistoryInput](#historyinput)
 
 **core / navigator.ts**
 - [Keys_NavigatorItem](#keys_navigatoritem)
@@ -499,6 +500,32 @@ export const OptionButton = function <S> (
 - props.id      : ユニークID
 - props.reverse?: 反転選択するか
 - children      : 子要素 (VNode / string / 配列など)
+
+---
+
+### HistoryInput
+履歴付きインプットボックス
+
+```ts
+export const HistoryInput = function <S> (
+	props: {
+		state        : S
+		id           : string
+		keyNames     : Keys_String
+		historyLimit?: number
+		[key: string]: any
+	}
+): VNode<S>
+```
+
+- props         : props
+- props.state   : ステート
+- props.id      : ユニークID
+- props.keyNames: ステート内の文字までのパス
+- props.historyLimit: 保持する履歴の最大数 (default = 10)
+
+履歴は `[props.id].histories` に保存されます  
+履歴を動的にクリアしたい場合 `setLocalState(state, id, { histories: [] })` などとして下さい
 
 ---
 

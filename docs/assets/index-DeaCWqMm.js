@@ -403,7 +403,9 @@ const setLocalState = function(state, id2, value) {
 const el = (tag) => (props, ...children) => h$1(
   tag,
   props ?? {},
-  children.flat().map((child) => typeof child === "object" ? child : text(child))
+  children.flat().filter(
+    (child) => child !== null && child !== void 0
+  ).map((child) => typeof child === "object" ? child : text(`${child}`))
 );
 const concatAction = function(action, newState, e) {
   if (!action) return newState;
@@ -428,6 +430,10 @@ const Route = function(props, children) {
   return selectedName === match ? children : null;
 };
 const button$2 = el("button");
+const div$2 = el("div");
+const input$1 = el("input");
+const datalist = el("datalist");
+const option = el("option");
 const REVERSE_PREFIX = "r_";
 const SelectButton = function(props, children) {
   const { state, keyNames, id: id2, reverse = false } = props;
@@ -472,6 +478,60 @@ const OptionButton = function(props, children) {
     class: classList.join(" "),
     onclick: action
   }, children);
+};
+const HistoryInput = function(props) {
+  const { state, id: id2, keyNames, historyLimit = 10 } = props;
+  const value = getValue(state, keyNames, "");
+  const localState = getLocalState(state, id2, {
+    histories: []
+  });
+  const histories = localState.histories.filter((item) => item.toLowerCase().includes(value.toLowerCase()));
+  const oninput = (state2, e) => {
+    const element = e.target;
+    if (!element) return state2;
+    return concatAction(
+      props.oninput,
+      setValue(state2, keyNames, element.value),
+      e
+    );
+  };
+  const onkeydown = (state2, e) => {
+    if (e.key !== "Enter") return state2;
+    const element = e.target;
+    if (!element) return state2;
+    const val = element.value.trim();
+    if (!val) return state2;
+    const items = getLocalState(state2, id2, {
+      histories: []
+    }).histories;
+    const newHistories = items.filter((item) => item !== val).concat(val).slice(-historyLimit);
+    return concatAction(
+      props.onkeydown,
+      setLocalState(state2, id2, {
+        histories: newHistories
+      }),
+      e
+    );
+  };
+  return div$2(
+    {},
+    input$1({
+      type: "text",
+      ...deleteKeys(props, "state", "keyNames", "historyLimit"),
+      list: `${id2}-history`,
+      value,
+      oninput,
+      onkeydown
+    }),
+    datalist(
+      {
+        id: `${id2}-history`
+      },
+      histories.map((item) => option({
+        value: item
+      }))
+    )
+  );
 };
 const getScrollMargin = function(e) {
   const el2 = e.currentTarget;
@@ -1580,6 +1640,9 @@ const param = {
   page: "0",
   selected: [],
   tasks: [],
+  component: {
+    value: ""
+  },
   carousel: {
     pageNumber: 0
   },
@@ -1685,6 +1748,14 @@ addEventListener("load", () => {
       OptionButton,
       {
         state,
+        id: "component",
+        keyNames: page
+      },
+      "Component"
+    )), /* @__PURE__ */ h("li", null, /* @__PURE__ */ h(
+      OptionButton,
+      {
+        state,
         id: "carousel",
         keyNames: page,
         onclick: action_initCarousel
@@ -1700,6 +1771,24 @@ addEventListener("load", () => {
       },
       "Navigator"
     )))), /* @__PURE__ */ h("main", null, /* @__PURE__ */ h(
+      Route,
+      {
+        state,
+        keyNames: page,
+        match: "component"
+      },
+      /* @__PURE__ */ h("h2", null, "Component"),
+      /* @__PURE__ */ h("h3", null, "HistoryInput"),
+      /* @__PURE__ */ h(
+        HistoryInput,
+        {
+          state,
+          id: "histroyInput",
+          keyNames: ["component", "value"],
+          placeholder: "History Input"
+        }
+      )
+    ), /* @__PURE__ */ h(
       Route,
       {
         state,

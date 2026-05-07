@@ -7,7 +7,9 @@
 import { h, text, VNode, Dispatch, Effect } from "hyperapp"
 import {
 	Keys_String, Keys_ArrayString,
-	getValue, setValue
+	getValue, setValue,
+	getLocalState,
+	setLocalState
 } from "./state"
 
 // ---------- ---------- ---------- ---------- ----------
@@ -27,7 +29,11 @@ export const el = <S = any> (tag: string) => (
 	props ?? {},
 	children
 		.flat()
-		.map((child: any) => typeof child === "object" ? child : text(child))
+		.filter(child =>
+			child !== null &&
+			child !== undefined
+		)
+		.map((child: any) => typeof child === "object" ? child : text(`${child }`))
 )
 
 // ---------- ---------- ---------- ---------- ----------
@@ -118,7 +124,11 @@ export const Route = function <S> (
 // vnodes
 // ---------- ---------- ---------- ---------- ----------
 
-const button = el("button")
+const button   = el("button")
+const div      = el("div")
+const input    = el("input")
+const datalist = el("datalist")
+const option   = el("option")
 
 // ---------- ---------- ---------- ---------- ----------
 // SelectButton Component
@@ -232,4 +242,104 @@ export const OptionButton = function <S> (
 		class  : classList.join(" "),
 		onclick: action
 	}, children)
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// HistoryInput
+// ---------- ---------- ---------- ---------- ----------
+
+/**
+ * 履歴付きインプット
+ * 
+ * div
+ *  ├ input
+ *  └ datalist
+ */
+
+export const HistoryInput = function <S> (
+	props: {
+		state        : S
+		id           : string
+		keyNames     : Keys_String
+		historyLimit?: number
+		[key: string]: any
+	}
+): VNode<S> {
+	const { state, id, keyNames, historyLimit = 10 } = props
+
+	const value      = getValue(state, keyNames, "")
+	const localState = getLocalState(state, id, {
+		histories: []
+	})
+	const histories = (localState.histories as string[])
+		.filter(item => item.toLowerCase().includes(value.toLowerCase()))
+
+	// ---------- ---------- ----------
+	// oninput
+	// ---------- ---------- ----------
+
+	const oninput = (state: S, e: Event) => {
+		const element = e.target as HTMLInputElement
+		if (!element) return state
+
+		return concatAction(
+			props.oninput,
+			setValue(state, keyNames, element.value),
+			e
+		)
+	}
+
+	// ---------- ---------- ----------
+	// onkeydown
+	// ---------- ---------- ----------
+
+	const onkeydown = (state: S, e: KeyboardEvent) => {
+		if (e.key !== "Enter") return state
+
+		const element = e.target as HTMLInputElement
+		if (!element) return state
+
+		const val = element.value.trim()
+		if (!val) return state
+
+		const items = getLocalState(state, id, {
+			histories: []
+		}).histories as string[]
+
+		const newHistories = items
+			.filter(item => item !== val)
+			.concat(val)
+			.slice(- historyLimit)
+
+		return concatAction(
+			props.onkeydown,
+			setLocalState(state, id, {
+				histories: newHistories
+			}),
+			e
+		)
+	}
+
+	// ---------- ---------- ----------
+	// VNode
+	// ---------- ---------- ----------
+
+	return div({},
+		input({
+			type: "text",
+			...deleteKeys(props, "state", "keyNames", "historyLimit"),
+			list: `${ id }-history`,
+			value,
+			oninput,
+			onkeydown,
+		}),
+
+		datalist({
+			id: `${ id }-history`
+		},
+			histories.map(item => option({
+				value  : item
+			}))
+		)
+	)
 }
