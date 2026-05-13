@@ -431,7 +431,7 @@ const Route = function(props, children) {
 };
 const button$2 = el("button");
 const div$2 = el("div");
-const input$1 = el("input");
+const input = el("input");
 const datalist = el("datalist");
 const option = el("option");
 const REVERSE_PREFIX = "r_";
@@ -515,7 +515,7 @@ const HistoryInput = function(props) {
   };
   return div$2(
     {},
-    input$1({
+    input({
       type: "text",
       ...deleteKeys(props, "state", "keyNames", "historyLimit"),
       list: `${id2}-history`,
@@ -599,7 +599,6 @@ const ol = el("ol");
 const ul$1 = el("ul");
 const li$1 = el("li");
 const button$1 = el("button");
-const input = el("input");
 const span = el("span");
 const svg = el("svg");
 const rect = el("rect");
@@ -726,10 +725,11 @@ const NavigatorFinder = function(props) {
     {
       class: "toolBar"
     },
-    input({
-      type: "text",
+    HistoryInput({
+      state,
+      id: `${id2}_searchText`,
+      keyNames: [createLocalKey(id2), "searchText"],
       placeholder: "search keys",
-      value: localState.searchText,
       oninput: action_inputSearchText
     }),
     button$1({

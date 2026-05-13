@@ -677,6 +677,10 @@ vnode
 <div id={id}>
 	<div class="rapper">
 		<div class="toolBar">
+			<div>
+				<input type="text" id={id}_searchText list={id}_searchText-history/>
+				<datalist id={id}_searchText-history />
+			</div>
 			<input type="text" />
 			<button type="button">FILTER</button>
 		</div>

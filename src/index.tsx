@@ -4,35 +4,46 @@
 // import
 // ---------- ---------- ---------- ---------- ----------
 
-import { app, VNode, Dispatch, Effect } from "hyperapp"
+// hyperapp
+import type { VNode, Dispatch } from "hyperapp"
+import { app } from "hyperapp"
+
+// hyperapp-jsx-pragma
 import h from "hyperapp-jsx-pragma"
-import {
+
+// hyperapp-is
+import type {
 	Keys_String, Keys_NavigatorItem, Keys_ArrayRAFTask,
+	RAFTask, InternalEffect,
+	NavigatorItem, JsonEntry, NavigatorColumn
+} from "./hyperapp-is"
+import {
 	setValue,
 	OptionButton, Route, HistoryInput,
-	RAFTask, subscription_RAFManager,
+	subscription_RAFManager,
 	Carousel, effect_InitCarousel, CarouselState,
 	progress_easing,
-	NavigatorFinder, NavigatorItem, convertJsonToNavigatorItem, JsonEntry,
-	NavigatorColumn,
-	NavigatorSearch
+	convertJsonToNavigatorItem,
+	NavigatorFinder, NavigatorSearch
 } from "./hyperapp-is"
-import { InternalEffect } from "../dist/hyperapp-is"
 
 // ---------- ---------- ---------- ---------- ----------
-// State
+// interface State
 // ---------- ---------- ---------- ---------- ----------
 
 interface State {
 	page    : string
 	selected: string[]
 	tasks   : RAFTask<State>[]
+
 	component: {
 		value: string
 	},
+
 	carousel: {
 		pageNumber: number
 	},
+
 	navigator: {
 		finder_current: NavigatorItem | undefined
 		search_current: NavigatorItem | undefined
@@ -45,12 +56,15 @@ const param: State = {
 	page    : "0",
 	selected: [],
 	tasks   : [],
+
 	component: {
 		value: ""
 	},
+
 	carousel: {
 		pageNumber: 0
 	},
+
 	navigator: {
 		finder_current: undefined,
 		search_current: undefined

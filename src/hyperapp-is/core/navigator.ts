@@ -4,17 +4,17 @@
 // import
 // ---------- ---------- ---------- ---------- ----------
 
-import { VNode, Effect } from "hyperapp"
+import { VNode } from "hyperapp"
 import {
 	Keys_NavigatorItem,
 	getValue, setValue, getLocalState, setLocalState,
 	createLocalKey,
 } from "./state"
+import { HistoryInput } from "./component"
 import {
 	ScrollMargin, getScrollMargin
 } from "../dom/utils"
 import { el, deleteKeys, SelectButton } from "./component"
-import { ServerHotChannel } from "vite"
 
 // ---------- ---------- ---------- ---------- ----------
 // interface NavigatorItem
@@ -333,7 +333,7 @@ export const NavigatorFinder = function <S> (
 			}
 		)
 	}
-	
+
 	// ---------- ---------- ----------
 	// action_itemClick
 	// ---------- ---------- ----------
@@ -389,11 +389,12 @@ export const NavigatorFinder = function <S> (
 	const toolBarNode = div({
 		class: "toolBar"
 	},
-		input({
-			type       : "text",
+		HistoryInput({
+			state,
+			id: `${ id }_searchText`,
+			keyNames: [createLocalKey(id), "searchText"],
 			placeholder: "search keys",
-			value      : localState.searchText,
-			oninput    : action_inputSearchText
+			oninput: action_inputSearchText
 		}),
 
 		button({
