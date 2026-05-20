@@ -33,3 +33,15 @@ export { Carousel, effect_InitCarousel } from "./animationView/carousel"
 // dom
 export type { ScrollMargin, MatrixState } from "./dom/utils"
 export { getScrollMargin, getMatrixState } from "./dom/utils"
+
+// services
+export type {
+	GoogleAccountsId, GoogleTokenClient,
+	GoogleAccountsOAuth2, GoogleAccounts, Google,
+	GoogleAuthConfig, GoogleUser, GoogleAuthResult,
+	GoogleScope, GetAccessTokenConfig
+} from "./services/google"
+
+export {
+	getGoogle, googleAuth, getAccessToken
+} from "./services/google"

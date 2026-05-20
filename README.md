@@ -204,6 +204,11 @@ npm で非公開の関数 (実験用)は、解説に記載します
 - [subscription_nodesCleanup](#subscription_nodescleanup)
 - [subscription_nodesLifecycleByIds](#subscription_nodeslifecyclebyids)
 
+**services / google**
+- [getGoogle](#getgoogle)
+- [googleAuth](#googleauth)
+- [getAccessToken](#getaccesstoken)
+
 ## source file / ソースファイル
 
 ```
@@ -255,18 +260,24 @@ src
 	 ├ animationView
 	 │  └ carousel.ts
 	 │
-	 └ dom
-		 ├ utils.ts
-		 │   ScrollMargin
-		 │   getScrollMargin
-		 │   MatrixState
-		 │   getMatrixState
-		 │
-		 └ lifecycle.ts
-			  effect_setTimedValue
-			  effect_nodesInitialize
-			  subscription_nodesCleanup
-			  subscription_nodesLifecycleByIds
+	 ├ dom
+	 │ ├ utils.ts
+	 │ │   ScrollMargin
+	 │ │   getScrollMargin
+	 │ │   MatrixState
+	 │ │   getMatrixState
+	 │ │
+	 │ └ lifecycle.ts
+	 │       effect_setTimedValue
+	 │       effect_nodesInitialize
+	 │       subscription_nodesCleanup
+	 │       subscription_nodesLifecycleByIds
+	 │
+	 └ service
+		 └ google.ts
+		      getGoogle
+			  googleAuth
+			  getAccessToken
 ```
 
 ## hyperapp-is/core
@@ -1576,3 +1587,56 @@ export const subscription_nodesLifecycleByIds = function <S> (
 - nodes.id        : ユニークID
 - nodes.initialize: 初期化イベント
 - nodes.finalize  : 終了時イベント
+
+---
+
+### getGoogle
+Google GIS 変数を取得する
+
+```ts
+export const getGoogle = async (): Promise<Google>
+```
+
+`<script src="https://accounts.google.com/gsi/client">` を読み込み、`window.google`の値（Promise結果）返却  
+
+---
+
+### googleAuth
+グーグル認証を行い `{ idToken: string, user: GoogleUser }` を取得します
+
+```ts
+export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthResult> =>
+```
+
+```ts
+export interface GoogleAuthConfig {
+	clientId   : string
+	autoSelect?: boolean              // default: true
+	uxMode    ?: "popup" | "redirect" // default: "popup"
+}
+```
+
+- clientId   : アプリケーションのID (https://console.cloud.google.com で作成)
+- autoSelect?: ユーザーが選択されていた場合、自動でログイン
+- uxMode    ?: ポップアップ、もしくはリダイレクトでログインします
+
+---
+
+### getAccessToken
+Googleのaccess token を取得  
+
+```ts
+export const getAccessToken = (config: GetAccessTokenConfig): Promise<string>
+```
+
+```ts
+export interface GetAccessTokenConfig {
+	clientId: string
+	scope   : GoogleScope[]
+	prompt ?: "none" | "select_account" | "consent" // default: "select_account"
+}
+```
+
+- clientId: アプリケーションのID
+- scope   : スコープの配列
+- prompt ?: ログイン制御 `none` の場合、先にログインしていなければエラーとなります
