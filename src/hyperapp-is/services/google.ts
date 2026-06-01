@@ -181,8 +181,11 @@ export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthRe
 		}) // end initialize
 
 		// show prompt
-		client.prompt()
-
+		client.prompt((notification) => {
+			if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+				reject(new Error("Prompt skipped or not displayed"))
+			}
+		})
 	}) // end result
 }
 

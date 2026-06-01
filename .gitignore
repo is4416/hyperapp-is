@@ -1,3 +1,6 @@
+# ログイン失敗したらこれ
+# npm config set //registry.npmjs.org/:_authToken=
+
 # Logs
 logs
 *.log
