@@ -141,6 +141,33 @@ export interface GoogleAuthResult {
 }
 
 // ---------- ---------- ---------- ---------- ----------
+// getGoogleAuthResult
+// ---------- ---------- ---------- ---------- ----------
+
+export const getGoogleAuthResult = (idToken: string): GoogleAuthResult => {
+	const base64 = idToken.split(".")[1]
+		.replace(/-/g, "+")
+		.replace(/_/g, "/")
+	const decode = (str: string) => decodeURIComponent(
+		atob(str)
+			.split("")
+			.map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+			.join("")
+	)
+	const payload = JSON.parse(decode(base64))
+	const user = {
+		name   : payload.name,
+		email  : payload.email,
+		picture: payload.picture,
+		sub    : payload.sub
+	}
+	return {
+		idToken,
+		user
+	}
+}
+
+// ---------- ---------- ---------- ---------- ----------
 // googleAuth
 // ---------- ---------- ---------- ---------- ----------
 
@@ -167,23 +194,7 @@ export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthRe
 			callback   : (response: { credential: string }) => {
 				try {
 					const idToken = response.credential
-					const base64 = idToken.split(".")[1]
-						.replace(/-/g, "+")
-						.replace(/_/g, "/")
-					const decode = (str: string) => decodeURIComponent(
-						atob(str)
-							.split("")
-							.map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-							.join("")
-					)
-					const payload = JSON.parse(decode(base64))
-					const user = {
-						name   : payload.name,
-						email  : payload.email,
-						picture: payload.picture,
-						sub    : payload.sub
-					}
-					resolve({ idToken, user })
+					resolve(getGoogleAuthResult(idToken))
 				} catch(error) {
 					reject(error)
 				}
