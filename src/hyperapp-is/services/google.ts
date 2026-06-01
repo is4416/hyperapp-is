@@ -16,6 +16,16 @@ export interface GoogleAccountsId {
 	cancel(): void
 
 	prompt(callback?: (notification: any) => void): void
+
+	renderButton(
+		parent  : HTMLElement,
+		options?: {
+			theme?: "outline" | "filled_blue" | "filled_black"
+			size ?: "large" | "medium" | "small"
+			text ?: "signin_with" | "signup_with" | "continue_with"
+			shape?: "rectangular" | "pill" | "circle" | "square"
+		}
+	): void
 }
 
 // ---------- ---------- ----------
@@ -134,7 +144,7 @@ export interface GoogleAuthResult {
 // googleAuth
 // ---------- ---------- ---------- ---------- ----------
 
-export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthResult> => {
+export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthResult | null> => {
 
 	// get google
 	const google = await getGoogle()
@@ -183,24 +193,10 @@ export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthRe
 		// show prompt
 		client.prompt((notification) => {
 			if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-				reject(new Error("Prompt skipped or not displayed"))
+				resolve(null)
 			}
 		})
 	}) // end result
-}
-
-// ---------- ---------- ---------- ---------- ----------
-// googleLogout
-// ---------- ---------- ---------- ---------- ----------
-
-export const googleLogout = async (): Promise<void> => {
-	const google = await getGoogle()
-
-	// 自動ログインを無効化
-	google.accounts.id.disableAutoSelect()
-
-	// セッション的なものをクリア（念のため）
-	google.accounts.id.cancel()
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -298,38 +294,34 @@ export interface GetAccessTokenConfig {
 // getAccessToken
 // ---------- ---------- ---------- ---------- ----------
 
-export const getAccessToken = (config: GetAccessTokenConfig): Promise<string> => new Promise((resolve, reject) => {
+export const getAccessToken = async (config: GetAccessTokenConfig): Promise<string> => {
+	const google = await getGoogle()
 
-	// get google
-	const google = (window as any).google
-	if (!google) {
-		reject(new Error("error: Google SDK not loaded. Call getGoogle() before getAccessToken()."))
-		return
-	}
+	return new Promise((resolve, reject) => {
+		// variable
+		const prompt = config.prompt ?? "select_account"
 
-	// variable
-	const prompt = config.prompt ?? "select_account"
-
-	// initialize
-	const tokenClient = google.accounts.oauth2.initTokenClient({
-		client_id: config.clientId,
-		scope    : config.scope.join(" "),
-		callback : (response: {
-			access_token?: string
-			error       ?: string
-		}) => {
-			if (response.error) {
-				reject(response)
-			} else {
-				if (response.access_token) {
-					resolve(response.access_token)
+		// initialize
+		const tokenClient = google.accounts.oauth2.initTokenClient({
+			client_id: config.clientId,
+			scope    : config.scope.join(" "),
+			callback : (response: {
+				access_token?: string
+				error       ?: string
+			}) => {
+				if (response.error) {
+					reject(response)
 				} else {
-					reject(new Error("No access_token"))
+					if (response.access_token) {
+						resolve(response.access_token)
+					} else {
+						reject(new Error("No access_token"))
+					}
 				}
 			}
-		}
-	}) // end initialize
+		}) // end initialize
 
-	// request AccessToken
-	tokenClient.requestAccessToken({ prompt }) // prompt == "none" のときには、事前にログインが必要
-})
+		// request AccessToken
+		tokenClient.requestAccessToken({ prompt }) // prompt == "none" のときには、事前にログインが必要
+	})
+}
