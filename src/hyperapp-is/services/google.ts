@@ -12,6 +12,9 @@ export interface GoogleAccountsId {
 		}) => void
 	}): void
 
+	disableAutoSelect(): void
+	cancel(): void
+
 	prompt(callback?: (notification: any) => void): void
 }
 
@@ -181,6 +184,20 @@ export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthRe
 		client.prompt()
 
 	}) // end result
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// googleLogout
+// ---------- ---------- ---------- ---------- ----------
+
+export const googleLogout = async (): Promise<void> => {
+	const google = await getGoogle()
+
+	// 自動ログインを無効化
+	google.accounts.id.disableAutoSelect()
+
+	// セッション的なものをクリア（念のため）
+	google.accounts.id.cancel()
 }
 
 // ---------- ---------- ---------- ---------- ----------
