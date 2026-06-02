@@ -343,7 +343,6 @@ export const getAccessToken = async (config: GetAccessTokenConfig): Promise<stri
 
 export const effect_googleAuth = function <S> (
 	props: {
-		state         : S
 		config        : GoogleAuthConfig
 		renderButton ?: HTMLElement
 		renderOptions?: {
@@ -357,7 +356,7 @@ export const effect_googleAuth = function <S> (
 ): (dispatch: Dispatch<S>) => Promise<void> {
 
 	// variable
-	const { state, config, renderButton, renderOptions, onLoad } = props
+	const { config, renderButton, renderOptions, onLoad } = props
 
 	// result
 	return async (dispatch: Dispatch<S>): Promise<void> => {
