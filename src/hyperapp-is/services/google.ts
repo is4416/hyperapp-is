@@ -337,7 +337,7 @@ export const getAccessToken = async (config: GetAccessTokenConfig): Promise<stri
 // class GoogleAuth
 // ---------- ---------- ---------- ---------- ----------
 
-interface GoogleButtonOptions {
+export interface GoogleButtonOptions {
 	renderButton?: HTMLElement
 	theme       ?: "outline" | "filled_blue" | "filled_black"      // default: outline
 	size        ?: "large" | "medium" | "small"                    // default: medium
@@ -354,18 +354,18 @@ export class GoogleAuth {
 
 	// constructor
 	constructor (config: GoogleAuthConfig, options?: GoogleButtonOptions) {
-		this.#config  = config
-		this.#options = options ?? {}
+		this.#config      = config
+		this.#options     = options ?? {}
 		this.#initialized = false
 	}
 
 	// method: initialize
-	async initialize(): Promise<GoogleAuthResult | null> {
+	async initialize(): Promise<GoogleAuthResult> {
 		if (this.#initialized) {
 			throw new Error("Already initialized")
 		}
 
-		this.#google = await getGoogle()
+		this.#google      = await getGoogle()
 		this.#initialized = true
 
 		const client = this.#google.accounts.id
@@ -396,14 +396,11 @@ export class GoogleAuth {
 			}
 
 			client.prompt((notification) => {
-				if (
-					!resolved && (
-						notification.isNotDisplayed() ||
-						notification.isSkippedMoment()
-					)
-				) {
-					resolved = true
-					resolve(null)
+				if (!resolved && notification.isNotDisplayed()) {
+					console.log("isNotDisplayed")
+				}
+				if (!resolved && notification.isSkippedMoment()) {
+					console.log("isSkippedMoment")
 				}
 			})
 		})

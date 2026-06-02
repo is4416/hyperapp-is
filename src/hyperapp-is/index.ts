@@ -39,7 +39,8 @@ export type {
 	GoogleAccountsId, GoogleTokenClient,
 	GoogleAccountsOAuth2, GoogleAccounts, Google,
 	GoogleAuthConfig, GoogleUser, GoogleAuthResult,
-	GoogleScope, GetAccessTokenConfig
+	GoogleScope, GetAccessTokenConfig,
+	GoogleButtonOptions
 } from "./services/google"
 
 export {
