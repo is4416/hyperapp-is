@@ -333,80 +333,92 @@ export const getAccessToken = async (config: GetAccessTokenConfig): Promise<stri
 	})
 }
 
-// ========== ========== ========== ========== ==========
-// effect
-// ========== ========== ========== ========== ==========
-
 // ---------- ---------- ---------- ---------- ----------
-// effect_googleAuth
+// class GoogleAuth
 // ---------- ---------- ---------- ---------- ----------
 
-export const effect_googleAuth = function <S> (
-	props: {
-		config        : GoogleAuthConfig
-		renderButton ?: HTMLElement
-		renderOptions?: {
-			theme?: "outline" | "filled_blue" | "filled_black"
-			size ?: "large" | "medium" | "small"
-			text ?: "signin_with" | "signup_with" | "continue_with"
-			shape?: "rectangular" | "pill" | "circle" | "square"
-		}
-		onLoad: (state: S, res: GoogleAuthResult) => S | [S, Effect<S>]
-	}
-): (dispatch: Dispatch<S>) => Promise<void> {
-
-	// variable
-	const { config, renderButton, renderOptions, onLoad } = props
-
-	// result
-	return async (dispatch: Dispatch<S>): Promise<void> => {
-
-		// get google api
-		const google = await getGoogle()
-
-		// set renderButton
-		if (renderButton) {
-			google.accounts.id.renderButton(renderButton, renderOptions)
-		}
-
-		// get client
-		const client = google.accounts.id
-
-		// initialize
-		client.initialize({
-			client_id  : config.clientId,
-			auto_select: config.autoSelect,
-			ux_mode    : config.uxMode,
-			callback: (response: { credential: string}) => {
-				dispatch((state: S) =>
-					onLoad(state, getGoogleAuthResult(response.credential))
-				)
-			}
-		})
-
-		// show prompt
-		client.prompt((notification) => {
-			if (notification.isNotDisplayed()) {
-				console.log("Google prompt not displayed")
-			}
-
-			if (notification.isSkippedMoment()) {
-				console.log("Google prompt skipped")
-			}
-		})
-	} // end result
+interface GoogleButtonOptions {
+	renderButton?: HTMLElement
+	theme       ?: "outline" | "filled_blue" | "filled_black"      // default: outline
+	size        ?: "large" | "medium" | "small"                    // default: medium
+	text        ?: "signin_with" | "signup_with" | "continue_with" // default: signin_with
+	shape       ?: "rectangular" | "pill" | "circle" | "square"    // default: rectangular
 }
 
-// ---------- ---------- ---------- ---------- ----------
-// googleLogout
-// ---------- ---------- ---------- ---------- ----------
+export class GoogleAuth {
+	// field
+	#config     : GoogleAuthConfig
+	#options    : GoogleButtonOptions
+	#google    ?: Google
+	#initialized: boolean
 
-export const googleLogout = (hint: string): void => {
-	getGoogle().then(google => {
-		const client = google.accounts.id
+	// constructor
+	constructor (config: GoogleAuthConfig, options?: GoogleButtonOptions) {
+		this.#config  = config
+		this.#options = options ?? {}
+		this.#initialized = false
+	}
+
+	// method: initialize
+	async initialize(): Promise<GoogleAuthResult | null> {
+		if (this.#initialized) {
+			throw new Error("Already initialized")
+		}
+		this.#initialized = true
+
+		this.#google = await getGoogle()
+
+		const client = this.#google.accounts.id
+
+		if (this.#options?.renderButton) {
+			client.renderButton(this.#options.renderButton, {
+				theme: this.#options.theme ?? "outline",
+				size : this.#options.size  ?? "medium",
+				text : this.#options.text  ?? "signin_with",
+				shape: this.#options.shape ?? "rectangular",
+			})
+		}
+
+		return new Promise(resolve => {
+			let resolved = false
+
+			const callback = (response: { credential: string }) => {
+				if (resolved) return
+				resolved = true
+				resolve(getGoogleAuthResult(response.credential))
+			}
+
+			client.initialize({
+				client_id  : this.#config.clientId,
+				auto_select: this.#config.autoSelect ?? true,
+				ux_mode    : this.#config.uxMode ?? "popup",
+				callback
+			})
+
+			client.prompt((notification) => {
+				if (
+					!resolved && (
+						notification.isNotDisplayed() ||
+						notification.isSkippedMoment()
+					)
+				) {
+					resolved = true
+					resolve(null)
+				}
+			})
+		})
+	}
+
+	// method: logout
+	logout(hint: string): void {
+		if (!this.#google) return
+
+		const client = this.#google.accounts.id
 
 		client.disableAutoSelect()
 		client.cancel()
 		client.revoke(hint, () => {})
-	})
+
+		this.#initialized = false
+	}
 }
