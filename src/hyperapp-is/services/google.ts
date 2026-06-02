@@ -1,221 +1,20 @@
-// ---------- ---------- ----------
-// interface GoogleAccountsId
-// ---------- ---------- ----------
+// ========== ========== ========== ========== ==========
+// import
+// ========== ========== ========== ========== ==========
 
-export interface GoogleAccountsId {
-	initialize(config: {
-		client_id   : string
-		auto_select?: boolean
-		ux_mode    ?: "popup" | "redirect"
-		callback    : (response: {
-			credential: string
-		}) => void
-	}): void
+import type { Dispatch, Effect } from "hyperapp"
 
-	disableAutoSelect(): void
-	cancel(): void
-
-	prompt(callback?: (notification: any) => void): void
-
-	renderButton(
-		parent  : HTMLElement,
-		options?: {
-			theme?: "outline" | "filled_blue" | "filled_black"
-			size ?: "large" | "medium" | "small"
-			text ?: "signin_with" | "signup_with" | "continue_with"
-			shape?: "rectangular" | "pill" | "circle" | "square"
-		}
-	): void
-}
-
-// ---------- ---------- ----------
-// interface GoogleTokenClient
-// ---------- ---------- ----------
-
-export interface GoogleTokenClient {
-	requestAccessToken(options?: {
-		prompt?: "none" | "consent" | "select_account"
-	}): void
-}
-
-// ---------- ---------- ----------
-// interface GoogleAccountsOAuth2
-// ---------- ---------- ----------
-
-export interface GoogleAccountsOAuth2 {
-	initTokenClient(config: {
-		client_id: string
-		scope    : string
-		callback : (response: {
-			access_token?: string
-			error       ?: string
-		}) => void
-	}): GoogleTokenClient
-}
-
-// ---------- ---------- ----------
-// interface GoogleAccounts
-// ---------- ---------- ----------
-
-export interface GoogleAccounts {
-	id    : GoogleAccountsId
-	oauth2: GoogleAccountsOAuth2
-}
-
-// ---------- ---------- ----------
-// interface Google
-// ---------- ---------- ----------
-
-export interface Google {
-	accounts: GoogleAccounts
-}
-
-// ---------- ---------- ----------
-// getGoogle
-// ---------- ---------- ----------
-
-// 2重読み込み防止用の変数
-let googlePromise: Promise<Google> | null = null
-
-// google 変数を取得する
-export const getGoogle = async (): Promise<Google> => {
-	if ((window as any).google) return (window as any).google
-
-	if (googlePromise) return googlePromise
-
-	googlePromise = new Promise((resolve, reject) => {
-		const script = document.createElement("script")
-		script.src = "https://accounts.google.com/gsi/client"
-
-		// success
-		script.addEventListener("load", () => {
-			const result = (window as any).google
-
-			if (result) {
-				resolve(result)
-			} else {
-				reject(new Error("error: loadGoogle: 001"))
-			}
-		})
-
-		// error
-		script.addEventListener("error", () => {
-			reject(new Error("error: loadGoogle: 002"))
-		})
-
-		// append child
-		document.body.appendChild(script)
-	})
-
-	return googlePromise
-}
-
-// ---------- ---------- ---------- ---------- ----------
-// interface GoogleAuthConfig
-// ---------- ---------- ---------- ---------- ----------
-
-export interface GoogleAuthConfig {
-	clientId   : string
-	autoSelect?: boolean              // default: true
-	uxMode    ?: "popup" | "redirect" // default: "popup"
-}
-
-// ---------- ---------- ---------- ---------- ----------
-// interface GoogleUser
-// ---------- ---------- ---------- ---------- ----------
-
-export interface GoogleUser {
-	name   : string
-	email  : string
-	picture: string
-	sub    : string
-}
-
-// ---------- ---------- ---------- ---------- ----------
-// interface GoogleAuthResult
-// ---------- ---------- ---------- ---------- ----------
-
-export interface GoogleAuthResult {
-	idToken: string
-	user   : GoogleUser
-}
-
-// ---------- ---------- ---------- ---------- ----------
-// getGoogleAuthResult
-// ---------- ---------- ---------- ---------- ----------
-
-export const getGoogleAuthResult = (idToken: string): GoogleAuthResult => {
-	const base64 = idToken.split(".")[1]
-		.replace(/-/g, "+")
-		.replace(/_/g, "/")
-	const decode = (str: string) => decodeURIComponent(
-		atob(str)
-			.split("")
-			.map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-			.join("")
-	)
-	const payload = JSON.parse(decode(base64))
-	const user = {
-		name   : payload.name,
-		email  : payload.email,
-		picture: payload.picture,
-		sub    : payload.sub
-	}
-	return {
-		idToken,
-		user
-	}
-}
-
-// ---------- ---------- ---------- ---------- ----------
-// googleAuth
-// ---------- ---------- ---------- ---------- ----------
-
-export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthResult | null> => {
-
-	// get google
-	const google = await getGoogle()
-
-	// variable
-	const autoSelect = config.autoSelect ?? true
-	const uxMode     = config.uxMode ?? "popup"
-
-	// result
-	return new Promise((resolve, reject) => {
-
-		// get client
-		const client = google.accounts.id
-
-		// initialize
-		client.initialize({
-			client_id  : config.clientId,
-			auto_select: autoSelect,
-			ux_mode    : uxMode,
-			callback   : (response: { credential: string }) => {
-				try {
-					const idToken = response.credential
-					resolve(getGoogleAuthResult(idToken))
-				} catch(error) {
-					reject(error)
-				}
-			}
-		}) // end initialize
-
-		// show prompt
-		client.prompt((notification) => {
-			if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-				resolve(null)
-			}
-		})
-	}) // end result
-}
+// ========== ========== ========== ========== ==========
+// type
+// ========== ========== ========== ========== ==========
 
 // ---------- ---------- ---------- ---------- ----------
 // type GoogleScope
 // ---------- ---------- ---------- ---------- ----------
 
 export type GoogleScope =
-	// --------------------
+
+// --------------------
 	// 基本（必須系）
 	// --------------------
 	| "openid"
@@ -291,6 +90,121 @@ export type GoogleScope =
 	// --------------------
 	| (string & {})
 
+// ========== ========== ========== ========== ==========
+// interface
+// ========== ========== ========== ========== ==========
+
+// ---------- ---------- ---------- ---------- ----------
+// interface GoogleAccountsId
+// ---------- ---------- ---------- ---------- ----------
+
+export interface GoogleAccountsId {
+	initialize(
+		config: {
+			client_id   : string
+			auto_select?: boolean
+			ux_mode    ?: "popup" | "redirect"
+			callback: (
+				response: {
+					credential: string
+				}
+			) => void
+		}
+	): void
+
+	disableAutoSelect(): void
+	cancel(): void
+
+	prompt(callback?: (notification: any) => void): void
+
+	renderButton(
+		parent: HTMLElement,
+		options?: {
+			theme?: "outline" | "filled_blue" | "filled_black"
+			size ?: "large" | "medium" | "small"
+			text ?: "signin_with" | "signup_with" | "continue_with"
+			shape?: "rectangular" | "pill" | "circle" | "square"
+		}
+	): void
+
+	revoke(
+		hint: string, // email or sub
+		callback: () => void
+	): void
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// interface GoogleTokenClient
+// ---------- ---------- ---------- ---------- ----------
+
+export interface GoogleTokenClient {
+	requestAccessToken(options?: {
+		prompt?: "none" | "consent" | "select_account"
+	}): void
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// interface GoogleAccountsOAuth2
+// ---------- ---------- ---------- ---------- ----------
+
+export interface GoogleAccountsOAuth2 {
+	initTokenClient(config: {
+		client_id: string
+		scope    : string
+		callback : (response: {
+			access_token?: string
+			error       ?: string
+		}) => void
+	}): GoogleTokenClient
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// interface GoogleAccounts
+// ---------- ---------- ---------- ---------- ----------
+
+export interface GoogleAccounts {
+	id    : GoogleAccountsId
+	oauth2: GoogleAccountsOAuth2
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// interface Google
+// ---------- ---------- ---------- ---------- ----------
+
+export interface Google {
+	accounts: GoogleAccounts
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// interface GoogleAuthConfig
+// ---------- ---------- ---------- ---------- ----------
+
+export interface GoogleAuthConfig {
+	clientId   : string
+	autoSelect?: boolean              // default: true
+	uxMode    ?: "popup" | "redirect" // default: "popup"
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// interface GoogleUser
+// ---------- ---------- ---------- ---------- ----------
+
+export interface GoogleUser {
+	name   : string
+	email  : string
+	picture: string
+	sub    : string
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// interface GoogleAuthResult
+// ---------- ---------- ---------- ---------- ----------
+
+export interface GoogleAuthResult {
+	idToken: string
+	user   : GoogleUser
+}
+
 // ---------- ---------- ---------- ---------- ----------
 // interface GetAccessTokenConfig
 // ---------- ---------- ---------- ---------- ----------
@@ -299,6 +213,88 @@ export interface GetAccessTokenConfig {
 	clientId: string
 	scope   : GoogleScope[]
 	prompt ?: "none" | "select_account" | "consent" // default: "select_account"
+}
+
+// ========== ========== ========== ========== ==========
+// procedure
+// ========== ========== ========== ========== ==========
+
+// ---------- ---------- ---------- ---------- ----------
+// getGoogle
+// ---------- ---------- ---------- ---------- ----------
+
+// 2重読み込み防止用の変数
+let googlePromise: Promise<Google> | null = null
+
+/**
+ * Google 変数を取得する
+ */
+export const getGoogle = async (): Promise<Google> => {
+	if ((window as any).google) return (window as any).google
+
+	if (googlePromise) return googlePromise
+
+	googlePromise = new Promise((resolve, reject) => {
+		const script = document.createElement("script")
+		script.src = "https://accounts.google.com/gsi/client"
+
+		// success
+		script.addEventListener("load", () => {
+			const result = (window as any).google
+
+			if (result) {
+				resolve(result)
+			} else {
+				reject(new Error("error: loadGoogle: 001"))
+			}
+		})
+
+		// error
+		script.addEventListener("error", () => {
+			reject(new Error("error: loadGoogle: 002"))
+		})
+
+		// append child
+		document.body.appendChild(script)
+	})
+
+	return googlePromise
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// getGoogleAuthResult
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * idToken から ユーザー情報を取得
+ *
+ * @param {string} idToken - ユーザートークン
+ * @returns {GoogleAuthResult}
+ */
+export const getGoogleAuthResult = (idToken: string): GoogleAuthResult => {
+	const base64 = idToken.split(".")[1]
+		.replace(/-/g, "+")
+		.replace(/_/g, "/")
+
+	const decode = (str: string) => decodeURIComponent(
+		atob(str)
+			.split("")
+			.map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+			.join("")
+	)
+
+	const payload = JSON.parse(decode(base64))
+
+	const user = {
+		name   : payload.name,
+		email  : payload.email,
+		picture: payload.picture,
+		sub    : payload.sub
+	}
+
+	return {
+		idToken,
+		user
+	}
 }
 
 // ---------- ---------- ---------- ---------- ----------
@@ -334,5 +330,84 @@ export const getAccessToken = async (config: GetAccessTokenConfig): Promise<stri
 
 		// request AccessToken
 		tokenClient.requestAccessToken({ prompt }) // prompt == "none" のときには、事前にログインが必要
+	})
+}
+
+// ========== ========== ========== ========== ==========
+// effect
+// ========== ========== ========== ========== ==========
+
+// ---------- ---------- ---------- ---------- ----------
+// effect_googleAuth
+// ---------- ---------- ---------- ---------- ----------
+
+export const effect_googleAuth = function <S> (
+	props: {
+		state         : S
+		config        : GoogleAuthConfig
+		renderButton ?: HTMLElement
+		renderOptions?: {
+			theme?: "outline" | "filled_blue" | "filled_black"
+			size ?: "large" | "medium" | "small"
+			text ?: "signin_with" | "signup_with" | "continue_with"
+			shape?: "rectangular" | "pill" | "circle" | "square"
+		}
+		onLoad: (state: S, res: GoogleAuthResult) => S | [S, Effect<S>]
+	}
+): (dispatch: Dispatch<S>) => Promise<void> {
+
+	// variable
+	const { state, config, renderButton, renderOptions, onLoad } = props
+
+	// result
+	return async (dispatch: Dispatch<S>): Promise<void> => {
+
+		// get google api
+		const google = await getGoogle()
+
+		// set renderButton
+		if (renderButton) {
+			google.accounts.id.renderButton(renderButton, renderOptions)
+		}
+
+		// get client
+		const client = google.accounts.id
+
+		// initialize
+		client.initialize({
+			client_id  : config.clientId,
+			auto_select: config.autoSelect,
+			ux_mode    : config.uxMode,
+			callback: (response: { credential: string}) => {
+				dispatch((state: S) =>
+					onLoad(state, getGoogleAuthResult(response.credential))
+				)
+			}
+		})
+
+		// show prompt
+		client.prompt((notification) => {
+			if (notification.isNotDisplayed()) {
+				console.log("Google prompt not displayed")
+			}
+
+			if (notification.isSkippedMoment()) {
+				console.log("Google prompt skipped")
+			}
+		})
+	} // end result
+}
+
+// ---------- ---------- ---------- ---------- ----------
+// googleLogout
+// ---------- ---------- ---------- ---------- ----------
+
+export const googleLogout = (hint: string): void => {
+	getGoogle().then(google => {
+		const client = google.accounts.id
+
+		client.disableAutoSelect()
+		client.cancel()
+		client.revoke(hint, () => {})
 	})
 }

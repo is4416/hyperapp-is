@@ -43,5 +43,5 @@ export type {
 } from "./services/google"
 
 export {
-	getGoogle, getGoogleAuthResult, googleAuth, getAccessToken
+	getGoogle, getGoogleAuthResult, getAccessToken, effect_googleAuth, googleLogout
 } from "./services/google"
