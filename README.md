@@ -206,8 +206,9 @@ npm で非公開の関数 (実験用)は、解説に記載します
 
 **services / google**
 - [getGoogle](#getgoogle)
-- [googleAuth](#googleauth)
+- [getGoogleAuthResult](#getgoogleauthresult)
 - [getAccessToken](#getaccesstoken)
+- [GoogleAuth](#googleauth)
 
 ## source file / ソースファイル
 
@@ -1601,29 +1602,15 @@ export const getGoogle = async (): Promise<Google>
 
 ---
 
-### googleAuth
-グーグル認証を行い `{ idToken: string, user: GoogleUser }` を取得します
+### getGoogleAuthResult
+ユーザートークンから、ユーザー情報を取得する
 
 ```ts
-export const googleAuth = async (config: GoogleAuthConfig): Promise<GoogleAuthResult> =>
-```
-
-```ts
-export interface GoogleAuthConfig {
-	clientId   : string
-	autoSelect?: boolean              // default: true
-	uxMode    ?: "popup" | "redirect" // default: "popup"
-}
-```
-
-- clientId   : アプリケーションのID (https://console.cloud.google.com で作成)
-- autoSelect?: ユーザーが選択されていた場合、自動でログイン
-- uxMode    ?: ポップアップ、もしくはリダイレクトでログインします
-
+export const getGoogleAuthResult = (idToken: string): GoogleAuthResult
 ---
 
 ### getAccessToken
-Googleのaccess token を取得  
+Googleのaccess token を取得
 
 ```ts
 export const getAccessToken = (config: GetAccessTokenConfig): Promise<string>
@@ -1640,3 +1627,52 @@ export interface GetAccessTokenConfig {
 - clientId: アプリケーションのID
 - scope   : スコープの配列
 - prompt ?: ログイン制御 `none` の場合、先にログインしていなければエラーとなります
+
+---
+
+### GoogleAuth
+Google 認証をラップしたクラス
+
+```ts
+interface GoogleAuthConfig {
+	clientId   : string
+	autoSelect?: boolean              // default: true
+	uxMode    ?: "popup" | "redirect" // default: "popup"
+}
+
+interface GoogleButtonOptions {
+	renderButton?: HTMLElement
+	theme       ?: "outline" | "filled_blue" | "filled_black"      // default: outline
+	size        ?: "large" | "medium" | "small"                    // default: medium
+	text        ?: "signin_with" | "signup_with" | "continue_with" // default: signin_with
+	shape       ?: "rectangular" | "pill" | "circle" | "square"    // default: rectangular
+}
+
+interface GoogleAuthResult {
+	idToken: string
+	user   : GoogleUser
+}
+
+interface GoogleUser {
+	name   : string
+	email  : string
+	picture: string
+	sub    : string
+}
+```
+
+```ts
+class GoogleAuth {
+	constructor (config: GoogleAuthConfig, option?: GoogleButtonOptions)
+	async initialize(): Promise<GoogleAuthResult | null>
+	logout (hit: string): void
+}
+```
+
+*MEMO*
+必ず一度だけ `initialize` を実行します  
+プロンプトがスキップされた場合 `null` が返ります  
+`logout` を実行したあとであれば `initialize` を再実行することが可能です  
+`logout` 前に 2度 `initialize` を実行した場合は、エラーが発生します  
+`logout` の `hit` は `email' か 'sub` を指定する必要があります
+
