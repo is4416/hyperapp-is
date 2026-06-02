@@ -364,20 +364,11 @@ export class GoogleAuth {
 		if (this.#initialized) {
 			throw new Error("Already initialized")
 		}
-		this.#initialized = true
 
 		this.#google = await getGoogle()
+		this.#initialized = true
 
 		const client = this.#google.accounts.id
-
-		if (this.#options?.renderButton) {
-			client.renderButton(this.#options.renderButton, {
-				theme: this.#options.theme ?? "outline",
-				size : this.#options.size  ?? "medium",
-				text : this.#options.text  ?? "signin_with",
-				shape: this.#options.shape ?? "rectangular",
-			})
-		}
 
 		return new Promise(resolve => {
 			let resolved = false
@@ -394,6 +385,15 @@ export class GoogleAuth {
 				ux_mode    : this.#config.uxMode ?? "popup",
 				callback
 			})
+
+			if (this.#options?.renderButton) {
+				client.renderButton(this.#options.renderButton, {
+					theme: this.#options.theme ?? "outline",
+					size : this.#options.size  ?? "medium",
+					text : this.#options.text  ?? "signin_with",
+					shape: this.#options.shape ?? "rectangular",
+				})
+			}
 
 			client.prompt((notification) => {
 				if (
