@@ -250,10 +250,9 @@ export const OptionButton = function <S> (
 
 /**
  * 履歴付きインプット
+ * localState: { histories: string[] }
  * 
- * div
- *  ├ input
- *  └ datalist
+ * @returns {VNode<S>[]} - [HTMLInputElement, HTMLDataListElement]
  */
 
 export const HistoryInput = function <S> (
@@ -264,7 +263,7 @@ export const HistoryInput = function <S> (
 		historyLimit?: number
 		[key: string]: any
 	}
-): VNode<S> {
+): VNode<S>[] {
 	const { state, id, keyNames, historyLimit = 10 } = props
 
 	const value      = getValue(state, keyNames, "")
@@ -324,7 +323,7 @@ export const HistoryInput = function <S> (
 	// VNode
 	// ---------- ---------- ----------
 
-	return div({},
+	return [
 		input({
 			type: "text",
 			...deleteKeys(props, "state", "keyNames", "historyLimit"),
@@ -341,5 +340,5 @@ export const HistoryInput = function <S> (
 				value  : item
 			}))
 		)
-	)
+	]
 }

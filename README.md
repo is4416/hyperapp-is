@@ -516,7 +516,8 @@ export const OptionButton = function <S> (
 ---
 
 ### HistoryInput
-履歴付きインプットボックス
+履歴付きインプットボックス  
+localState: { histories: string[] }
 
 ```ts
 export const HistoryInput = function <S> (
@@ -527,7 +528,7 @@ export const HistoryInput = function <S> (
 		historyLimit?: number
 		[key: string]: any
 	}
-): VNode<S>
+): VNode<S>[]
 ```
 
 - props         : props
@@ -535,6 +536,7 @@ export const HistoryInput = function <S> (
 - props.id      : ユニークID
 - props.keyNames: ステート内の文字までのパス
 - props.historyLimit: 保持する履歴の最大数 (default = 10)
+- returns           : [HTMLInputElement, HTMLDataListElement]
 
 履歴は `[props.id].histories` に保存されます  
 履歴を動的にクリアしたい場合 `setLocalState(state, id, { histories: [] })` などとして下さい
