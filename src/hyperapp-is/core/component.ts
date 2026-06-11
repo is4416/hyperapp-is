@@ -257,14 +257,15 @@ export const OptionButton = function <S> (
 
 export const HistoryInput = function <S> (
 	props: {
-		state        : S
-		id           : string
-		keyNames     : Keys_String
-		historyLimit?: number
-		[key: string]: any
+		state         : S
+		id            : string
+		keyNames      : Keys_String
+		historyLimit ?: number
+		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>[]) => VNode<S>[]
+		[key: string] : any
 	}
 ): VNode<S>[] {
-	const { state, id, keyNames, historyLimit = 10 } = props
+	const { state, id, keyNames, historyLimit = 10, afterRender } = props
 
 	const value      = getValue(state, keyNames, "")
 	const localState = getLocalState(state, id, {
@@ -323,10 +324,10 @@ export const HistoryInput = function <S> (
 	// VNode
 	// ---------- ---------- ----------
 
-	return [
+	const vnode = [
 		input({
 			type: "text",
-			...deleteKeys(props, "state", "keyNames", "historyLimit"),
+			...deleteKeys(props, "state", "keyNames", "historyLimit", "afterRender"),
 			list: `${ id }-history`,
 			value,
 			oninput,
@@ -341,4 +342,8 @@ export const HistoryInput = function <S> (
 			}))
 		)
 	]
+
+	return afterRender
+		? afterRender(state, localState, vnode)
+		: vnode
 }

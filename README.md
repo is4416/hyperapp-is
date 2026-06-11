@@ -522,11 +522,12 @@ localState: { histories: string[] }
 ```ts
 export const HistoryInput = function <S> (
 	props: {
-		state        : S
-		id           : string
-		keyNames     : Keys_String
-		historyLimit?: number
-		[key: string]: any
+		state         : S
+		id            : string
+		keyNames      : Keys_String
+		historyLimit ?: number
+		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>[]) => VNode<S>[]
+		[key: string] : any
 	}
 ): VNode<S>[]
 ```
@@ -536,6 +537,7 @@ export const HistoryInput = function <S> (
 - props.id      : ユニークID
 - props.keyNames: ステート内の文字までのパス
 - props.historyLimit: 保持する履歴の最大数 (default = 10)
+- props.afterRender : 全体のレンダーフック
 - returns           : [HTMLInputElement, HTMLDataListElement]
 
 履歴は `[props.id].histories` に保存されます  
