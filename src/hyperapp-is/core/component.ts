@@ -321,6 +321,20 @@ export const HistoryInput = function <S> (
 	}
 
 	// ---------- ---------- ----------
+	// action_clear
+	// ---------- ---------- ----------
+
+	const action_clear = (state: S) => {
+		return setValue(
+			setLocalState(state, id, {
+				histories: []
+			}),
+			keyNames,
+			""
+		)
+	}
+
+	// ---------- ---------- ----------
 	// VNode
 	// ---------- ---------- ----------
 
@@ -340,7 +354,12 @@ export const HistoryInput = function <S> (
 			histories.map(item => option({
 				value  : item
 			}))
-		)
+		),
+
+		button({
+			type   : "button",
+			onclick: action_clear
+		}, "クリア")
 	]
 
 	return afterRender
