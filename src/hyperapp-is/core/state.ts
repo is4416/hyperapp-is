@@ -4,7 +4,7 @@
 // type Keys
 // ---------- ---------- ---------- ---------- ----------
 
-export type Keys = readonly string[]
+export type Keys               = readonly string[]
 export type Keys_String        = Keys
 export type Keys_ArrayString   = Keys
 export type Keys_Number        = Keys
@@ -100,11 +100,11 @@ export const createLocalKey = (id: string): string => `local_key_${ id }`
  * ステートから、ローカルステートを取得する
  */
 
-export const getLocalState = function <S> (
+export const getLocalState = function <S, T> (
 	state: S,
 	id   : string,
-	def  : Record<string, any>
-): Record<string, any> {
+	def  : T
+): T {
 	const localKey = createLocalKey(id)
 	const obj = Object.prototype.hasOwnProperty.call(state, localKey)
 		? (state as any)[localKey]
@@ -124,10 +124,10 @@ export const getLocalState = function <S> (
  * ローカルステートを更新してステートを返す
  */
 
-export const setLocalState = function <S> (
+export const setLocalState = function <S, T> (
 	state: S,
 	id   : string,
-	value: Record<string, any>
+	value: T
 ): S {
 	const localKey = createLocalKey(id)
 	const obj = Object.prototype.hasOwnProperty.call(state, localKey)
