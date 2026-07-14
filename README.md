@@ -13,17 +13,17 @@ hyperapp 用ユーティリティ集
 index.ts: エクスポートの一覧
 
 [core]
-  ├ state.ts: state 操作に関するもの
+  ├ state.ts    : state 操作に関するもの
   ├ component.ts: VNode の作成に関するもの
-  └ effects.ts: Effectに関するもの
+  └ effects.ts  : Effectに関するもの
 
 [dom]
-  ├ utils.ts: DOM 操作に関するユーティリティ
+  ├ utils.ts : DOM 操作に関するユーティリティ
   └ dialog.ts: DOM を利用したダイアログ
 
 [animation]
-  ├ raf.ts: requestAnimationFrame を state と連携する仕組み
-  ├ easing.ts: イージング関数集
+  ├ raf.ts       : requestAnimationFrame を state と連携する仕組み
+  ├ easing.ts    : イージング関数集
   └ properties.ts: raf.tsを利用した CSS アニメーション
 
 [services]
@@ -35,17 +35,17 @@ index.ts: エクスポートの一覧
 ## 関数一覧 (interfaceは省略)
 
 **core**
-- state: getValue, setValue, getLocalState, setLocalState, createLocalKey
+- state    : getValue, setValue, getLocalState, setLocalState, createLocalKey
 - component: el, concatAction, getClassList, deleteKeys
-- effects: effect_toast
+- effects  : effect_toast
 
 **dom**
-- utils: getScrollMargin
+- utils : getScrollMargin
 - dialog: withLoadingDialog
 
 **animation**
-- raf: RAFTask, subscription_RAFManager
-- easing: progress_easing
+- raf       : RAFTask, subscription_RAFManager
+- easing    : progress_easing
 - properties: createRAFProperties, effect_RAFProperties
 
 **services**
