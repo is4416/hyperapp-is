@@ -1,1682 +1,345 @@
 # hyperapp-is
 
-Lightweight. Declarative. Composable.
+hyperapp 用ユーティリティ集
 
-Reusable component foundation library for Hyperapp v2.
-
-State-structure independent design + RAF-based animation system.
-
----
-
-## Features
-
-- State-path based reusable component design
-- Local state helpers  
-	`getLocalState`, `setLocalState`, `createLocalKey`
-- Action composition utility  
-	`concatAction`
-- Class / props utilities  
-	`getClassList`, `deleteKeys`
-- requestAnimationFrame task system  
-	`RAFTask`, `subscription_RAFManager`
-- Built-in animated Carousel component
+ライブラリ名の is は、is4416 の is です\
+自分用に作成しているユーティリティをまとめたライブラリです
 
 ---
 
-## Installation
+## ファイル構成
 
-``` bash
-npm install hyperapp-is
+```
+index.ts: エクスポートの一覧
+
+[core]
+  ├ state.ts: state 操作に関するもの
+  ├ component.ts: VNode の作成に関するもの
+  └ effects.ts: Effectに関するもの
+
+[dom]
+  ├ utils.ts: DOM 操作に関するユーティリティ
+  └ dialog.ts: DOM を利用したダイアログ
+
+[animation]
+  ├ raf.ts: requestAnimationFrame を state と連携する仕組み
+  ├ easing.ts: イージング関数集
+  └ properties.ts: raf.tsを利用した CSS アニメーション
+
+[services]
+  └ google.ts: Google 認証ユーティリティ
 ```
 
-Peer dependencies:
+---
 
-- hyperapp v2
-- hyperapp-jsx-pragma (when using JSX)
+## 関数一覧 (interfaceは省略)
+
+**core**
+- state: getValue, setValue, getLocalState, setLocalState, createLocalKey
+- component: el, concatAction, getClassList, deleteKeys
+- effects: effect_toast
+
+**dom**
+- utils: getScrollMargin
+- dialog: withLoadingDialog
+
+**animation**
+- raf: RAFTask, subscription_RAFManager
+- easing: progress_easing
+- properties: createRAFProperties, effect_RAFProperties
+
+**services**
+- google: getAccessToken, GoogleAuth
 
 ---
 
-## Basic Usage (Carousel Example)
+## 使い方
 
-``` ts
-import { app } from "hyperapp"
-import h from "hyperapp-jsx-pragma"
-import {
-	RAFTask, subscription_RAFManager,
-	Carousel, effect_InitCarousel
-} from "hyperapp-is"
+**core**
 
-// State
-interface State {
-	tasks: RAFTask<State>[]
+- `getValue`, `setValue`: keyNames には、取得・設定したい値までのパス
+
+> ステートの構造に依存せずに目的の値が取得・設定できます\
+> 汎用コンポーネントの作成に利用できます
+
+例
+```js
+const state = {
+	title: "ユーザー情報",
+	user: {
+		name: "青年",
+		age : 20
+	}
 }
 
-const initState: State = {
-	tasks: []
+const title = getValue(state, ["title"], "タイトル情報")  // res: ユーザー情報
+const name  = getValue(state, ["user", "name"], "名無し") // res: 青年
+const age   = getValue(state, ["user", "age"], 0)         // res: 20
+```
+
+---
+
+- `getLocalState`, `setLocalState`: ローカルステートのように値を取得・設定できます
+- `createLocalKey` は、基本的には内部で使うための関数ですが、外部からも利用可能です
+
+> `setLocalState` は、メインステートに追加ツリーを追加します\
+> ユーザーはメインステートの改変を意識することなく、ローカルステートのように値を取得・設定できます\
+> 汎用コンポーネントの作成で、ローカルステートが欲しいときに利用できます
+
+例
+```ts
+interface LocalState {
+	color?: string
+	size ?: number
 }
 
-// Entry Point
-app({
-	node: document.getElementById("app") as HTMLElement,
+const localState = getLocalState(state, name, {
+	color: "red"
+}) // res: { color: "red" }
 
-	init: [initState, effect_InitCarousel(["tasks"], {
-		id      : "carousel",
-		duration: 2000,
-		delay   : 1000,
-		step    : 1
-	})],
+const newState = setLocalState(state, name, {
+	color: "blue"
+	size : 180
+})
 
-	subscriptions: (state) => [
-		subscription_RAFManager(state, ["tasks"])
-	],
+/* res:
+	{
+		title: "ユーザ情報",
+		user : {
+			name: "青年",
+			age : 20
+		},
+		local_key_青年: {
+			color : "blue",
+			size  : 180
+		}
+	}
+*/
+```
 
-	view: (state) => (<Carousel
-		state    = { state }
-		id       = "carousel"
-		keyNames = { ["tasks"] }
-	>
-		<div>Slide 1</div>
-		<div>Slide 2</div>
-		<div>Slide 3</div>
-	</Carousel>)
+---
+
+- `el`: hyperapp の `h` 関数のラッパーです
+
+> text関数の省略や、配列の省略などが可能です\
+> JSXを使用する場合は、出番がありません
+
+例
+```ts
+const body = el("body")
+const div  = el("div")
+
+const vnode = body({},
+	div({}, "タイトル行"),
+	div({}, "メイン")
+)
+```
+
+---
+
+- deleteKeys  : props から指定したキーを削除します
+- getClassList: props からクラスリストを取得します
+- concatAction: アクションを結合します
+
+> 汎用コンポーネントを作成する場合などに使用できます
+
+例
+```ts
+const button = el("button")
+
+const MyButton = function <S> (
+	props: {
+		state: S
+		onclick?: (state: S, e: Event) => S | [S, Effect<S>],
+		keyNames: string[] // number までのパス
+		[key: string]: any
+	},
+	child: any
+): VNode<S> {
+	const { state, onclick, keyNames } = props
+	const classList = getClassList(props)
+
+	// action
+	const action_click = (state: S, e: Event) => {
+		const count = getValue(state, keyNames, 0)
+		const newState = setValue(state, keyNames, count + 1)
+
+		// ユーザーが指定したアクションとの結合
+		return concatAction(onclick, newState, e)
+	}
+
+	// vnode
+	return button({
+		type: "button",
+		...deleteKeys(props, "state", "keyNames"),       // DOM に設定しない値を削除
+		class  : classList.concat("MyButton").join(" "), // 取得したクラス名に MyButton を追加
+		onclick: action_click
+	}, child)
+}
+```
+
+---
+
+- effect_toast: 設定した値を、一定時間経過後に元に戻します
+
+例
+```ts
+const action = (state: S) => {
+	return [
+		{
+			...state,
+			message: "ready"
+		},
+		effect_toast({
+			keyNames: ["message"],
+			value   : "toast message",
+			duration: 1000
+		})
+	]
+}
+```
+
+> `message` に 1秒間 "toast message" と表示された後\
+> "ready" という値に戻ります
+
+---
+
+**dom**
+
+- getScrollMargin: スクロール状態を取得
+
+> 無限スクロールなどに利用できます
+
+例:
+```ts
+const action = (state: S, e: Event) => {
+	const scrollMargin = getScrollMargin(e)
+
+	if (scrollMargin.bottom < 100) {
+		// 残り 100px で、アイテムの追加処理などを実行
+		const newState = {
+			...state,
+			count: count + 10
+		}
+		return newState
+	}
+
+	return state
+}
+```
+
+---
+
+- withLoadingDialog: task 実行中、ローディングダイアログを表示します
+
+> onCancel を指定した場合は、Esc キーで onCancel が呼び出されます
+
+例
+```ts
+const json = await withLoadingDialog(async () => {
+	const res = await fetch("/api/hoge")
+	if (!res.ok) throw new Error("error: task")
+	return res.json()
 })
 ```
 
 ---
 
-## Concept
+**animation**
 
-hyperapp-is allows components to:
+- subscription_RAFManager: RAFTask 配列の実行を管理するサブスクリプション
 
-- Remain independent from root state structure
-- Store internal state without polluting user state
-- Compose actions safely
-- Manage animations declaratively via RAFTask
+> ステートに `RAFTask[]` の配列を用意します\
+> `RAFTask` が追加されると、自動的にタスクの実行管理を開始します\
+> タスクが完了すると、自動的に `RAFTask[]` から削除されます
 
-Designed for building reusable UI components on top of Hyperapp.
-
----
-
-## Documentation
-
-Full documentation and detailed design notes are available on GitHub:
-
-https://github.com/is4416/hyperapp-is
-
----
-
-## License
-
-MIT
-
----
-
-# hyperapp-is
-
-Hyperapp で再利用可能なコンポーネントを作成するためのライブラリです  
-hyperapp-is の is は、is4416 の略です
-
-[example](https://is4416.github.io/hyperapp-is/)  
-※ 本ライブラリの実装サンプル
-
-本ライブラリは **イミュータブルなステート更新** と **シンプルな副作用管理** を前提として設計されています。  
-JSX を使用する場合は `hyperapp-jsx-pragma` を前提としています。
-
-## Functions / 関数リスト
-
-npm で非公開の関数 (実験用)は、解説に記載します
-
-**core / state.ts**
-- [Keys](#keys)
-- [getValue](#getvalue)
-- [setValue](#setvalue)
-- [getLocalState](#getlocalstate)
-- [setLocalState](#setlocalstate)
-- [createLocalKey](#createlocalkey)
-
-**core / component.ts**
-- [Keys_String](#keys_string-keys_arraystring)
-- [Keys_ArrayString](#keys_string-keys_arraystring)
-- [el](#el)
-- [concatAction](#concataction)
-- [getClassList](#getclasslist)
-- [deleteKeys](#deletekeys)
-- [Route](#route)
-- [SelectButton](#selectbutton)
-- [OptionButton](#optionbutton)
-- [HistoryInput](#historyinput)
-
-**core / navigator.ts**
-- [Keys_NavigatorItem](#keys_navigatoritem)
-- [NavigatorItem](#navigatoritem)
-- [JsonEntry](#jsonentry)
-- [NavigatorColumn](#navigatorcolumn)
-- [convertJsonToNavigatorItem](#convertjsontonavigatoritem)
-- [getParentItems](#getparentitems)
-- [NavigatorFinder](#navigatorfinder)
-- [SearchResult](#searchresult)
-- [NavigatorSearch](#navigatorsearch)
-
-**animation / step.ts**
-- [effect_throwMessageStart](#effect_throwmessagestart)
-- [effect_throwMessagePause](#effect_throwmessagepause--effect_throwmessageresume)
-- [effect_throwMessageResume](#effect_throwmessagepause--effect_throwmessageresume)
-- [marquee](#marquee)
-
-**animation / raf.ts**
-- [InternalEffect](#internaleffect)
-- [RAFEvent](#rafevent)
-- [RAFTask](#raftask)
-- [subscription_RAFManager](#subscription_rafmanager)
-
-**animation / properties.ts**
-- [CSSProperty](#cssproperty)
-- [createUnits](#createunits)
-- [createRAFProperties](#createrafproperties)
-- [effect_RAFProperties](#effect_rafproperties)
-
-**animation / easing.ts**
-- [progress_easing](#progress_easing)
-
-**animation / translate.ts**
-- [TranslateState](#translatestate)
-- [createRAFTranslate](#createraftranslate)
-- [effect_translateStart](#effect_translatestart)
-- [effect_translateRollback](#effect_translaterollback)
-- [effect_translateRollforward](#effect_translaterollforward)
-- [effect_translateSlide](#effect_translateslide)
-
-**animationView / carouselts**
-- [CarouselState](#carouselstate)
-- [CarouselController](#carouselcontroller)
-- [Carousel](#carousel)
-- [effect_InitCarousel](#effect_initcarousel)
-
-**dom / utils.ts**
-- [ScrollMargin](#scrollmargin)
-- [getScrollMargin](#getscrollmargin)
-- [MatrixState](#matrixstate)
-- [getMatrixState](#getmatrixstate)
-
-**dom / lifecycle.ts**
-- [effect_setTimedValue](#effect_settimedvalue)
-- [effect_nodesInitialize](#effect_nodesinitialize)
-- [subscription_nodesCleanup](#subscription_nodescleanup)
-- [subscription_nodesLifecycleByIds](#subscription_nodeslifecyclebyids)
-
-**services / google**
-- [getGoogle](#getgoogle)
-- [getGoogleAuthResult](#getgoogleauthresult)
-- [getAccessToken](#getaccesstoken)
-- [GoogleAuth](#googleauth)
-
-## source file / ソースファイル
-
-```
-src
- └ hyperapp-is
-	 ├ index.ts
-	 │
-	 ├ core
-	 │  ├ state.ts
-	 │  │   Keys
-	 │  │   getValue, setValue, getLocalState, setLocalState, createLocalKey
-	 │  │
-	 │  ├ component.ts
-	 │  │   Keys_String, Keys_ArrayString
-	 │  │   el, concatAction, getClassList, deleteKeys
-	 │  │   Route, SelectButton, OptionButton
-	 │  │
-	 │  └ navigator.ts
-	 │       Keys_NavigatorItem, NavigatorItem, JsonEntry, NavigatorColumn
-	 │       convertJsonToNavigatorItem, getParentItems, NavigatorFinder
-	 │       SearchResult, NavigatorSearch
-	 │
-	 ├ animation
-	 │  ├ step.ts
-	 │  │   effect_throwMessageStart, effect_throwMessagePause, effect_throwMessageResume, marquee
-	 │  │
-	 │  ├ raf.ts
-	 │  │   InternalEffect
-	 │  │   RAFEvent
-	 │  │   RAFTask
-	 │  │   subscription_RAFManager
-	 │  │
-	 │  ├ properties.ts
-	 │  │   CSSProperty
-	 │  │   createRAFProperties
-	 │  │   effect_RAFProperties
-	 │  │
-	 │  ├ easing.ts
-	 │  │   progress_easing
-	 │  │
-	 │  └ translate.ts
-	 │       TranslateState
-	 │       createRAFTranslate
-	 │       effect_translateStart
-	 │       effect_translateRollback
-	 │       effect_translateRollforward
-	 │       effect_translateSlide
-	 │
-	 ├ animationView
-	 │  └ carousel.ts
-	 │
-	 ├ dom
-	 │ ├ utils.ts
-	 │ │   ScrollMargin
-	 │ │   getScrollMargin
-	 │ │   MatrixState
-	 │ │   getMatrixState
-	 │ │
-	 │ └ lifecycle.ts
-	 │       effect_setTimedValue
-	 │       effect_nodesInitialize
-	 │       subscription_nodesCleanup
-	 │       subscription_nodesLifecycleByIds
-	 │
-	 └ service
-		 └ google.ts
-		      getGoogle
-			  googleAuth
-			  getAccessToken
-```
-
-## hyperapp-is/core
-
-### Keys
-ステートの任意の値までのパスを表す、文字配列の型エイリアス
-
+例:
 ```ts
-export type Keys = readonly string[]
-```
-
----
-
-### getValue
-パスを辿ってステートから値を取得  
-安全にアクセス可能
-
-```ts
-export const getValue = function <S, D> (
-	state   : S,
-	keyNames: string[],
-	def     : D
-): D
-```
-*型保証は呼び出し側の責任*
-
-- state   : ステート
-- keyNames: 値までのパス
-- def     : デフォルト値
-
----
-
-### setValue
-パスを辿ってステートに値を設定し、immutable な新しいステートを返す
-
-```ts
-export const setValue = function <S> (
-	state   : S,
-	keyNames: string[],
-	value   : any
-): S
-```
-- state   : ステート
-- keyNames: 値までのパス
-- value   : 設定する値
-
----
-
-### getLocalState
-ID に紐づいたローカルステートを取得
-
-```ts
-export const getLocalState = function <S> (
-	state: S,
-	id   : string,
-	def  : { [key: string]: any }
-): { [key: string]: any }
-```
-
-- state: ステート
-- id   : ユニークID
-- def  : 初期値
-
----
-
-### setLocalState
-ローカルステートを更新して新しいステートを返す
-
-```ts
-export const setLocalState = function <S> (
-	state: S,
-	id   : string,
-	value: { [key: string]: any }
-): S
-```
-
-- state: ステート
-- id   : ユニークID
-- value: 設定するローカルステート
-
----
-
-### createLocalKey
-ID からユニーク文字列を作成する
-
-```ts
-export const createLocalKey = (id: string): string => `local_key_${ id }`
-```
-
----
-
-### Keys_String, Keys_ArrayString
-ステートの任意の値までのパスを表す、文字配列の型エイリアス
-
----
-
-### el
-Hyperapp の h 関数ラッパー。JSX と競合する場合に使用  
-children の処理も同時に行っているため、本ライブラリでは VNode を作成する際に使用しています
-
-```ts
-export const el = <S = any> (tag: string) => (
-	props   ?: { [key: string]: any },
-	children?: Array
-): VNode<S>
-```
-
-- tag: タグ名
-
----
-
-### concatAction
-アクションを結合して結果を返す  
-`effect_nodesInitialize` と組み合わせ可能
-
-```ts
-export const concatAction = function <S, E> (
-	action  : undefined | ((state: S, e: E) => S | [S, Effect<S>]),
-	newState: S,
-	e       : E
-): S | [S, Effect<S>]
-```
-*newStateを設定後、DOM描画を待ち、次の action に結合します*
-
-- action  : 結合するアクション
-- newState: 結合するステート
-- e       : イベント (任意のイベント型)
-
----
-
-### getClassList
-props オブジェクトから classList を取得
-
-```ts
-export const getClassList = (
-	props: { [key: string]: any }
-): string[]
-```
-
-- props: props
-
----
-
-### deleteKeys
-props から不要なキーを除去
-
-```ts
-export const deleteKeys = <T extends Record<string, any>> (
-	props  : T,
-	...keys: (keyof T)[]
-): Omit<T, (typeof keys)[number]>
-```
-
-- props  : props
-- ...keys: 削除するキー
-
----
-
-### Route
-ステート値と一致した場合に VNode を返す  
-条件付きレンダリングに利用
-
-```ts
-export const Route = function <S> (
-	props: {
-		state   : S
-		keyNames: string[]
-		match   : string
-	},
-	children: any
-): VNode<S> | null
-```
-*返値に `null` が設定された場合 `VNode` は生成されません*
-
-- props         : props
-- props.state   : ステート
-- props.keyNames: ステート内の文字までのパス
-- props.match   : 一致判定する文字
-- children      : 出力する内容 (VNode / 配列 / 文字など)
-
----
-
-### SelectButton
-クラス名 `select` をトグルするボタン  
-複数選択可能
-
-```ts
-export const SelectButton = function <S> (
-	props: {
-		state        : S
-		keyNames     : string[]
-		id           : string
-		reverse?     : boolean
-		[key: string]: any
-	},
-	children: any
-): VNode<S>
-```
-*クリックにより、クラス名 `select` がトグルされます*
-
-- props         : props
-- props.state   : ステート
-- props.keyNames: ステート内の文字配列までのパス
-- props.id      : ユニークID
-- props.reverse?: 反転選択するか
-- children      : 子要素 (VNode / string / 配列など)
-
----
-
-### OptionButton
-クラス名 `select` を単一選択で切り替えるボタン  
-単一選択用
-
-```ts
-export const OptionButton = function <S> (
-	props: {
-		state        : S
-		keyNames     : string[]
-		id           : string
-		reverse?     : boolean
-		[key: string]: any
-	},
-	children: any
-): VNode<S>
-```
-*クリックにより、クラス名 `select` が排他的に選択されます*
-
-- props         : props
-- props.state   : ステート
-- props.keyNames: ステート内の文字までのパス
-- props.id      : ユニークID
-- props.reverse?: 反転選択するか
-- children      : 子要素 (VNode / string / 配列など)
-
----
-
-### HistoryInput
-履歴付きインプットボックス  
-localState: { histories: string[] }
-
-```ts
-export const HistoryInput = function <S> (
-	props: {
-		state         : S
-		id            : string
-		keyNames      : Keys_String
-		historyLimit ?: number
-		afterRender  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>[]) => VNode<S>[]
-		[key: string] : any
-	}
-): VNode<S>[]
-```
-
-- props         : props
-- props.state   : ステート
-- props.id      : ユニークID
-- props.keyNames: ステート内の文字までのパス
-- props.historyLimit: 保持する履歴の最大数 (default = 10)
-- props.afterRender : 全体のレンダーフック
-- returns           : [HTMLInputElement, HTMLDataListElement]
-
-履歴は `[props.id].histories` に保存されます  
-履歴を動的にクリアしたい場合 `setLocalState(state, id, { histories: [] })` などとして下さい
-
----
-
-### Keys_NavigatorItem
-ステートの任意の値までのパスを表す、文字配列の型エイリアス
-
----
-
-### NavigatorItem
-ツリー構造となるナビゲーションオブジェクト
-
-```ts
-export interface NavigatorItem {
-	parent     : NavigatorItem | null
-	name       : string
-	properties?: Record<string, any>
-	children  ?: NavigatorItem[]
-	path       : string
-	extension ?: Record<string, any>
-}
-```
-
-- parent    : 親アイテム
-- name      : 名前
-- properties: プロパティ
-- children  : 子アイテム
-- path      : パス
-- extension : 拡張オブジェクト
-
----
-
-### JsonEntry
-getEntriesの返す値
-
-```ts
-export interface JsonEntry <D> {
-	name  : string
-	data  : D
-	isNode: boolean
-}
-```
-
-- name  : 名前
-- data  : データ
-- isNode: ディレクトリか
-
----
-
-### NavigatorColumn
-NavigatorFinder に渡すヘッダーと値
-
-```ts
-export interface NavigatorColumn {
-	name    : string
-	val     : (item: NavigatorItem) => any
-	text   ?: (item: NavigatorItem) => string
-	compare?: (a: NavigatorItem, b: NavigatorItem) => number
-}
-```
-
-- name   : 名前
-- val    : 値を返す関数 (VNode等も可)
-- text   : val が string ではない時に設定するテキスト
-- compare: 比較関数
-
-`compare` を設置したカラムだけ、ソート対象となります
-
----
-
-### convertJsonToNavigatorItem
-Json から NavigatorItem に変換  
-getEntries の採用により、JSON の形を問わない
-
-```ts
-export const convertJsonToNavigatorItem = function <D> (
-	props: {
-		parent     : NavigatorItem | null
-		name       : string
-		data       : D
-		getEntries : (data: D, depth: number) => JsonEntry<D>[]
-		isNode     : boolean
-		depth     ?: number
-		extension ?: (item: NavigatorItem, data: D, depth: number) => Record<string, any> | undefined
-	}
-): NavigatorItem
-```
-
-- parent    : 親アイテム
-- name      : 名前
-- data      : データ
-- getEntries: JsonEntry配列を返す関数
-- isNode    : ディレクトリか
-- depth     : 階層の深さ
-- extension : NavigatorItem.extensionに格納する拡張データ
-
----
-
-### getParentItems
-NavigatorItem から 親アイテムのリストを取得する  
-自分自信はリストに含まない
-
-```ts
-export const getParentItems = (
-	item: NavigatorItem | undefined
-): NavigatorItem[]
-```
-
----
-
-### NavigatorFinder
-ナビゲーターファインダーコンポーネント
-
-```ts
-export const NavigatorFinder = function <S> (
-	props: {
-		state            : S
-		id               : string
-		currentKeys      : Keys_NavigatorItem
-		columns         ?: (directory: NavigatorItem | undefined) => NavigatorColumn[]
-		plugIn          ?: (state: S, localState: Record<string, any>) => VNode<S>[]
-		toolBarNode     ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		parentItemsNode ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		statusBarNode   ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		afterRender     ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		[key: string]: any
-	}
-): VNode<S>
-```
-
-- state          : ステート
-- id             : ユニークID (DOM ID)
-- currentKeys    : カレント NavigatorItem までのパス
-- columns        : NavigatorColumn の配列を返す関数
-- plugIn         : プラグインの挿入
-- toolBarNode    : `toolBar` レンダーフック
-- parentItemsNode: `parentItems` レンダーフック
-- statusBarNode  : `statusBar` レンダーフック
-- afterRender    : 全体のレンダーフック
-
-localState
-- searchText: "" as string     // 検索テキスト
-- selected  : [] as string[]   // 選択されているボタン名
-- sortType  : undefined        // ソート用比較関数: (a: NavigatorItem, b: NavigatorItem) => number
-- reverse   : false as boolean // ソートを逆順にするか
-- sortKey   : undefined as undefined | string // 使用されているソート名 (column.name)
-
-vnode
-```html
-<div id={id}>
-	<div class="rapper">
-		<div class="toolBar">
-			<div>
-				<input type="text" id={id}_searchText list={id}_searchText-history/>
-				<datalist id={id}_searchText-history />
-			</div>
-			<input type="text" />
-			<button type="button">FILTER</button>
-		</div>
-
-		<div class="parentItems">
-			<ol>
-				<li>parent</li>
-			</ol>
-			<button type="button">COPY</button>
-		</div>
-
-		<div class="items">
-			<table>
-				<thead>
-					<tr>
-						<th>ヘッダー</th>
-						<th class="sort">ソート付きヘッダー</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						<td class="file"><span>value</span></td>
-						<td class="directory"><span>value</span></td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-
-		<div class="statusBar">message</div>
-	</div>
-
-	<!-- plugIn 必要な分だけ追加 -->
-	<div id={plugInID}>
-	</div>
-</div>
-```
-
----
-
-### SearchResult
-`NavigatorSearch` で検索結果となる構造体
-
-```ts
-export interface SearchResult {
-	item : NavigatorItem
-	depth: number
-}
-```
-
----
-
-### NavigatorSearch
-`NavigatorFinder` プラグイン
-
-```ts
-export const NavigatorSearch = function <S> (
-	props: {
-		state           : S
-		id              : string
-		currentKeys     : Keys_NavigatorItem
-		searchResult    : (item: NavigatorItem, depth: number) => VNode<S> | VNode<S>[]
-		hitTest         : (item: NavigatorItem) => boolean
-		maxItemsCount   : number
-		toolBarNode    ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		parentItemsNode?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		statusBarNode  ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		afterRender    ?: (state: S, localState: Record<string, any>, vnode: VNode<S>) => VNode<S>
-		[key: string]   : any
-	}
-): VNode<S>
-```
-
-- state          : ステート
-- id             : ユニークID (DOM ID)
-- currentKeys    : カレント NavigatorItem までのパス
-- searchResult   : カードとして表示する VNode
-- hitTest        : 抽出条件
-- maxItemsCount  : 最初に表示するカードの最大数
-- toolBarNode    : `toolBar` レンダーフック
-- parentItemsNode: `parentItems` レンダーフック
-- statusBarNode  : `statusBar` レンダーフック
-- afterRender    : 全体のレンダーフック
-
-localState
-- maxItemsCount: props.maxItemsCount as number   // カードの最大表示数
-- sortName     : undefined as undefined | string // ソート名
-- sortFn       : undefined as undefined | ((a: SearchResult, b: SearchResult) => number) // 比較関数
-- isDirectory  : true // ディレクトリを表示
-- isFile       : true // ファイルを表示
-
----
-
-## hyperapp-is/animation
-
-### effect_throwMessageStart
-文字を一文字ずつ流し込むエフェクト
-
-*実験用コードのため、npm 非公開です*
-
-
-```ts
-export const effect_throwMessageStart = function <S> (
-	keyNames: string[],
-	id      : string,
-	text    : string,
-	interval: number,
-): (dispatch: Dispatch<S>) => void
-```
-
-- keyNames: 値までのパス
-- id      : ユニークID
-- text    : 流し込む文字
-- interval: 次の文字を流し込むまでの間隔 (ms)
-
----
-
-### effect_throwMessagePause / effect_throwMessageResume
-throwMessage を一時停止・再開
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const effect_throwMessagePause = function <S> (
-	id: string
-): (dispatch: Dispatch<S>) => void
-```
-```ts
-export const effect_throwMessageResume = function <S> (
-	id: string
-): (dispatch: Dispatch<S>) => void
-```
-
-- id: ユニークID
-
----
-
-### marquee
-Translate 風に DOM が流れるアニメーションを実行します
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const marquee = function <S> (
-	props: {
-		ul      : HTMLUListElement
-		duration: number
-		interval: number
-		easing ?: (t: number) => number
-	}
-): { start: () => void, stop : () => void }
-```
-*ステートから独立して `requestAnimationFrame` により直接 DOM を変更します*
-
-**パラメータ**
-- props.ul      : アニメーション対象の <ul> エレメント
-- props.duration: 実行時間 (ms)
-- props.interval: 待機時間 (ms)
-- props.easing  : easing 関数
-
-**戻値**
-- start(): アニメーションを開始
-- stop() : アニメーションを停止
-
----
-
-### InternalEffect
-Dispatch の内部処理（finish / action）から呼び出されることを前提としたエフェクト  
-Action の戻り値としては返されず、Dispatch の実行フロー内で直接実行される  
-型としては `Effect<S>` と同一で「Dispatch 内部専用」という役割と設計意図を明示するための型エイリアス
-
-```ts
-type InternalEffect<S> = Effect<S>
-```
-
-**説明**
-
-Dispatch で呼ばれるアクションでは、エフェクトを直接返すことはできません  
-しかし、非同期処理でエフェクトを使用したいこともあります
-
-このときアクションを `(state: S) => S | [S, Effect<S>]` とせず `(state: S) => S | [S, InternalEffect<S>]`とすることで、エフェクトが戻り値とならないことを明示します ( Dispatch 内でエフェクトが戻せない罠対策です )  
-具体的には `requestAnimationFrame` などを使用して時間差で Dispatch してください
-
-**ポイント**
-
-- 戻り値として使用されず、Dispatch 内でのみ実行される
-- `Effect<S>` と同一
-- 内部専用であることを、型で明示
-
-**Dispatch例**
-
-```ts
-	return [state, (dispatch: Dispatch) => {
-		requestAnimationFrame(() =>
-			dispatch(state: S) => [state, effect]
-		)
-	}]
-```
-*requestAnimationFrame などで、Dispatch 外部に移動した後、Dispatch します (どうしても1フレーム遅延します)*
-
----
-
-### RAFEvent
-RAFTask で使用されるイベント  
-hyperapp で使用される通常のアクション と同一なものですが  
-`payload` と `Effect` の型名が再定義されています
-
-```ts
-type RAFEvent = <S> (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-```
-
----
-
-### RAFTask
-requestAnimationFrame (rAF) を管理するためのクラス
-
-```ts
-export class RAFTask <S> {
-	// constructor
-	constructor (props: {
-		id        : string
-		groupID  ?: string
-		duration  : number
-		delay    ?: number
-		action    : RAFEvent<S>
-		finish   ?: RAFEvent<S>
-		priority ?: number
-		extension?: Record<string, any>
-	})
-
-	// getter
-	id       : string
-	duration : number
-	delay    : number
-	action   : RAFEvent<S>
-	finish   : RAFEvent<S>
-	progress : number
-	deltaTime: number
-
-	// getter / setter
-	groupID  : string | undefined
-	priority : number
-	extension: Record<string, any>
-	isDone   : boolean
-	paused   : boolean
-
-	// method
-	clone: RAFTask<S>
-}
-```
-
-**constructor**
-
-基本
-- id      : rAF のユニークID
-- duration: 1回の実行時間 (ms)
-- action  : 毎フレームごとのアクション
-
-拡張
-- groupID  : 任意のグループID
-- delay    : 初回実行までの待機時間 (ms)
-- finish   : 最終フレームで実行されるアクション
-- priority : 処理の優先順位
-- extension: 任意の拡張データ
-
-**property**
-
-getter
-- id       : rAF のユニークID
-- duration : 1回の実行時間 (ms)
-- delay    : 初回実行までの待機時間 (ms)
-- action   : 毎フレームごとのアクション
-- finish   : 最終フレームで実行されるアクション
-- progress : 進捗状況 (0 - 1)
-- deltaTime: 前回アクションからの経過時間 (ms)
-
-getter / setter
-- groupID  : 任意のグループID
-- priority : 処理の優先順位
-- extension: 任意の拡張データ
-- isDone   : 終了状況の取得 / 設定
-- paused   : 一時停止状況の取得 / 設定
-
-**method**
-
-- clone: 時間を初期化したクローンを作成して返す
-
----
-
-### subscription_RAFManager
-RAFTask 配列をフレームごとに実行するサブスクリプション
-
-```ts
-export const subscription_RAFManager = function <S> (
-	state   : S,
-	keyNames: string[]
-): Subscription<S>
-```
-
-- state   : ステート
-- keyNames: RAFTask 配列までのパス
-
-[詳細説明](animation-system.md)
-
----
-
-### CSSProperty
-CSS設定用オブジェクト
-
-```ts
-export interface CSSProperty {
-	[selector: string]: {
-		[name: string]: (progress: number) => string
-	}
-}
-```
-
-- selector: セレクター
-- selector.[name] => fn
-	- name: CSS プロパティ名
-	- fn(progress): CSS 値を計算する関数
-
----
-
-### createUnits
-CSSProperty を変換する補助関数  
-selector から、doms を取得してセットにします
-
-```ts
-export const createUnits = function (
-	properties: CSSProperty[]
-): {
-	doms  : HTMLElement[],
-	styles: {
-		[name: string]: (progress: number) => string
-	}
-}[]
-```
-
-- properties: プロパティ配列
-
----
-
-### createRAFProperties
-subscription_RAFManager をベースにした CSS アニメーション RAFTask を作成する
-
-```ts
-export const createRAFProperties = function <S> (
-	props: {
-		id      : string
-		groupID?: string
-		duration: number
-		delay  ?: number
-
-		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-
-		priority ?: number
-		extension?: Record<string, any>
-
-		properties: CSSProperty[]
-	}
-): RAFTask<S>
-```
-
-props は、基本的に RAFTask の値
-
-- properties: セレクタとスタイル設定のセット配列
-
----
-
-### effect_RAFProperties
-CSS プロパティをフレーム単位で段階的に変更
-
-```ts
-export const effect_RAFProperties = function <S>(
-	props: {
-		id      : string
-		groupID?: string
-		duration: number
-		delay  ?: number
-
-		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-
-		priority ?: number
-		extension?: Record<string, any>
-
-		properties: CSSProperty[]
-		keyNames  : string[]
-	}
-): (dispatch : Dispatch<S>) => void
-```
-
-props は、基本的に RAFTask の値
-
-- properties: セレクタとスタイル設定のセット配列
-- keyNames  : RAFTask 配列までのパス
-
----
-
-### TranslateState
-Translate 管理用オブジェクト
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export interface TranslateState {
-	width : number
-	index : number
-	total : number
-	easing: (t: number) => number
-}
-```
-
-- width : 移動量
-- index : 先頭のインデックス
-- total : 子の数
-- easing: easing 関数
-
----
-
-### createRAFTranslate
-subscription_RAFManager をベースにした Translate アニメーション RAFTask を作成する
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const createRAFTranslate = function <S> (
-	props: {
-		id      : string
-		groupID?: string
-		duration: number
-		delay   : number
-
-		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-
-		priority ?: number
-		extension?: Record<string, any>
-
-		translateState: TranslateState
-	}
-): RAFTask<S>
-```
-
-- props は、基本的に RAFTask の値
-- translateState: Translate情報
-
----
-
-### effect_translateStart
-`subscription_RAFManager` をベースにした Translate アニメーションエフェクトです
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const effect_translateStart = function <S> (
-	props: {
-		id      : string
-		groupID?: string
-		duration: number
-		delay   : number
-
-		finish?: (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-
-		priority ?: number
-		extension?: Record<string, any>
-
-		easing ?: (t: number) => number
-
-		keyNames: string[]
-	}
-): (dispatch: Dispatch<S>) => void
-```
-
-- props は、基本的に RAFTask の値
-- easing  : easing 関数
-- keyNames: RAFTask 配列までのパス
-
-**説明**
-
-marquee は単純な DOM に対しての副作用で、Translate としての動作は  
-ステート経由で rAF を制御しているこちらに集約されることになります
-
-marquee はステートを通さず直接 DOM に対して副作用を発生させるため  
-用途によっては marquee に優位性があります
-
-- marquee : DOM 直接操作。軽量で即時反映
-- effect_translateStart : Hyperapp のステート経由で管理。RAFManager と連携可能
-
-### effect_translateRollback
-アニメーション中のTranslateを、元の位置に戻す
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const effect_translateRollback = function <S> (
-	props: {
-		id      : string
-		keyNames: string[]
-		paused ?: boolean
-		finish ?: RAFEvent<S>
-	}
-): (dispatch: Dispatch<S>)
-```
-
-- id      : ユニークID
-- keyNames: RAFTask 配列までのパス
-- paused  : 実行後、一時停止するか
-- finish  : 実行後に呼び出されるイベント
-
-**注意**
-`effect_translateStart` に依存しています  
-上記エフェクトでループしている id に対して使用します
-
----
-
-### effect_translateRollforward
-アニメーション中のTranslateを、早送りする
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const effect_translateRollforward = function <S> (
-	props: {
-		id      : string
-		keyNames: string[]
-		paused ?: boolean
-		finish ?: RAFEvent<S>
-	}
-): (dispatch: Dispatch<S>)
-```
-
-- id      : ユニークID
-- keyNames: RAFTask 配列までのパス
-- paused  : 実行後、一時停止するか
-- finish  : 実行後に呼び出されるイベント
-
-**注意**
-`effect_translateStart` に依存しています  
-上記エフェクトでループしている id に対して使用します
-
----
-
-### effect_translateSlide
-Translateを任意のインデックスまで移動する
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const effect_translateSlide = function <S> (
-	props: {
-		id      : string
-		keyNames: string[]
-		index   : number
-		paused ?: boolean
-		finish ?: RAFEvent<S>
-	}
-): (dispatch: Dispatch<S>) => void
-```
-
-- id      : ユニークID
-- keyNames: RAFTask 配列までのパス
-- index   : 移動先のインデックス
-- paused  : 実行後、一時停止するか
-- finish  : 実行後に呼び出されるイベント
-
-**注意**
-`effect_translateStart` に依存しています  
-上記エフェクトでループしている id に対して使用します
-
----
-
-### progress_easing
-easing プリセット
-
-```ts
-export const progress_easing = {
-
-	// basic
-	linear       : (t: number) => t,
-	easeInQuad   : (t: number) => t * t,
-	easeOutQuad  : (t: number) => 1 - (1 - t) * (1 - t),
-	easeInOutQuad: (t: number) => t < 0.5
-		? 2 * t * t
-		: 1 - Math.pow(-2 * t + 2, 2) / 2,
-
-	// cubic
-	easeInCubic   : (t: number) => t * t * t,
-	easeOutCubic  : (t: number) => 1 - Math.pow(1 - t, 3),
-	easeInOutCubic: (t: number) => t < 0.5
-		? 4 * t * t * t
-		: 1 - Math.pow(-2 * t + 2, 3) / 2,
-
-	// quart
-	easeInQuart   : (t: number) => t * t * t * t,
-	easeOutQuart  : (t: number) => 1 - Math.pow(1 - t, 4),
-	easeInOutQuart: (t: number) => t < 0.5
-		? 8 * t * t * t * t
-		: 1 - Math.pow(-2 * t + 2, 4) / 2,
-
-	// back (跳ねる)
-	easeOutBack: (t: number) => {
-		const c1 = 1.70158
-		const c3 = c1 + 1
-		return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
-	},
-
-	// bounce
-	easeOutBounce: (t: number) => {
-		const n1 = 7.5625
-		const d1 = 2.75
-
-		if (t < 1 / d1) {
-			return n1 * t * t
-		} else if (t < 2 / d1) {
-			return n1 * (t -= 1.5 / d1) * t + 0.75
-		} else if (t < 2.5 / d1) {
-			return n1 * (t -= 2.25 / d1) * t + 0.9375
-		} else {
-			return n1 * (t -= 2.625 / d1) * t + 0.984375
+app({
+	node,
+	init: [
+		{
+			tasks  : [] as RAFTask[],
+			message: ""
+		},
+		(dispatch: S) => {
+			const newTask = new RAFTask({
+				id      : "uniqueID",
+				duration: 2000,
+				action  : (state: S, task: RAFTask<S>) => {
+					return {
+						...state,
+						message: `progress = ${ task.progress }`
+					}
+				}
+			})
 		}
-	},
+	],
+	view,
+	subscription: (state: S) => [
+		subscription_RAFManager(state, ["tasks"])
+	]
+})
+```
 
-	// elastic
-	easeOutElastic: (t: number) => {
-		const c4 = (2 * Math.PI) / 3
+`RAFTask` クラスの作成には、最低限次の項目を設定する必要があります
 
-		return t === 0
-			? 0
-			: t === 1
-			? 1
-			: Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1
+- id: タスク管理用のユニークIDを設定してください。DOMのIDとは関係ありません
+- duration: 実行時間をミリ秒で指定してください
+- action: 1フレームごとの処理内容を指定します。進捗状況は `RAFTask.progress` から取得できます
+
+---
+
+- effect_RAFProperties: RAFTask を利用して CSS プロパティをアニメーションする Effect
+
+> CSSProperty により、複数の CSS アニメーションを同時処理することが可能です
+
+例:
+```ts
+	const action = (state: S) => {
+		const property: CSSProperty = {
+			"button": {
+				"fontSize": (progress: number) => `${ 1 + 1 * progress }rem`,
+				"color"   : (progress: number) => `rgb(${ 255 * progress }, 0, 0)`
+			}
+		}
+
+		return [state, effect_RAFProperties({
+			id        : "uniqueID",
+			duration  : 1000,
+			properties: [ property ]
+		})]
 	}
-}
 ```
 
-## hyperapp-is/animationView
-
-### CarouselState
-Carousel コンポーネント情報  
-RAFTask.extension に保存されます
-
-```ts
-export interface CarouselState <S> {
-	id  : string
-	step: number
-
-	// option
-	groupID  ?: string
-	duration ?: number
-	delay    ?: number
-	priority ?: number
-	extension?: Record<string, any>
-
-	// event
-	action?: RAFEvent<S>
-	finish?: RAFEvent<S>
-
-	// animation
-	easing?: (t: number) => number
-
-	// report
-	reportPageIndex?: string[]
-}
-```
-基本的には `RAFTask` に準拠します  
-カルーセルを動作せるため `effect_InitCarousel` に渡すための値です  
-
-必須項目
-- id: `Carousel` コンポーネントの id を指定してください
-- step: 移動するアイテムの数で、負の数は逆回転。0 は停止となります
-
-拡張項目
-- easing: アニメーションの動作を指定する関数  
-指定しない場合は `(t: number) => t` (linear) となります
-
-- reportPagreIndex: 現在一番左端に表示されているアイテムのインデックスを受けるパス  
-コントロールバーを自作したい時などに利用できます
+> すべてのボタンに対して、1秒かけて文字サイズを拡大し、文字色を赤へ変化させるアニメーションのサンプルです
 
 ---
 
-### CarouselController
-外部から Carousel コンポーネントを操作するためのクラス  
-RAFTask.extension に保存されます
+**services**
 
+- GoogleAuth: Google Identity Services を利用した Google 認証クラス
+
+> ログインボタンを作成しない場合は、`new GoogleAuth({ clientId: "hoge" })` だけで利用できます\
+> インスタンス作成後、`initialize` を実行すると認証処理を開始します
+
+例
 ```ts
-export interface CarouselController <S> {
-	step  : (rafTask: RAFTask<S>, delta: number, skipSpeedRate?: number) => Promise <RAFTask<S>>
-	moveTo: (rafTask: RAFTask<S>, index: number, skipSpeedRage?: number) => Promise <RAFTask<S>>
-}
-```
-
-- step: `delta` で指定した方向にページを移動します (相対値)  
-スキップ時のスピードは、変更前の `duration` に `skipSpeedRate` を乗じたものになります  
-終了時に処理を割り込ませたい場合は、`Promsie` により処理します
-
-- moveTo: `index` で指定したページに移動します (絶対値)  
-スキップ時のスピードは、変更前の `duration` に `skipSpeedRate` を乗じたものになります  
-終了時に処理を割り込ませたい場合は、`Promsie` により処理します
-
-### Carousel
-カルーセルコンポーネントです  
-`CarouselState` を引数に `effect_InitCarousel` を実行することで動作開始します  
-`subscription_RAFManager` を使用するので、予め `subscriptions` に追加してください
-
-```ts
-export const Carousel = function <S> (
-	props: {
-		state         : S
-		id            : string
-		keyNames      : string[]
-		controlButton?: boolean
-		controlBar   ?: boolean
-		skipSpeedRate?: number
-		[key: string] : any
-	},
-	children: any
-): VNode<S>
-```
-
-- state        : ステート
-- id           : ユニークID (DOM の id)
-- keyNames     : RAFTask 配列までのパス
-- controlButton: 操作ボタンを表示するか (未実装)
-- controlBar   : 操作バーを表示するか
-- skipSpeedRate: スキップ時の動作速度
-
-### effect_InitCarousel
-カルーセルを初期化し起動するエフェクト
-
-```ts
-export const effect_InitCarousel = function <S> (
-	keyNames     : string[],
-	carouselState: CarouselState<S>
-): (dispatch: Dispatch<S>) => void
-```
-
-- keyNames     : RAFTask 配列までのパス
-- carouselState: カルーセルの動作設定
-
-## hyperapp-is/dom
-
-### ScrollMargin
-スクロールの余白を管理するオブジェクト
-
-```ts
-export interface ScrollMargin {
-	top   : number
-	left  : number
-	right : number
-	bottom: number
-}
-```
-
-- top   : 上までの余白
-- left  : 左までの余白
-- right : 右までの余白
-- bottom: 下までの余白
-
----
-
-### getScrollMargin
-スクロールの余白を取得
-
-```ts
-export const getScrollMargin = function (e: Event): ScrollMargin
-```
-
-- e: イベント
-
----
-
-### MatrixState
-transform 情報
-
-```ts
-export interface MatrixState {
-	translate: {
-		x: number
-		y: number
-		z: number
-	}
-
-	scale: {
-		x: number
-		y: number
-		z: number
-	}
-
-	// radian
-	rotate: {
-		x: number
-		y: number
-		z: number
-	}
-}
-```
-
----
-
-### getMatrixState
-DOM から transfrom 情報を取得する
-
-```ts
-export const getMatrixState = (
-	dom: HTMLElement
-): MatrixState | null
-```
-
-- dom : 情報を取得する DOM
-
----
-
-### effect_setTimedValue
-ステートに存在時間制限付きの値を設定
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const effect_setTimedValue = function <S, T> (
-	keyNames: string[],
-	id      : string,
-	timeout : number,
-	value   : T,
-	reset   : T | null = null
-): (dispatch: Dispatch<S>) => void
-```
-
-- keyNames: 値までのパス
-- id      : ユニークID
-- timeout : 存在可能時間 (ms)
-- value   : 一時的に設定する値
-- reset   : タイムアウト後に設定する値
-
----
-
-### effect_nodesInitialize
-VNode マウント後の初期化処理を実行
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const effect_nodesInitialize = function <S> (
-	nodes: {
-		id   : string
-		event: (state: S, element: Element) => S | [S, Effect<S>]
-	}[]
-): (dispatch: Dispatch<S>) => void
-```
-
-- nodes      : 初期化対象ノード定義配列
-- nodes.id   : ユニークID
-- nodes.event: 初期化イベント
-
----
-
-### subscription_nodesCleanup
-DOM 消失時にクリーンアップ処理を実行
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const subscription_nodesCleanup = function <S>(
-	nodes: {
-		id      : string
-		finalize: (state: S) => S | [S, Effect<S>]
-	}[]
-): Subscription<S>[]
-```
-
-- nodes         : クリーンアップ対象ノード定義配列
-- nodes.id      : ユニークID
-- nodes.finalize: 終了時イベント
-
----
-
-### subscription_nodesLifecycleByIds
-ステート上の ID 配列変化に応じて initialize / finalize を自動管理
-
-*実験用コードのため、npm 非公開です*
-
-```ts
-export const subscription_nodesLifecycleByIds = function <S> (
-	keyNames: string[],
-	nodes: {
-		id        : string
-		initialize: (state: S, element: Element | null) => S | [S, Effect<S>]
-		finalize  : (state: S, element: Element | null) => S | [S, Effect<S>]
-	}[]
-): Subscription<S>[]
-```
-
-- keyNames        : 文字配列までのパス
-- nodes           : 監視対象ノード定義配列
-- nodes.id        : ユニークID
-- nodes.initialize: 初期化イベント
-- nodes.finalize  : 終了時イベント
-
----
-
-### getGoogle
-Google GIS 変数を取得する
-
-```ts
-export const getGoogle = async (): Promise<Google>
-```
-
-`<script src="https://accounts.google.com/gsi/client">` を読み込み、`window.google`の値（Promise結果）返却  
-
----
-
-### getGoogleAuthResult
-ユーザートークンから、ユーザー情報を取得する
-
-```ts
-export const getGoogleAuthResult = (idToken: string): GoogleAuthResult
----
-
-### getAccessToken
-Googleのaccess token を取得
-
-```ts
-export const getAccessToken = (config: GetAccessTokenConfig): Promise<string>
-```
-
-```ts
-export interface GetAccessTokenConfig {
-	clientId: string
-	scope   : GoogleScope[]
-	prompt ?: "none" | "select_account" | "consent" // default: "select_account"
-}
-```
-
-- clientId: アプリケーションのID
-- scope   : スコープの配列
-- prompt ?: ログイン制御 `none` の場合、先にログインしていなければエラーとなります
-
----
-
-### GoogleAuth
-Google 認証をラップしたクラス
-
-```ts
-interface GoogleAuthConfig {
-	clientId   : string
-	autoSelect?: boolean              // default: true
-	uxMode    ?: "popup" | "redirect" // default: "popup"
+const config: GoogleAuthConfig = {
+	clientId: "your google api key"
 }
 
-interface GoogleButtonOptions {
-	renderButton?: HTMLElement
-	theme       ?: "outline" | "filled_blue" | "filled_black"      // default: outline
-	size        ?: "large" | "medium" | "small"                    // default: medium
-	text        ?: "signin_with" | "signup_with" | "continue_with" // default: signin_with
-	shape       ?: "rectangular" | "pill" | "circle" | "square"    // default: rectangular
+const option: GoogleButtonOption = {
+	renderButton: document.querySelector("article")
 }
 
-interface GoogleAuthResult {
-	idToken: string
-	user   : GoogleUser
-}
+const auth = new GoogleAuth(config, option)
 
-interface GoogleUser {
-	name   : string
-	email  : string
-	picture: string
-	sub    : string
-}
+auth.initialize().then((res: GoogleAuthResult) => {
+	const idToken = res.idToken
+	const user = res.user
+
+	alert("ログイン成功")
+})
+
 ```
-
-```ts
-class GoogleAuth {
-	constructor (config: GoogleAuthConfig, option?: GoogleButtonOptions)
-	async initialize(): Promise<GoogleAuthResult | null>
-	logout (hit: string): void
-}
-```
-
-*MEMO*
-必ず一度だけ `initialize` を実行します  
-プロンプトがスキップされた場合 `null` が返ります  
-`logout` を実行したあとであれば `initialize` を再実行することが可能です  
-`logout` 前に 2度 `initialize` を実行した場合は、エラーが発生します  
-`logout` の `hit` は `email' か 'sub` を指定する必要があります
-

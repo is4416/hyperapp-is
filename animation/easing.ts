@@ -1,9 +1,7 @@
-// hyperapp-is / animation / easing.ts
-
-// ---------- ---------- ---------- ---------- ----------
-// progress_easing
-// ---------- ---------- ---------- ---------- ----------
-
+/**
+ * RAFTask.progress に適用する
+ * イージング関数集
+ */
 export const progress_easing = {
 
 	// basic

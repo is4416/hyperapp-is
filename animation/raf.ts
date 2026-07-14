@@ -1,39 +1,23 @@
-// hyperapp-is / animation / raf.ts
-
 // ---------- ---------- ---------- ---------- ----------
-// interface
+// import
 // ---------- ---------- ---------- ---------- ----------
 
-import { Dispatch, Effect, Subscription } from "hyperapp"
-import {
-	Keys_ArrayRAFTask,
-	getValue, setValue
-} from "../core/state"
+// hyperapp
+import type { Dispatch, Effect, Subscription } from "hyperapp"
+
+// hyperapp-is
+import { getValue, setValue } from "../core/state"
 
 // ---------- ---------- ---------- ---------- ----------
-// type InternalEffect
+// exports
 // ---------- ---------- ---------- ---------- ----------
 
-/**
- * 戻値としては返されないことを示したエフェクト
- * Effect の型エイリアス
- */
+export type { RAFEvent }
 
-export type InternalEffect<S> = Effect<S>
+export { RAFTask, subscription_RAFManager }
 
 // ---------- ---------- ---------- ---------- ----------
-// type RAFEvent
-// ---------- ---------- ---------- ---------- ----------
-
-/**
- * RAFTask の action, finish
- * 型エイリアス
- */
-
-export type RAFEvent<S> = (state: S, rafTask: RAFTask<S>) => S | [S, InternalEffect<S>]
-
-// ---------- ---------- ---------- ---------- ----------
-// class RAFTask
+// implementation
 // ---------- ---------- ---------- ---------- ----------
 
 // Symbol
@@ -42,12 +26,20 @@ export type RAFEvent<S> = (state: S, rafTask: RAFTask<S>) => S | [S, InternalEff
 
 const _isStart = Symbol("RAFTask.isStart")
 
-export class RAFTask <S> {
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * RAFTask の action, finish
+ * 型エイリアス
+ */
+type RAFEvent<S> = (state: S, rafTask: RAFTask<S>) => S | [S, Effect<S>]
 
-	// ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * requestAnimationFrame を利用して実行する、タスクを管理するクラス
+ */
+class RAFTask <S> {
+
 	// field
-	// ---------- ---------- ----------
-
 	#id        : string
 	#groupID  ?: string
 	#duration  : number
@@ -66,10 +58,7 @@ export class RAFTask <S> {
 
 	#isDone: boolean
 
-	// ---------- ---------- ----------
 	// constructor
-	// ---------- ---------- ----------
-
 	constructor (props: {
 		id        : string
 		groupID  ?: string
@@ -92,10 +81,7 @@ export class RAFTask <S> {
 		this.#paused    = false
 	}
 
-	// ---------- ---------- ----------
 	// getter
-	// ---------- ---------- ----------
-
 	get id()         : string { return this.#id }
 	get groupID()    : string | undefined { return this.#groupID }
 	get duration()   : number { return this.#duration }
@@ -123,10 +109,7 @@ export class RAFTask <S> {
 	}
 	get paused()   : boolean { return this.#paused }
 
-	// ---------- ---------- ----------
 	// setter
-	// ---------- ---------- ----------
-
 	set groupID(val: string | undefined) { this.#groupID = val }
 	set priority(val: number) { this.#priority = val }
 	set extension(val: Record<string, any>) { this.#extension = val}
@@ -136,13 +119,11 @@ export class RAFTask <S> {
 	// ---------- ---------- ----------
 	// private method: _isStart
 	// ---------- ---------- ----------
-
 	/**
 	 * アクションを開始して良いか判定する
 	 * 現在時間等のアップデートも同時に行われる
 	 * subscription_RAFManager でのみ使用される
 	 */
-
 	private [_isStart](now: number): boolean {
 		// done
 		if (this.isDone) return false
@@ -180,11 +161,9 @@ export class RAFTask <S> {
 	// ---------- ---------- ----------
 	// method: clone
 	// ---------- ---------- ----------
-
 	/**
 	 * 時間を初期化したクローンを作成して返す
 	 */
-
 	clone(): RAFTask<S> {
 		return new RAFTask<S> ({
 			id       : this.id,
@@ -200,16 +179,13 @@ export class RAFTask <S> {
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// subscription_RAFManager
-// ---------- ---------- ---------- ---------- ----------
-
 /**
  * RAFTask 配列の実行を管理するサブスクリプション
+ * keyNames には、RAFTask[] までのパスを指定する
  */
-
-export const subscription_RAFManager = function <S>(
+const subscription_RAFManager = function <S>(
 	state   : S,
-	keyNames: Keys_ArrayRAFTask
+	keyNames: string[]
 ): Subscription<S> {
 	let rID = 0 // rAF timerID
 
@@ -220,10 +196,7 @@ export const subscription_RAFManager = function <S>(
 				if (rID !== 0) cancelAnimationFrame(rID)
 			}
 
-			// ---------- ---------- ----------
 			// rAF callback
-			// ---------- ---------- ----------
-
 			const loop = (now: number) => {
 				dispatch((state: S) => {
 					const tasks = getValue(state, keyNames, [] as RAFTask<S>[])

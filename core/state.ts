@@ -1,28 +1,21 @@
-// hyperapp-is / core / state.ts
-
 // ---------- ---------- ---------- ---------- ----------
-// type Keys
+// exports
 // ---------- ---------- ---------- ---------- ----------
 
-export type Keys               = readonly string[]
-export type Keys_String        = Keys
-export type Keys_ArrayString   = Keys
-export type Keys_Number        = Keys
-export type Keys_ArrayNumber   = Keys
-export type Keys_ArrayRAFTask  = Keys
-export type Keys_NavigatorItem = Keys
+export {
+	getValue, setValue,
+	getLocalState, setLocalState, createLocalKey
+}
 
 // ---------- ---------- ---------- ---------- ----------
-// getValue
+// implementation
 // ---------- ---------- ---------- ---------- ----------
-
 /**
- * パスを辿って、ステートから値を取得する
+ * state の keyNames をたどって値を取得する
  */
-
-export const getValue = function <S, D> (
+const getValue = function <S, D> (
 	state   : S,
-	keyNames: Keys,
+	keyNames: string[],
 	def     : D
 ): D {
 	let result = state as any
@@ -44,16 +37,12 @@ export const getValue = function <S, D> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// setValue
-// ---------- ---------- ---------- ---------- ----------
-
 /**
- * パスを辿って、ステートに値を設定して返す
+ * state の keyNames をたどって値を設定する
  */
-
-export const setValue = function <S> (
+const setValue = function <S> (
 	state   : S,
-	keyNames: Keys,
+	keyNames: string[],
 	value   : any
 ): S {
 	let result = { ...state } as any
@@ -83,24 +72,16 @@ export const setValue = function <S> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// createLocalKey
-// ---------- ---------- ---------- ---------- ----------
-
 /**
- * IDからユニーク文字列を作成する
+ * ユニーク文字を作成する
  */
-
-export const createLocalKey = (id: string): string => `local_key_${ id }`
+const createLocalKey = (id: string): string => `local_key_${ id }`
 
 // ---------- ---------- ---------- ---------- ----------
-// getLocalState
-// ---------- ---------- ---------- ---------- ----------
-
 /**
- * ステートから、ローカルステートを取得する
+ * state にぶら下げられたローカルステートを取得する
  */
-
-export const getLocalState = function <S, T> (
+const getLocalState = function <S, T> (
 	state: S,
 	id   : string,
 	def  : T
@@ -117,14 +98,10 @@ export const getLocalState = function <S, T> (
 }
 
 // ---------- ---------- ---------- ---------- ----------
-// setLocalState
-// ---------- ---------- ---------- ---------- ----------
-
 /**
- * ローカルステートを更新してステートを返す
+ * state にローカルステートをぶら下げる
  */
-
-export const setLocalState = function <S, T> (
+const setLocalState = function <S, T> (
 	state: S,
 	id   : string,
 	value: T
