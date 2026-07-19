@@ -5,7 +5,7 @@ export { effect_toast } from "./core/effects"
 
 // dom
 export type { ScrollMargin } from "./dom/utils"
-export { getScrollMargin } from "./dom/utils"
+export { d, css, getScrollMargin } from "./dom/utils"
 export { withLoadingDialog } from "./dom/dialog"
 
 // animation

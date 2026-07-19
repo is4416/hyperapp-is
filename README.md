@@ -40,7 +40,7 @@ index.ts: エクスポートの一覧
 - effects  : effect_toast
 
 **dom**
-- utils : getScrollMargin
+- utils : d, css, getScrollMargin
 - dialog: withLoadingDialog
 
 **animation**
@@ -205,6 +205,52 @@ const action = (state: S) => {
 ---
 
 **dom**
+
+- d: DOM 作成用のラッパー
+
+> HTMLElement を作成し、プロパティの設定・子ノードの追加・親ノードへの追加をまとめて行います
+
+引数
+- parent    : 親ノードを指定した場合、作成した要素を追加します
+- tag       : タグ名
+- properties: プロパティ
+- children  : 子ノードまたは文字列等
+
+---
+
+- css: DOM へ CSS を設定するラッパー
+
+> 要素に複数の CSS スタイルをまとめて設定します
+
+例: d, css
+```ts
+// create dom tree
+const header = d(null, "header", {}, "ヘッダー")
+const div    = d(null, "div", {}, "body", "コンテンツ")
+const dialog = d(document.body, "dialog", { id: "dialogWindow" },
+	header,
+	div
+)
+
+// set style
+css(dialog, {
+	margin      : "auto auto",
+	maxWidth    : "90vw",
+	borderRadius: "1rem"
+})
+css(header, {
+	position: "sticky",
+	top     : "0"
+})
+css(div, {
+	overflow: "auto"
+})
+
+// dialog 表示
+dialog.showModal()
+```
+
+---
 
 - getScrollMargin: スクロール状態を取得
 

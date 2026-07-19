@@ -4,7 +4,10 @@
 
 export type { ScrollMargin }
 
-export { getScrollMargin }
+export {
+	d, css,
+	getScrollMargin
+}
 
 // ---------- ---------- ---------- ---------- ----------
 // implementation
@@ -17,6 +20,46 @@ interface ScrollMargin {
 	left  : number
 	right : number
 	bottom: number
+}
+
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * DOM 作成用のラッパー
+ */
+const d = (
+	parent      : HTMLElement | null,
+	tag         : string,
+	properties ?: Record<string,      string>,
+	...children : any[]
+): HTMLElement => {
+	const result = document.createElement(tag)
+
+	Object.entries(properties ?? {}).forEach(([key, val]) =>
+		result.setAttribute(key, val)
+	)
+
+	children.forEach(child => {
+		if (child == null) return
+		child instanceof Node
+			? result.appendChild(child)
+			: result.appendChild(document.createTextNode(`${ child }`))
+	})
+
+	if (parent) parent.appendChild(result)
+
+	return result
+}
+
+// ---------- ---------- ---------- ---------- ----------
+/**
+ * DOM へ style を設定するラッパー
+ */
+const css = (
+	element: HTMLElement,
+	styles : Partial<CSSStyleDeclaration>
+): HTMLElement => {
+	Object.assign(element.style, styles)
+	return element
 }
 
 // ---------- ---------- ---------- ---------- ----------
